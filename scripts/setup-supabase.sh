@@ -1,5 +1,4 @@
 #!/bin/bash
-# Exécute toutes les migrations Supabase dans l'ordre
 set -e
 echo "🗄️  Application des migrations Supabase..."
 for migration in supabase/migrations/*.sql; do

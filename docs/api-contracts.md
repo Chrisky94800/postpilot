@@ -73,12 +73,38 @@
 }
 ```
 
+### POST /webhook/linkedin-connect
+**Request :**
+```json
+{
+  "organization_id": "uuid",
+  "api_key": "string"
+}
+```
+**Response (200) :**
+```json
+{
+  "success": true,
+  "oauth_url": "https://www.linkedin.com/oauth/v2/authorization?..."
+}
+```
+
+## Edge Function : linkedin-oauth-callback
+
+Appelée par LinkedIn après l'autorisation OAuth. PAS appelée par le frontend.
+
+**URL** : `https://{supabase-url}/functions/v1/linkedin-oauth-callback`
+**Query params** : `?code=xxx&state=organization_id`
+
+**Action** :
+1. Échange le code contre access_token + refresh_token
+2. Fetch le profil LinkedIn
+3. Upsert dans table platforms
+4. Redirige vers l'app PostPilot
+
 ## Supabase Realtime
 
 ### Channel : notifications
-Le frontend subscribe au channel `notifications` filtré par `organization_id`.
-Chaque INSERT dans la table `notifications` trigger un événement Realtime.
-
 ```typescript
 supabase
   .channel('notifications')
