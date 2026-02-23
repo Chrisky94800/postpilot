@@ -1,0 +1,292 @@
+{
+  "name": "[PostPilot] 03 - Publication programmée",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Schedule - Every 5 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-posts",
+      "name": "Supabase - Get Posts to Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/posts?status=eq.approved&scheduled_at=lte.{{ new Date().toISOString() }}&deleted_at=is.null&select=id,content,organization_id,created_by,platform_type&order=scheduled_at.asc&limit=20",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "split-posts",
+      "name": "Code - Split Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "jsCode": "// Split Supabase array response into individual n8n items\nconst posts = Array.isArray($json) ? $json : [];\nif (posts.length === 0) return [];\nreturn posts.map(post => ({ json: post }));"
+      }
+    },
+    {
+      "id": "get-token",
+      "name": "Supabase - Get LinkedIn Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/platforms?organization_id=eq.{{ $json.organization_id }}&platform_type=eq.linkedin&select=id,oauth_tokens,token_expires_at,platform_user_id,is_active",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "build-linkedin-payload",
+      "name": "Code - Build LinkedIn Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "jsCode": "// Merge post data (from split node) with token data (from get-token)\nconst post = $('Code - Split Posts').item.json;\nconst platforms = $json; // array from get-token\n\n// Check if platform exists and is active\nif (!Array.isArray(platforms) || platforms.length === 0) {\n  return [{ json: { ...post, tokenError: true, tokenErrorMsg: 'No LinkedIn account connected for this organization' } }];\n}\n\nconst platform = platforms[0];\n\nif (!platform.is_active) {\n  return [{ json: { ...post, tokenError: true, tokenErrorMsg: 'LinkedIn account is inactive' } }];\n}\n\n// Check token expiry\nconst expiresAt = new Date(platform.token_expires_at);\nif (expiresAt <= new Date()) {\n  return [{ json: { ...post, tokenError: true, tokenErrorMsg: 'LinkedIn access token expired' } }];\n}\n\nconst tokens = platform.oauth_tokens;\nconst accessToken = tokens.access_token;\n\n// Build author URN\nconst authorUrn = platform.platform_user_id || `urn:li:person:${tokens.linkedin_person_id}`;\n\n// Build LinkedIn ugcPosts body\nconst linkedinBody = {\n  author: authorUrn,\n  lifecycleState: 'PUBLISHED',\n  specificContent: {\n    'com.linkedin.ugc.ShareContent': {\n      shareCommentary: { text: post.content },\n      shareMediaCategory: 'NONE'\n    }\n  },\n  visibility: {\n    'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'\n  }\n};\n\nreturn [{ json: { ...post, tokenError: false, accessToken, authorUrn, linkedinBody: JSON.stringify(linkedinBody) } }];"
+      }
+    },
+    {
+      "id": "check-token",
+      "name": "IF - Token Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-token",
+              "leftValue": "={{ $json.tokenError }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "linkedin-publish",
+      "name": "LinkedIn API - Publish Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 180],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/ugcPosts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.accessToken }}" },
+            { "name": "X-Restli-Protocol-Version", "value": "2.0.0" },
+            { "name": "LinkedIn-Version", "value": "202402" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ $json.linkedinBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "check-publish-ok",
+      "name": "IF - Publish OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, 180],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cond-publish",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "notify-published",
+      "name": "webhook-from-n8n - post_published",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 60],
+      "parameters": {
+        "method": "POST",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_published', post_id: $('Code - Build LinkedIn Payload').item.json.id, platform_post_id: $json.id, published_at: new Date().toISOString() }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "notify-failed-api",
+      "name": "webhook-from-n8n - post_failed (API error)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_failed', post_id: $('Code - Build LinkedIn Payload').item.json.id, error_message: $json.message || ('LinkedIn API error - status: ' + ($json.status || 'unknown')) }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "notify-token-expired",
+      "name": "webhook-from-n8n - token_expired",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'token_expired', organization_id: $json.organization_id, platform_type: 'linkedin' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "notify-failed-token",
+      "name": "webhook-from-n8n - post_failed (token error)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_failed', post_id: $json.id, error_message: $json.tokenErrorMsg || 'LinkedIn token invalid or expired' }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Schedule - Every 5 min": {
+      "main": [[{ "node": "Supabase - Get Posts to Publish", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get Posts to Publish": {
+      "main": [[{ "node": "Code - Split Posts", "type": "main", "index": 0 }]]
+    },
+    "Code - Split Posts": {
+      "main": [[{ "node": "Supabase - Get LinkedIn Token", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get LinkedIn Token": {
+      "main": [[{ "node": "Code - Build LinkedIn Payload", "type": "main", "index": 0 }]]
+    },
+    "Code - Build LinkedIn Payload": {
+      "main": [[{ "node": "IF - Token Valid?", "type": "main", "index": 0 }]]
+    },
+    "IF - Token Valid?": {
+      "main": [
+        [{ "node": "LinkedIn API - Publish Post", "type": "main", "index": 0 }],
+        [{ "node": "webhook-from-n8n - token_expired", "type": "main", "index": 0 }]
+      ]
+    },
+    "LinkedIn API - Publish Post": {
+      "main": [[{ "node": "IF - Publish OK?", "type": "main", "index": 0 }]]
+    },
+    "IF - Publish OK?": {
+      "main": [
+        [{ "node": "webhook-from-n8n - post_published", "type": "main", "index": 0 }],
+        [{ "node": "webhook-from-n8n - post_failed (API error)", "type": "main", "index": 0 }]
+      ]
+    },
+    "webhook-from-n8n - token_expired": {
+      "main": [[{ "node": "webhook-from-n8n - post_failed (token error)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

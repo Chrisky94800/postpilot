@@ -77,7 +77,7 @@ export default function Calendar() {
         .select('*')
         .eq('organization_id', organizationId!)
         .is('deleted_at', null)
-        .in('status', ['approved', 'scheduled', 'published'])
+        .in('status', ['pending_review', 'approved', 'scheduled', 'published'])
         .gte('scheduled_at', startOfMonth.toISOString())
         .lte('scheduled_at', endOfMonth.toISOString())
         .order('scheduled_at', { ascending: true })
