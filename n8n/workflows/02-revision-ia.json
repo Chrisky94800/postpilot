@@ -1,0 +1,197 @@
+{
+  "name": "[PostPilot] 02 - Révision IA",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook - revise-post",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "revise-post",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "postpilot-api-key",
+          "name": "PostPilot API Key"
+        }
+      }
+    },
+    {
+      "id": "get-post",
+      "name": "Supabase - Get Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/posts?id=eq.{{ $json.body.post_id }}&select=id,content,organization_id,title",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "get-brand-profile",
+      "name": "Supabase - Get Brand Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $('Supabase - Get Post').item.json[0].organization_id }}&select=tone,keywords,keywords_avoid&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "get-max-version",
+      "name": "Supabase - Get Max Version",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/post_versions?post_id=eq.{{ $('Webhook - revise-post').item.json.body.post_id }}&select=version_number&order=version_number.desc&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "build-prompt",
+      "name": "Code - Build Revision Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "jsCode": "const webhookBody = $('Webhook - revise-post').item.json.body;\nconst post = $('Supabase - Get Post').item.json[0];\nconst bp   = $('Supabase - Get Brand Profile').item.json[0] || {};\n\nconst feedback = webhookBody.feedback || '';\nconst scope    = webhookBody.scope || 'full';\n\n// Scope instruction\nconst scopeInstructions = {\n  full:     'Révise entièrement le post en appliquant le feedback.',\n  opening:  'Modifie UNIQUEMENT l\\'accroche (première ligne). Garde le reste strictement identique.',\n  closing:  'Modifie UNIQUEMENT la conclusion et le CTA. Garde le reste strictement identique.',\n  tone:     'Ajuste UNIQUEMENT le ton sans changer la structure ni le contenu.',\n  length:   'Ajuste UNIQUEMENT la longueur (raccourcis ou allonges). Garde le sens identique.',\n  keywords: 'Intègre les mots-clés manquants naturellement. Garde la structure identique.'\n};\nconst scopeInstruction = scopeInstructions[scope] || scopeInstructions.full;\n\nconst tone = Array.isArray(bp.tone) ? bp.tone.join(', ') : (bp.tone || 'professionnel');\nconst keywords = Array.isArray(bp.keywords) ? bp.keywords.join(', ') : '';\nconst keywordsAvoid = Array.isArray(bp.keywords_avoid) ? bp.keywords_avoid.join(', ') : '';\n\nconst systemPrompt = `Tu es un expert en rédaction LinkedIn. Tu révises un post existant selon le feedback du client.\nTu respectes scrupuleusement le profil de marque et les instructions de révision.`;\n\nconst userPrompt = `Post actuel :\n${post.content}\n\nFeedback du client :\n${feedback}\n\nPortée de la révision :\n${scopeInstruction}\n\nProfil de marque (rappel) :\n- Ton : ${tone}\n- Mots-clés à intégrer : ${keywords || 'aucun spécifié'}\n- Mots-clés interdits : ${keywordsAvoid || 'aucun'}\n\nRévise le post. Retourne UNIQUEMENT le texte du post révisé, sans explication ni commentaire.`;\n\nreturn [{\n  json: {\n    systemPrompt,\n    userPrompt,\n    feedback,\n    model: 'claude-sonnet-4-6',\n    max_tokens: 1500\n  }\n}];"
+      }
+    },
+    {
+      "id": "call-claude",
+      "name": "Claude API - Revise",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $vars.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.model, max_tokens: $json.max_tokens, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "extract-content",
+      "name": "Code - Extract Revised Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "parameters": {
+        "jsCode": "const claudeResponse = $('Claude API - Revise').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourné aucun contenu');\n}\n\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId   = $('Webhook - revise-post').item.json.body.post_id;\nconst feedback = $('Code - Build Revision Prompt').item.json.feedback;\n\nreturn [{\n  json: { content, versionNumber, postId, feedback }\n}];"
+      }
+    },
+    {
+      "id": "notify-supabase",
+      "name": "Supabase - webhook-from-n8n",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_revised', post_id: $json.postId, content: $json.content, version_number: $json.versionNumber, feedback: $json.feedback }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ content: $('Code - Extract Revised Content').item.json.content, version_id: $('Supabase - webhook-from-n8n').item.json.action }) }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - revise-post": {
+      "main": [[{ "node": "Supabase - Get Post", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get Post": {
+      "main": [[{ "node": "Supabase - Get Brand Profile", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get Brand Profile": {
+      "main": [[{ "node": "Supabase - Get Max Version", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get Max Version": {
+      "main": [[{ "node": "Code - Build Revision Prompt", "type": "main", "index": 0 }]]
+    },
+    "Code - Build Revision Prompt": {
+      "main": [[{ "node": "Claude API - Revise", "type": "main", "index": 0 }]]
+    },
+    "Claude API - Revise": {
+      "main": [[{ "node": "Code - Extract Revised Content", "type": "main", "index": 0 }]]
+    },
+    "Code - Extract Revised Content": {
+      "main": [[{ "node": "Supabase - webhook-from-n8n", "type": "main", "index": 0 }]]
+    },
+    "Supabase - webhook-from-n8n": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "",
+    "timezone": "Europe/Paris"
+  },
+  "tags": [{ "name": "PostPilot" }]
+}

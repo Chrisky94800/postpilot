@@ -126,6 +126,10 @@ export default function PostEditor() {
         title: title || null,
         content,
         source_type: sourceType,
+        source_url: sourceType === 'url' ? sourceInput.trim() || null : null,
+        source_content: sourceType !== 'url' && sourceType !== 'manual'
+          ? sourceInput.trim() || null
+          : null,
         organization_id: organizationId!,
         platform_type: 'linkedin' as const,
         ...(status ? { status } : {}),
