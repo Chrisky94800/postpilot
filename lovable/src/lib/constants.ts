@@ -26,7 +26,7 @@ export const POST_STATUSES: Record<
   pending_review: {
     label: 'En attente',
     color: 'bg-amber-100 text-amber-700',
-    description: 'Généré par l'IA, en attente de validation',
+    description: "Généré par l'IA, en attente de validation",
   },
   approved: {
     label: 'Approuvé',
@@ -64,12 +64,12 @@ export const SOURCE_TYPES: Record<
   url: {
     label: 'URL / Article',
     icon: '🔗',
-    description: 'Inspirez-vous d'un article ou d'une page web',
+    description: "Inspirez-vous d'un article ou d'une page web",
   },
   vocal: {
     label: 'Message vocal',
     icon: '🎙️',
-    description: 'Dictez votre idée, l'IA la transcrit et rédige',
+    description: "Dictez votre idée, l'IA la transcrit et rédige",
   },
   document: {
     label: 'Document',
@@ -143,11 +143,11 @@ export const WEEK_DAYS: { value: string; label: string; short: string }[] = [
 export const MEMBER_ROLES: Record<MemberRole, { label: string; description: string }> = {
   owner: {
     label: 'Propriétaire',
-    description: 'Accès complet, gestion de l'abonnement',
+    description: "Accès complet, gestion de l'abonnement",
   },
   admin: {
     label: 'Administrateur',
-    description: 'Gestion de l'équipe et des paramètres',
+    description: "Gestion de l'équipe et des paramètres",
   },
   member: {
     label: 'Membre',

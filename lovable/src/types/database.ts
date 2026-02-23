@@ -56,7 +56,7 @@ export type FeedbackScope =
 
 // ─── Row types (lecture) ──────────────────────────────────────────────────────
 
-export interface Organization {
+export type Organization = {
   id: string
   name: string
   slug: string | null
@@ -69,7 +69,7 @@ export interface Organization {
   deleted_at: string | null
 }
 
-export interface OrganizationMember {
+export type OrganizationMember = {
   id: string
   organization_id: string
   user_id: string
@@ -77,7 +77,10 @@ export interface OrganizationMember {
   created_at: string
 }
 
-export interface BrandProfile {
+export type PostLength = 'short' | 'medium' | 'long'
+export type HashtagStrategy = 'none' | 'few' | 'medium' | 'many'
+
+export type BrandProfile = {
   id: string
   organization_id: string
   company_name: string | null
@@ -90,11 +93,19 @@ export interface BrandProfile {
   posting_frequency: number | null
   preferred_days: string[] | null
   preferred_time: string | null
+  // Sprint 1 extras
+  emoji_style: number
+  post_length: PostLength
+  signature: string | null
+  keywords_avoid: string[]
+  hashtags_preferred: string[]
+  hashtag_strategy: HashtagStrategy
+  ctas_preferred: string[]
   created_at: string
   updated_at: string
 }
 
-export interface Document {
+export type Document = {
   id: string
   organization_id: string
   title: string
@@ -107,7 +118,7 @@ export interface Document {
   deleted_at: string | null
 }
 
-export interface Platform {
+export type Platform = {
   id: string
   organization_id: string
   platform_type: PlatformType
@@ -127,7 +138,7 @@ export interface Platform {
   updated_at: string
 }
 
-export interface Post {
+export type Post = {
   id: string
   organization_id: string
   brand_profile_id: string | null
@@ -147,7 +158,7 @@ export interface Post {
   deleted_at: string | null
 }
 
-export interface PostVersion {
+export type PostVersion = {
   id: string
   post_id: string
   organization_id: string
@@ -158,7 +169,7 @@ export interface PostVersion {
   created_at: string
 }
 
-export interface PostAnalytics {
+export type PostAnalytics = {
   id: string
   post_id: string
   organization_id: string
@@ -173,7 +184,7 @@ export interface PostAnalytics {
   raw_data: Json | null
 }
 
-export interface PostFeedback {
+export type PostFeedback = {
   id: string
   post_id: string
   organization_id: string
@@ -183,7 +194,7 @@ export interface PostFeedback {
   created_at: string
 }
 
-export interface RssFeed {
+export type RssFeed = {
   id: string
   organization_id: string
   url: string
@@ -195,7 +206,7 @@ export interface RssFeed {
   created_at: string
 }
 
-export interface CalendarEvent {
+export type CalendarEvent = {
   id: string
   organization_id: string
   title: string
@@ -208,7 +219,7 @@ export interface CalendarEvent {
   updated_at: string
 }
 
-export interface Notification {
+export type Notification = {
   id: string
   organization_id: string
   user_id: string
@@ -227,109 +238,175 @@ export interface Database {
     Tables: {
       organizations: {
         Row: Organization
-        Insert: Omit<Organization, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: {
           id?: string
+          name: string
+          slug?: string | null
+          subscription_plan?: SubscriptionPlan
+          max_posts_per_month?: number
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
         }
         Update: Partial<Omit<Organization, 'id'>>
+        Relationships: []
       }
       organization_members: {
         Row: OrganizationMember
-        Insert: Omit<OrganizationMember, 'id' | 'created_at'> & {
+        Insert: {
           id?: string
+          organization_id: string
+          user_id: string
+          role?: MemberRole
           created_at?: string
         }
         Update: Partial<Pick<OrganizationMember, 'role'>>
+        Relationships: []
       }
       brand_profiles: {
         Row: BrandProfile
-        Insert: Omit<BrandProfile, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: {
           id?: string
+          organization_id: string
+          company_name?: string | null
+          industry?: string | null
+          description?: string | null
+          target_audience?: string | null
+          tone?: string[] | null
+          keywords?: string[] | null
+          example_posts?: string[] | null
+          posting_frequency?: number | null
+          preferred_days?: string[] | null
+          preferred_time?: string | null
+          emoji_style?: number
+          post_length?: PostLength
+          signature?: string | null
+          keywords_avoid?: string[]
+          hashtags_preferred?: string[]
+          hashtag_strategy?: HashtagStrategy
+          ctas_preferred?: string[]
           created_at?: string
           updated_at?: string
         }
         Update: Partial<Omit<BrandProfile, 'id' | 'organization_id'>>
+        Relationships: []
       }
       documents: {
         Row: Document
-        Insert: Omit<Document, 'id' | 'created_at' | 'embedding'> & {
+        Insert: {
           id?: string
+          organization_id: string
+          title: string
+          content?: string | null
+          file_url?: string | null
+          file_type?: string | null
+          file_size?: number | null
+          embedding?: number[] | null
           created_at?: string
+          deleted_at?: string | null
         }
         Update: Partial<Omit<Document, 'id' | 'organization_id'>>
+        Relationships: []
       }
       platforms: {
         Row: Platform
-        Insert: Omit<Platform, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: {
           id?: string
+          organization_id: string
+          platform_type: PlatformType
+          is_active?: boolean
+          connected_at?: string | null
+          oauth_tokens?: Platform['oauth_tokens']
+          token_expires_at?: string | null
+          platform_user_id?: string | null
+          platform_user_name?: string | null
+          platform_metadata?: Json | null
           created_at?: string
           updated_at?: string
         }
         Update: Partial<Omit<Platform, 'id' | 'organization_id'>>
+        Relationships: []
       }
       posts: {
         Row: Post
-        Insert: Omit<Post, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: {
           id?: string
+          organization_id: string
+          brand_profile_id?: string | null
+          title?: string | null
+          content: string
+          status?: PostStatus
+          source_type?: SourceType | null
+          source_url?: string | null
+          source_content?: string | null
+          scheduled_at?: string | null
+          published_at?: string | null
+          platform_type: PlatformType
+          platform_post_id?: string | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
         }
         Update: Partial<Omit<Post, 'id' | 'organization_id'>>
+        Relationships: []
       }
       post_versions: {
         Row: PostVersion
         Insert: Omit<PostVersion, 'id' | 'created_at'> & {
-          id?: string
-          created_at?: string
+          id?: string; created_at?: string
         }
-        Update: never
+        Update: Record<string, never>
+        Relationships: []
       }
       post_analytics: {
         Row: PostAnalytics
         Insert: Omit<PostAnalytics, 'id'> & { id?: string }
-        Update: never
+        Update: Record<string, never>
+        Relationships: []
       }
       post_feedback: {
         Row: PostFeedback
         Insert: Omit<PostFeedback, 'id' | 'created_at'> & {
-          id?: string
-          created_at?: string
+          id?: string; created_at?: string
         }
-        Update: never
+        Update: Record<string, never>
+        Relationships: []
       }
       rss_feeds: {
         Row: RssFeed
         Insert: Omit<RssFeed, 'id' | 'created_at'> & {
-          id?: string
-          created_at?: string
+          id?: string; created_at?: string
         }
         Update: Partial<Omit<RssFeed, 'id' | 'organization_id'>>
+        Relationships: []
       }
       calendar_events: {
         Row: CalendarEvent
         Insert: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'> & {
-          id?: string
-          created_at?: string
-          updated_at?: string
+          id?: string; created_at?: string; updated_at?: string
         }
         Update: Partial<Omit<CalendarEvent, 'id' | 'organization_id'>>
+        Relationships: []
       }
       notifications: {
         Row: Notification
         Insert: Omit<Notification, 'id' | 'created_at' | 'is_read'> & {
-          id?: string
-          created_at?: string
-          is_read?: boolean
+          id?: string; created_at?: string; is_read?: boolean
         }
         Update: Pick<Notification, 'is_read'>
+        Relationships: []
       }
     }
+    Views: Record<string, never>
     Functions: {
       is_member_of: { Args: { org_id: string }; Returns: boolean }
       is_admin_or_owner_of: { Args: { org_id: string }; Returns: boolean }
       is_owner_of: { Args: { org_id: string }; Returns: boolean }
     }
-    Enums: {}
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }

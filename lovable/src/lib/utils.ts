@@ -45,7 +45,7 @@ export function formatRelative(iso: string | null | undefined): string {
   for (const [ms, unit] of units) {
     if (abs < ms * 60 || unit === 'mois') {
       const value = Math.round(abs / ms)
-      if (value === 0) return 'à l'instant'
+      if (value === 0) return "à l'instant"
       const label = value > 1 && unit !== 'mois' ? `${unit}s` : unit
       return future ? `dans ${value} ${label}` : `il y a ${value} ${label}`
     }

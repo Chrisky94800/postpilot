@@ -1,457 +1,342 @@
-// PostPilot — Page Onboarding (wizard 4 étapes)
-// Sprint 1 : StepCompany → StepStyle → StepKeywords → StepExamples → Dashboard
+// PostPilot — Page Onboarding (wizard 4 étapes) — Sprint 1
+// StepCompany → StepStyle → StepKeywords → StepExamples → Dashboard
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Linkedin, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { TONE_OPTIONS, INDUSTRIES } from '@/lib/constants'
+import { StepCompany }  from '@/components/onboarding/StepCompany'
+import { StepStyle }    from '@/components/onboarding/StepStyle'
+import { StepKeywords } from '@/components/onboarding/StepKeywords'
+import { StepExamples } from '@/components/onboarding/StepExamples'
+import type { StepCompanyData }   from '@/components/onboarding/StepCompany'
+import type { StepStyleData }     from '@/components/onboarding/StepStyle'
+import type { StepKeywordsData }  from '@/components/onboarding/StepKeywords'
+import type { StepExamplesData }  from '@/components/onboarding/StepExamples'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Wizard state ─────────────────────────────────────────────────────────────
 
-interface OnboardingData {
-  // Étape 1 — Entreprise
-  company_name: string
-  industry: string
-  description: string
-  target_audience: string
-  // Étape 2 — Style
-  tone: string[]
-  posting_frequency: number
-  // Étape 3 — Mots-clés
-  keywords: string[]
-  // Étape 4 — Exemples
-  example_posts: string[]
+interface WizardData {
+  company:  StepCompanyData
+  style:    StepStyleData
+  keywords: StepKeywordsData
+  examples: StepExamplesData
 }
 
-const INITIAL_DATA: OnboardingData = {
-  company_name: '',
-  industry: '',
-  description: '',
-  target_audience: '',
-  tone: [],
-  posting_frequency: 3,
-  keywords: [],
-  example_posts: [],
+const INITIAL: WizardData = {
+  company: {
+    company_name:    '',
+    description:     '',
+    industry:        '',
+    target_audience: '',
+  },
+  style: {
+    tone:        [],
+    emoji_style: 2,
+    post_length: 'medium',
+    signature:   '',
+  },
+  keywords: {
+    keywords:           [],
+    keywords_avoid:     [],
+    hashtags_preferred: [],
+    hashtag_strategy:   'medium',
+    ctas_preferred:     [],
+  },
+  examples: {
+    example_posts: ['', '', ''],
+    files:         [],
+  },
 }
-
-const STEPS = [
-  { id: 1, title: 'Votre entreprise', description: 'Parlez-nous de vous' },
-  { id: 2, title: 'Votre style', description: 'Comment vous exprimez-vous ?' },
-  { id: 3, title: 'Vos mots-clés', description: 'Vos sujets d'expertise' },
-  { id: 4, title: 'Exemples', description: 'Vos meilleurs posts passés' },
-]
 
 // ─── Étapes ───────────────────────────────────────────────────────────────────
 
-function StepCompany({
-  data,
-  onChange,
-}: {
-  data: OnboardingData
-  onChange: (updates: Partial<OnboardingData>) => void
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="company_name">Nom de votre entreprise *</Label>
-        <Input
-          id="company_name"
-          value={data.company_name}
-          onChange={(e) => onChange({ company_name: e.target.value })}
-          placeholder="Acme Consulting"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="industry">Secteur d'activité *</Label>
-        <select
-          id="industry"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          value={data.industry}
-          onChange={(e) => onChange({ industry: e.target.value })}
-        >
-          <option value="">Choisissez votre secteur</option>
-          {INDUSTRIES.map((ind) => (
-            <option key={ind} value={ind}>
-              {ind}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="description">Description de votre activité *</Label>
-        <Textarea
-          id="description"
-          value={data.description}
-          onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="Nous aidons les PME à optimiser leur stratégie commerciale…"
-          rows={3}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="target_audience">Votre audience cible</Label>
-        <Input
-          id="target_audience"
-          value={data.target_audience}
-          onChange={(e) => onChange({ target_audience: e.target.value })}
-          placeholder="Dirigeants de PME, DRH, responsables commerciaux…"
-        />
-      </div>
-    </div>
-  )
+const STEPS = [
+  { title: 'Votre entreprise',     subtitle: 'Parlez-nous de vous' },
+  { title: 'Votre style',          subtitle: 'Comment vous exprimez-vous ?' },
+  { title: 'Mots-clés & hashtags', subtitle: 'Guidez l\'IA' },
+  { title: 'Exemples & documents', subtitle: 'Affinez votre style' },
+]
+
+// ─── Validation par étape ─────────────────────────────────────────────────────
+
+function isStepValid(step: number, data: WizardData): boolean {
+  switch (step) {
+    case 1:
+      return (
+        data.company.company_name.trim().length > 0 &&
+        data.company.industry.length > 0 &&
+        data.company.description.trim().length > 0
+      )
+    case 2:
+      return data.style.tone.length > 0
+    default:
+      return true
+  }
 }
 
-function StepStyle({
-  data,
-  onChange,
-}: {
-  data: OnboardingData
-  onChange: (updates: Partial<OnboardingData>) => void
-}) {
-  const toggleTone = (value: string) => {
-    const current = data.tone
-    const updated = current.includes(value)
-      ? current.filter((t) => t !== value)
-      : current.length < 3
-      ? [...current, value]
-      : current
-    onChange({ tone: updated })
-  }
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Label className="text-base">
-          Choisissez jusqu'à 3 tons qui vous ressemblent *
-        </Label>
-        <p className="text-sm text-gray-500 mt-1 mb-3">
-          {data.tone.length}/3 sélectionnés
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {TONE_OPTIONS.map((t) => {
-            const selected = data.tone.includes(t.value)
-            return (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => toggleTone(t.value)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  selected
-                    ? 'bg-[#0077B5] text-white border-[#0077B5]'
-                    : 'border-gray-300 text-gray-700 hover:border-[#0077B5]'
-                }`}
-              >
-                {selected && <Check className="h-3 w-3 inline mr-1" />}
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>Fréquence de publication souhaitée</Label>
-        <div className="flex gap-3 flex-wrap">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onChange({ posting_frequency: n })}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                data.posting_frequency === n
-                  ? 'bg-[#0077B5] text-white border-[#0077B5]'
-                  : 'border-gray-300 text-gray-700 hover:border-[#0077B5]'
-              }`}
-            >
-              {n}×/semaine
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StepKeywords({
-  data,
-  onChange,
-}: {
-  data: OnboardingData
-  onChange: (updates: Partial<OnboardingData>) => void
-}) {
-  const [input, setInput] = useState('')
-
-  const addKeyword = () => {
-    const kw = input.trim()
-    if (kw && !data.keywords.includes(kw) && data.keywords.length < 15) {
-      onChange({ keywords: [...data.keywords, kw] })
-      setInput('')
-    }
-  }
-
-  const removeKeyword = (kw: string) => {
-    onChange({ keywords: data.keywords.filter((k) => k !== kw) })
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Ajoutez les mots-clés, sujets et expertises sur lesquels vous voulez vous positionner (max 15).
-      </p>
-      <div className="flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ex : transformation digitale, leadership…"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              addKeyword()
-            }
-          }}
-        />
-        <Button type="button" variant="outline" onClick={addKeyword}>
-          Ajouter
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {data.keywords.map((kw) => (
-          <Badge
-            key={kw}
-            variant="secondary"
-            className="cursor-pointer"
-            onClick={() => removeKeyword(kw)}
-          >
-            {kw} ×
-          </Badge>
-        ))}
-      </div>
-      {data.keywords.length === 0 && (
-        <p className="text-sm text-gray-400 italic">
-          Aucun mot-clé ajouté. L'IA s'adaptera à votre profil de marque.
-        </p>
-      )}
-    </div>
-  )
-}
-
-function StepExamples({
-  data,
-  onChange,
-}: {
-  data: OnboardingData
-  onChange: (updates: Partial<OnboardingData>) => void
-}) {
-  const [input, setInput] = useState('')
-
-  const addExample = () => {
-    const ex = input.trim()
-    if (ex && data.example_posts.length < 3) {
-      onChange({ example_posts: [...data.example_posts, ex] })
-      setInput('')
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Collez jusqu'à 3 de vos meilleurs posts LinkedIn passés. L'IA s'en
-        inspirera pour capter votre style naturel.
-      </p>
-      {data.example_posts.map((post, i) => (
-        <div key={i} className="relative p-3 border rounded-lg bg-gray-50 text-sm text-gray-700">
-          <p className="line-clamp-3">{post}</p>
-          <button
-            type="button"
-            className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xs"
-            onClick={() =>
-              onChange({
-                example_posts: data.example_posts.filter((_, idx) => idx !== i),
-              })
-            }
-          >
-            ×
-          </button>
-        </div>
-      ))}
-      {data.example_posts.length < 3 && (
-        <div className="space-y-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Collez ici le texte d'un post LinkedIn que vous aimez particulièrement…"
-            rows={4}
-          />
-          <Button type="button" variant="outline" onClick={addExample} disabled={!input.trim()}>
-            Ajouter cet exemple
-          </Button>
-        </div>
-      )}
-      {data.example_posts.length === 0 && !input && (
-        <p className="text-sm text-gray-400 italic">
-          Optionnel — vous pouvez compléter plus tard dans les paramètres.
-        </p>
-      )}
-    </div>
-  )
+function readTextFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(file)
+  })
 }
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function Onboarding() {
-  const [step, setStep] = useState(1)
-  const [data, setData] = useState<OnboardingData>(INITIAL_DATA)
-  const [saving, setSaving] = useState(false)
-  const { user } = useAuth()
-  const navigate = useNavigate()
+  const [step,           setStep]           = useState(1)
+  const [data,           setData]           = useState<WizardData>(INITIAL)
+  const [saving,         setSaving]         = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
 
-  const onChange = (updates: Partial<OnboardingData>) => {
-    setData((prev) => ({ ...prev, ...updates }))
-  }
+  const { user }     = useAuth()
+  const navigate     = useNavigate()
+  const queryClient  = useQueryClient()
 
-  const isStepValid = () => {
-    if (step === 1) {
-      return data.company_name.trim() && data.industry && data.description.trim()
-    }
-    if (step === 2) return data.tone.length > 0
-    return true
-  }
+  // ── Helpers de mise à jour partielle ──────────────────────────────────────
+
+  const patchCompany  = (p: Partial<StepCompanyData>)  => setData((d: WizardData) => ({ ...d, company:  { ...d.company,  ...p } }))
+  const patchStyle    = (p: Partial<StepStyleData>)    => setData((d: WizardData) => ({ ...d, style:    { ...d.style,    ...p } }))
+  const patchKeywords = (p: Partial<StepKeywordsData>) => setData((d: WizardData) => ({ ...d, keywords: { ...d.keywords, ...p } }))
+  const patchExamples = (p: Partial<StepExamplesData>) => setData((d: WizardData) => ({ ...d, examples: { ...d.examples, ...p } }))
+
+  // ── Sauvegarde finale ──────────────────────────────────────────────────────
 
   const handleFinish = async () => {
+    if (!user) return
     setSaving(true)
+
     try {
-      // 1. Créer l'organisation
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .insert({ name: data.company_name })
-        .select('id')
-        .single()
+      // 1. Créer l'organisation via RPC SECURITY DEFINER ────────────────────
+      // (contournement du bug auth.uid() NULL avec JWT ES256 sur nouveaux projets Supabase)
+      setUploadProgress('Création de votre espace…')
+
+      const { data: orgId, error: orgError } = await supabase
+        .rpc('create_my_organization', { p_name: data.company.company_name.trim() })
 
       if (orgError) throw orgError
+      const org = { id: orgId as string }
 
-      // 2. Créer le brand_profile
+      // 2. Insérer le profil de marque ───────────────────────────────────────
+      setUploadProgress('Enregistrement de votre profil…')
+      const examplePosts = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
+
       const { error: profileError } = await supabase
         .from('brand_profiles')
         .insert({
-          organization_id: org.id,
-          company_name: data.company_name,
-          industry: data.industry,
-          description: data.description,
-          target_audience: data.target_audience || null,
-          tone: data.tone,
-          keywords: data.keywords.length ? data.keywords : null,
-          example_posts: data.example_posts.length ? data.example_posts : null,
-          posting_frequency: data.posting_frequency,
+          organization_id:    org.id,
+          company_name:       data.company.company_name.trim(),
+          description:        data.company.description.trim(),
+          industry:           data.company.industry,
+          target_audience:    data.company.target_audience.trim() || null,
+          tone:               data.style.tone,
+          emoji_style:        data.style.emoji_style,
+          post_length:        data.style.post_length,
+          signature:          data.style.signature.trim() || null,
+          keywords:           data.keywords.keywords.length    ? data.keywords.keywords    : null,
+          keywords_avoid:     data.keywords.keywords_avoid,
+          hashtags_preferred: data.keywords.hashtags_preferred,
+          hashtag_strategy:   data.keywords.hashtag_strategy,
+          ctas_preferred:     data.keywords.ctas_preferred,
+          example_posts:      examplePosts.length ? examplePosts : null,
+          posting_frequency:  3,
         })
 
       if (profileError) throw profileError
 
-      toast.success('Votre profil de marque est prêt !')
+      // 3. Upload des documents + génération d'embeddings ────────────────────
+      const files = data.examples.files
+      if (files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i]
+          setUploadProgress(`Upload du document ${i + 1}/${files.length}…`)
+
+          // 3a. Upload dans Supabase Storage (bucket "documents")
+          const storagePath = `${org.id}/${Date.now()}-${file.name}`
+          const { error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(storagePath, file, { upsert: false })
+
+          if (uploadError) {
+            console.error('[onboarding] upload error', uploadError)
+            toast.warning(`"${file.name}" ignoré : ${uploadError.message}`)
+            continue
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(storagePath)
+
+          // 3b. Insérer la row documents
+          const { data: doc, error: docError } = await supabase
+            .from('documents')
+            .insert({
+              organization_id: org.id,
+              title:           file.name,
+              file_url:        urlData.publicUrl,
+              file_type:       file.type || 'application/octet-stream',
+              file_size:       file.size,
+            })
+            .select('id')
+            .single()
+
+          if (docError) {
+            console.error('[onboarding] document insert error', docError)
+            continue
+          }
+
+          // 3c. Embedding (TXT uniquement côté client — PDF/DOCX via page Documents)
+          if (file.type === 'text/plain') {
+            try {
+              const text = await readTextFile(file)
+              await supabase.functions.invoke('generate-embedding', {
+                body: { document_id: doc.id, text },
+              })
+            } catch (embErr) {
+              console.error('[onboarding] embedding error', embErr)
+              // Non bloquant : l'embedding peut être déclenché manuellement
+            }
+          }
+        }
+      }
+
+      // 4. Invalider le cache → ProtectedRoute se met à jour ────────────────
+      await queryClient.invalidateQueries({ queryKey: ['membership', user.id] })
+
+      toast.success('Votre profil de marque est configuré ! 🎉')
       navigate('/dashboard')
+
     } catch (err) {
-      toast.error((err as Error).message ?? 'Erreur lors de la configuration')
+      const msg = (err as Error).message ?? 'Erreur inattendue'
+      toast.error(msg)
+      console.error('[onboarding] handleFinish error', err)
     } finally {
       setSaving(false)
+      setUploadProgress('')
     }
   }
 
+  // ── Rendu ──────────────────────────────────────────────────────────────────
+
+  const valid    = isStepValid(step, data)
+  const stepInfo = STEPS[step - 1]
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex flex-col items-center justify-start pt-10 pb-16 px-4">
+
       {/* Logo */}
-      <div className="flex items-center gap-2.5 mb-8">
-        <div className="h-9 w-9 bg-[#0077B5] rounded-xl flex items-center justify-center">
+      <div className="flex items-center gap-2.5 mb-10">
+        <div className="h-9 w-9 bg-[#0077B5] rounded-xl flex items-center justify-center shadow-sm">
           <Linkedin className="h-4 w-4 text-white" />
         </div>
-        <span className="font-bold text-gray-900 text-xl">PostPilot</span>
+        <span className="font-bold text-gray-900 text-xl tracking-tight">PostPilot</span>
       </div>
 
       {/* Stepper */}
-      <div className="flex items-center gap-2 mb-8">
-        {STEPS.map((s, i) => (
-          <div key={s.id} className="flex items-center gap-2">
-            <div
-              className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                step > s.id
-                  ? 'bg-green-500 text-white'
-                  : step === s.id
-                  ? 'bg-[#0077B5] text-white'
-                  : 'bg-gray-200 text-gray-500'
-              }`}
-            >
-              {step > s.id ? <Check className="h-4 w-4" /> : s.id}
-            </div>
-            {i < STEPS.length - 1 && (
+      <nav className="flex items-center gap-1 mb-6" aria-label="Progression du wizard">
+        {STEPS.map((_s, i) => {
+          const idx     = i + 1
+          const done    = step > idx
+          const current = step === idx
+          return (
+            <div key={idx} className="flex items-center gap-1">
               <div
-                className={`h-0.5 w-8 ${step > s.id ? 'bg-green-500' : 'bg-gray-200'}`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Card */}
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle>{STEPS[step - 1].title}</CardTitle>
-          <CardDescription>{STEPS[step - 1].description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {step === 1 && <StepCompany data={data} onChange={onChange} />}
-          {step === 2 && <StepStyle data={data} onChange={onChange} />}
-          {step === 3 && <StepKeywords data={data} onChange={onChange} />}
-          {step === 4 && <StepExamples data={data} onChange={onChange} />}
-
-          <div className="flex justify-between mt-8">
-            <Button
-              variant="ghost"
-              onClick={() => setStep((s) => s - 1)}
-              disabled={step === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Précédent
-            </Button>
-
-            {step < 4 ? (
-              <Button
-                onClick={() => setStep((s) => s + 1)}
-                disabled={!isStepValid()}
-                className="bg-[#0077B5] hover:bg-[#005885]"
+                className={[
+                  'h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all',
+                  done    ? 'bg-green-500 text-white shadow-sm'                         : '',
+                  current ? 'bg-[#0077B5] text-white shadow-md ring-4 ring-blue-200'   : '',
+                  !done && !current ? 'bg-gray-200 text-gray-500'                       : '',
+                ].join(' ')}
+                aria-current={current ? 'step' : undefined}
               >
-                Suivant
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleFinish}
-                disabled={saving}
-                className="bg-[#0077B5] hover:bg-[#005885]"
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : null}
-                Terminer et accéder au dashboard
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                {done ? <Check className="h-4 w-4" /> : idx}
+              </div>
+              {i < STEPS.length - 1 && (
+                <div className={`h-0.5 w-10 transition-colors ${done ? 'bg-green-500' : 'bg-gray-200'}`} />
+              )}
+            </div>
+          )
+        })}
+      </nav>
 
-      <p className="text-xs text-gray-400 mt-6">
-        Étape {step} sur {STEPS.length}
+      {/* Sous-titre étape */}
+      <p className="text-xs text-gray-400 mb-6">
+        Étape {step}/{STEPS.length} — {stepInfo.subtitle}
       </p>
+
+      {/* Contenu */}
+      <div className="w-full max-w-2xl bg-white rounded-2xl border shadow-sm p-6 sm:p-8">
+
+        {step === 1 && <StepCompany  data={data.company}  onChange={patchCompany}  />}
+        {step === 2 && <StepStyle    data={data.style}    onChange={patchStyle}    />}
+        {step === 3 && <StepKeywords data={data.keywords} onChange={patchKeywords} />}
+        {step === 4 && <StepExamples data={data.examples} onChange={patchExamples} />}
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-8 pt-6 border-t">
+          <Button
+            variant="ghost"
+            onClick={() => setStep((s: number) => s - 1)}
+            disabled={step === 1 || saving}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Précédent
+          </Button>
+
+          {step < STEPS.length ? (
+            <Button
+              onClick={() => setStep((s: number) => s + 1)}
+              disabled={!valid}
+              className="bg-[#0077B5] hover:bg-[#005885] min-w-[120px]"
+            >
+              Suivant
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleFinish}
+              disabled={saving}
+              className="bg-[#0077B5] hover:bg-[#005885] min-w-[200px]"
+            >
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  {uploadProgress || 'Enregistrement…'}
+                </span>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Terminer et accéder au dashboard
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+
+        {/* Lien "Passer" pour les étapes optionnelles (3 et 4) */}
+        {(step === 3 || step === 4) && !saving && (
+          <p className="text-center mt-4">
+            <button
+              type="button"
+              className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+              onClick={() =>
+                step < STEPS.length ? setStep((s: number) => s + 1) : handleFinish()
+              }
+            >
+              Passer cette étape (vous pourrez compléter plus tard)
+            </button>
+          </p>
+        )}
+      </div>
     </div>
   )
 }

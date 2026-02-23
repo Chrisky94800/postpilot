@@ -13,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/hooks/useOrganization'
 import { POST_STATUSES } from '@/lib/constants'
@@ -70,7 +69,7 @@ export default function Calendar() {
   const startOfMonth = new Date(year, month, 1)
   const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59)
 
-  const { data: posts = [], isLoading } = useQuery({
+  const { data: posts = [] } = useQuery({
     queryKey: ['posts', organizationId, 'calendar', year, month],
     queryFn: async () => {
       const { data, error } = await supabase

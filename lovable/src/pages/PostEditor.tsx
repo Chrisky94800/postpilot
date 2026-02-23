@@ -6,7 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Loader2, Sparkles, Save, Send, Clock,
-  RotateCcw, ChevronDown, Linkedin,
+  RotateCcw, Linkedin,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -24,15 +24,11 @@ import { generatePost, revisePost } from '@/lib/api'
 import { useOrganization } from '@/hooks/useOrganization'
 import { POST_STATUSES, SOURCE_TYPES, FEEDBACK_SCOPES, LINKEDIN_POST_MAX_LENGTH } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import type { Post, PostVersion, FeedbackScope, SourceType } from '@/types/database'
+import type { Post, PostVersion, PostStatus, FeedbackScope, SourceType } from '@/types/database'
 
 // ─── Preview LinkedIn ─────────────────────────────────────────────────────────
 
 function LinkedInPreview({ content, userName }: { content: string; userName: string }) {
-  const lines = content.split('\n')
-  const preview = lines.slice(0, 3).join('\n')
-  const hasMore = lines.length > 3
-
   return (
     <div className="border rounded-xl p-4 bg-white shadow-sm">
       <div className="flex items-center gap-2 mb-3">
@@ -125,12 +121,13 @@ export default function PostEditor() {
 
   // Sauvegarde
   const { mutateAsync: savePost, isPending: saving } = useMutation({
-    mutationFn: async (status?: string) => {
+    mutationFn: async (status?: PostStatus) => {
       const payload = {
         title: title || null,
         content,
         source_type: sourceType,
         organization_id: organizationId!,
+        platform_type: 'linkedin' as const,
         ...(status ? { status } : {}),
         ...(scheduledAt ? { scheduled_at: new Date(scheduledAt).toISOString() } : {}),
       }
@@ -164,12 +161,12 @@ export default function PostEditor() {
     try {
       let postId = id
       if (!postId) {
-        postId = await savePost()
+        postId = await savePost(undefined)
       }
       const response = await generatePost(postId!, organizationId)
       setContent(response.content)
       queryClient.invalidateQueries({ queryKey: ['post', id] })
-      toast.success('Post généré par l'IA ✨')
+      toast.success("Post généré par l'IA ✨")
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
@@ -197,7 +194,7 @@ export default function PostEditor() {
   // Approbation
   const handleApprove = async () => {
     await savePost('approved')
-    toast.success('Post approuvé — il sera publié à l'heure programmée')
+    toast.success("Post approuvé — il sera publié à l'heure programmée")
   }
 
   const charCount = content.length
@@ -305,11 +302,11 @@ export default function PostEditor() {
             ) : (
               <Sparkles className="h-4 w-4 mr-2" />
             )}
-            {id ? 'Regénérer' : 'Générer avec l'IA'}
+            {id ? 'Regénérer' : "Générer avec l'IA"}
           </Button>
 
           <Button
-            onClick={() => savePost()}
+            onClick={() => savePost(undefined)}
             disabled={saving || !content.trim()}
             variant="outline"
           >

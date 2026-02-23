@@ -108,10 +108,6 @@ export default function Dashboard() {
     {} as Partial<Record<PostStatus, number>>,
   )
 
-  const scheduledPosts = posts.filter(
-    (p) => p.status === 'scheduled' || p.status === 'approved',
-  )
-
   return (
     <div className="space-y-6">
       {/* Bienvenue */}

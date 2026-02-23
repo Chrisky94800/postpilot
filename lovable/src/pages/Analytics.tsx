@@ -2,7 +2,7 @@
 // Sprint 4 : graphiques engagement, top posts, insights IA.
 
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, ThumbsUp, MessageSquare, Eye, Share2, Loader2 } from 'lucide-react'
+import { TrendingUp, ThumbsUp, MessageSquare, Eye, Share2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -67,7 +67,7 @@ export default function Analytics() {
         .gte('collected_at', since.toISOString())
         .order('collected_at', { ascending: false })
       if (error) throw error
-      return data as (PostAnalytics & { posts: Pick<Post, 'title' | 'content' | 'scheduled_at' | 'platform_post_id'> | null })[]
+      return data as unknown as (PostAnalytics & { posts: Pick<Post, 'title' | 'content' | 'scheduled_at' | 'platform_post_id'> | null })[]
     },
     enabled: !!organizationId,
   })

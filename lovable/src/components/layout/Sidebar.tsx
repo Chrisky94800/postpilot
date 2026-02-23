@@ -11,7 +11,6 @@ import {
   PenLine,
   LogOut,
   Menu,
-  X,
   Linkedin,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -67,14 +66,17 @@ function NavItem({
   href,
   icon: Icon,
   label,
+  onClick,
 }: {
   href: string
   icon: React.ElementType
   label: string
+  onClick?: () => void
 }) {
   return (
     <NavLink
       to={href}
+      onClick={onClick}
       className={({ isActive }) =>
         cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',

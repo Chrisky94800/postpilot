@@ -12,7 +12,7 @@ const FEATURES = [
     icon: Zap,
     title: 'Rédaction IA en 30 secondes',
     description:
-      'Décrivez votre idée, l'IA rédige un post LinkedIn percutant adapté à votre marque.',
+      "Décrivez votre idée, l'IA rédige un post LinkedIn percutant adapté à votre marque.",
   },
   {
     icon: Clock,
@@ -30,7 +30,7 @@ const FEATURES = [
     icon: Shield,
     title: 'Votre voix, amplifiée',
     description:
-      'L'IA apprend votre style et votre secteur. Chaque post sonne comme vous.',
+      "L'IA apprend votre style et votre secteur. Chaque post sonne comme vous.",
   },
 ]
 

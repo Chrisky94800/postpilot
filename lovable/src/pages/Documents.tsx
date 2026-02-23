@@ -100,7 +100,7 @@ export default function Documents() {
         .getPublicUrl(path)
 
       // 2. Insérer l'entrée en base (embedding généré par l'Edge Function generate-embedding)
-      const { data: doc, error: dbError } = await supabase
+      const { error: dbError } = await supabase
         .from('documents')
         .insert({
           organization_id: organizationId,
@@ -109,8 +109,6 @@ export default function Documents() {
           file_type: file.type,
           file_size: file.size,
         })
-        .select('id')
-        .single()
       if (dbError) throw dbError
 
       // TODO Sprint 4 : déclencher generate-embedding via n8n webhook
@@ -119,7 +117,7 @@ export default function Documents() {
       queryClient.invalidateQueries({ queryKey: ['documents', organizationId] })
       toast.success('Document importé avec succès !')
     } catch (err) {
-      toast.error((err as Error).message ?? 'Erreur lors de l'upload')
+      toast.error((err as Error).message ?? "Erreur lors de l'upload")
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -190,7 +188,7 @@ export default function Documents() {
             <p className="text-sm text-gray-500 mb-4">
               {search
                 ? 'Essayez un autre terme de recherche.'
-                : 'Importez vos brochures, cas clients, articles pour enrichir l'IA.'}
+                : "Importez vos brochures, cas clients, articles pour enrichir l'IA."}
             </p>
             {!search && (
               <Button
