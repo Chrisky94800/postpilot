@@ -1,30 +1,48 @@
-// PostPilot — Éditeur de post LinkedIn
-// Sprint 2 : création, génération IA, révision, approbation, programmation.
+// PostPilot — Éditeur de post V2
+// 3 modes source (libre / URL / document) + échange IA + profil de marque sidebar
 
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Loader2, Sparkles, Save, Send, Clock,
-  RotateCcw, Linkedin,
+  Loader2, Save, CheckCircle2, Linkedin,
+  PenLine, Link, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
+import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
-import { generatePost, revisePost } from '@/lib/api'
+import { generatePost, revisePost, scrapeUrl } from '@/lib/api'
 import { useOrganization } from '@/hooks/useOrganization'
-import { POST_STATUSES, SOURCE_TYPES, FEEDBACK_SCOPES, LINKEDIN_POST_MAX_LENGTH } from '@/lib/constants'
+import { POST_STATUSES, LINKEDIN_POST_MAX_LENGTH } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import type { Post, PostVersion, PostStatus, FeedbackScope, SourceType } from '@/types/database'
+import SourceFreeWriting from '@/components/editor/SourceFreeWriting'
+import SourceURL from '@/components/editor/SourceURL'
+import SourceDocument from '@/components/editor/SourceDocument'
+import AIExchangePanel, { type ExchangeMessage } from '@/components/editor/AIExchangePanel'
+import BrandProfileSidebar from '@/components/editor/BrandProfileSidebar'
+import type { Post, PostStatus, SourceType, PostVersion } from '@/types/database'
+
+// ─── Modes source ─────────────────────────────────────────────────────────────
+
+type SourceMode = 'free_writing' | 'url' | 'document'
+
+const SOURCE_MODES: { value: SourceMode; label: string; icon: React.ElementType }[] = [
+  { value: 'free_writing', label: 'Rédaction libre', icon: PenLine },
+  { value: 'url', label: 'URL / Article', icon: Link },
+  { value: 'document', label: 'Document', icon: FileText },
+]
+
+// Map SourceType → SourceMode
+function toSourceMode(s: SourceType | null | undefined): SourceMode {
+  if (s === 'url') return 'url'
+  if (s === 'document') return 'document'
+  return 'free_writing'
+}
 
 // ─── Preview LinkedIn ─────────────────────────────────────────────────────────
 
@@ -43,16 +61,12 @@ function LinkedInPreview({ content, userName }: { content: string; userName: str
         </div>
       </div>
       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-        {content || (
-          <span className="text-gray-400 italic">Votre post apparaîtra ici…</span>
-        )}
+        {content || <span className="text-gray-400 italic">Votre post apparaîtra ici…</span>}
       </p>
       <Separator className="my-3" />
       <div className="flex gap-4 text-xs text-gray-500">
-        <span>👍 J'aime</span>
-        <span>💬 Commenter</span>
-        <span>🔁 Republier</span>
-        <span>📤 Envoyer</span>
+        <span>👍 J'aime</span><span>💬 Commenter</span>
+        <span>🔁 Republier</span><span>📤 Envoyer</span>
       </div>
     </div>
   )
@@ -66,18 +80,15 @@ export default function PostEditor() {
   const queryClient = useQueryClient()
   const { organizationId } = useOrganization()
 
-  // État du formulaire
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [sourceType, setSourceType] = useState<SourceType>('manual')
-  const [sourceInput, setSourceInput] = useState('')
-  const [feedback, setFeedback] = useState('')
-  const [feedbackScope, setFeedbackScope] = useState<FeedbackScope>('full')
+  const [sourceMode, setSourceMode] = useState<SourceMode>('free_writing')
   const [scheduledAt, setScheduledAt] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [revising, setRevising] = useState(false)
+  const [publicationTime, setPublicationTime] = useState('09:00')
+  const [aiMessages, setAiMessages] = useState<ExchangeMessage[]>([])
+  const [aiLoading, setAiLoading] = useState(false)
 
-  // Chargement du post existant
+  // Chargement du post
   const { data: post, isLoading: postLoading } = useQuery({
     queryKey: ['post', id],
     queryFn: async () => {
@@ -92,7 +103,7 @@ export default function PostEditor() {
     enabled: !!id,
   })
 
-  // Versions du post
+  // Versions du post (pour l'historique)
   const { data: versions = [] } = useQuery({
     queryKey: ['post_versions', id],
     queryFn: async () => {
@@ -111,29 +122,33 @@ export default function PostEditor() {
   useEffect(() => {
     if (post) {
       setTitle(post.title ?? '')
-      setContent(post.content)
-      setSourceType(post.source_type ?? 'manual')
-      if (post.scheduled_at) {
-        setScheduledAt(post.scheduled_at.slice(0, 16))
-      }
+      setContent(post.content ?? '')
+      setSourceMode(toSourceMode(post.source_type))
+      if (post.scheduled_at) setScheduledAt(post.scheduled_at.slice(0, 10))
+      if (post.publication_time) setPublicationTime(post.publication_time.slice(0, 5))
     }
   }, [post])
 
   // Sauvegarde
   const { mutateAsync: savePost, isPending: saving } = useMutation({
     mutationFn: async (status?: PostStatus) => {
+      const modeToSourceType: Record<SourceMode, SourceType> = {
+        free_writing: 'manual',
+        url: 'url',
+        document: 'document',
+      }
       const payload = {
         title: title || null,
-        content,
-        source_type: sourceType,
-        source_url: sourceType === 'url' ? sourceInput.trim() || null : null,
-        source_content: sourceType !== 'url' && sourceType !== 'manual'
-          ? sourceInput.trim() || null
-          : null,
+        content: content || '',
+        source_type: modeToSourceType[sourceMode],
         organization_id: organizationId!,
         platform_type: 'linkedin' as const,
         ...(status ? { status } : {}),
-        ...(scheduledAt ? { scheduled_at: new Date(scheduledAt).toISOString() } : {}),
+        ...(scheduledAt ? {
+          scheduled_at: new Date(`${scheduledAt}T${publicationTime}:00`).toISOString(),
+        } : {}),
+        publication_time: publicationTime || '09:00',
+        updated_at: new Date().toISOString(),
       }
 
       if (id) {
@@ -143,62 +158,124 @@ export default function PostEditor() {
       } else {
         const { data, error } = await supabase
           .from('posts')
-          .insert({ ...payload, status: 'draft' })
+          .insert({ ...payload, status: status ?? 'draft' })
           .select('id')
           .single()
         if (error) throw error
-        return data.id
+        return (data as { id: string }).id
       }
     },
     onSuccess: (newId) => {
-      toast.success('Post sauvegardé')
       queryClient.invalidateQueries({ queryKey: ['posts'] })
       if (!id) navigate(`/posts/${newId}`, { replace: true })
     },
     onError: (err) => toast.error((err as Error).message),
   })
 
-  // Génération IA
-  const handleGenerate = async () => {
+  // Génération IA (depuis les modes source)
+  const handleGenerateFromSource = async (sourceContent: string, docMode?: 'synthesis' | 'surprise_me') => {
     if (!organizationId) return
-    setGenerating(true)
+    setAiLoading(true)
+    try {
+      let postId = id
+      if (!postId) postId = await savePost(undefined)
+
+      // Sauvegarder le source_content
+      await supabase.from('posts').update({
+        source_content: sourceContent,
+        source_type: sourceMode === 'url' ? 'url' : 'document',
+      }).eq('id', postId)
+
+      const response = await generatePost(postId!, organizationId)
+      setContent(response.content)
+      setAiMessages([
+        { role: 'assistant', content: response.content },
+      ])
+      toast.success("Post généré par l'IA ✨")
+      queryClient.invalidateQueries({ queryKey: ['post', id] })
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  // Mode libre : soumettre à l'IA pour optimisation
+  const handleFreeWritingSubmit = async () => {
+    if (!organizationId || !content.trim()) return
+    setAiLoading(true)
     try {
       let postId = id
       if (!postId) {
-        postId = await savePost(undefined)
+        await supabase.from('posts').upsert({
+          id: postId,
+          title: title || null,
+          content,
+          organization_id: organizationId,
+          platform_type: 'linkedin',
+          status: 'draft',
+          source_type: 'manual',
+        })
+        const { data } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('content', content)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        postId = (data as { id: string } | null)?.id ?? postId
+      } else {
+        await supabase.from('posts').update({ content }).eq('id', postId)
       }
-      const response = await generatePost(postId!, organizationId)
-      setContent(response.content)
-      queryClient.invalidateQueries({ queryKey: ['post', id] })
-      toast.success("Post généré par l'IA ✨")
+
+      if (!postId) { toast.error('Erreur : post non trouvé'); return }
+      const response = await generatePost(postId, organizationId)
+      setAiMessages([{ role: 'assistant', content: response.content }])
+      toast.success("L'IA a optimisé votre post ✨")
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
-      setGenerating(false)
+      setAiLoading(false)
     }
   }
 
-  // Révision IA
-  const handleRevise = async () => {
-    if (!id || !feedback.trim()) return
-    setRevising(true)
+  // Révision conversationnelle
+  const handleRevision = async (instruction: string) => {
+    if (!id) {
+      toast.error("Sauvegardez d'abord le post")
+      return
+    }
+    setAiLoading(true)
+    setAiMessages((prev) => [...prev, { role: 'user', content: instruction }])
     try {
-      const response = await revisePost(id, feedback, feedbackScope)
+      const response = await revisePost(id, instruction, 'full')
       setContent(response.content)
-      setFeedback('')
-      queryClient.invalidateQueries({ queryKey: ['post_versions', id] })
+      setAiMessages((prev) => [...prev, { role: 'assistant', content: response.content }])
       toast.success('Post révisé ✨')
+      queryClient.invalidateQueries({ queryKey: ['post_versions', id] })
     } catch (err) {
       toast.error((err as Error).message)
+      setAiMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: "Désolé, je n'ai pas pu réviser le post. Réessayez.",
+      }])
     } finally {
-      setRevising(false)
+      setAiLoading(false)
     }
   }
 
-  // Approbation
-  const handleApprove = async () => {
+  // Valider → approved
+  const handleValidate = async () => {
+    if (!content.trim()) { toast.error('Le post est vide'); return }
     await savePost('approved')
-    toast.success("Post approuvé — il sera publié à l'heure programmée")
+    toast.success("Post validé — il sera publié à l'heure prévue ✅")
+  }
+
+  // Sauvegarder brouillon
+  const handleDraft = async () => {
+    await savePost('draft')
+    toast.success('Brouillon sauvegardé')
   }
 
   const charCount = content.length
@@ -214,236 +291,164 @@ export default function PostEditor() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-      {/* Éditeur — 3 colonnes */}
-      <div className="lg:col-span-3 space-y-4">
-        {/* Statut */}
-        {statusMeta && (
-          <div className="flex items-center gap-2">
+    <div className="space-y-4">
+      {/* Barre d'actions haut */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          {statusMeta && (
             <Badge className={statusMeta.color}>{statusMeta.label}</Badge>
-            <span className="text-sm text-gray-500">{statusMeta.description}</span>
-          </div>
-        )}
-
-        {/* Titre optionnel */}
-        <div className="space-y-1.5">
-          <Label htmlFor="title">Titre interne (optionnel)</Label>
+          )}
           <Input
-            id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex : Retour de conférence SaaStr…"
+            placeholder="Titre interne (optionnel)"
+            className="w-56 text-sm"
           />
         </div>
-
-        {/* Source */}
-        <div className="space-y-1.5">
-          <Label>Source du post</Label>
-          <Select
-            value={sourceType}
-            onValueChange={(v) => setSourceType(v as SourceType)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(SOURCE_TYPES).map(([value, meta]) => (
-                <SelectItem key={value} value={value}>
-                  {meta.icon} {meta.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {sourceType !== 'manual' && (
-            <Textarea
-              value={sourceInput}
-              onChange={(e) => setSourceInput(e.target.value)}
-              placeholder={
-                sourceType === 'url'
-                  ? 'https://…'
-                  : sourceType === 'vocal'
-                  ? 'Décrivez votre idée en quelques mots…'
-                  : 'Collez ou décrivez votre source…'
-              }
-              rows={2}
-            />
-          )}
-        </div>
-
-        {/* Zone de texte principale */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="content">Contenu du post *</Label>
-            <span
-              className={cn(
-                'text-xs',
-                isOverLimit ? 'text-red-500 font-medium' : 'text-gray-400',
-              )}
-            >
-              {charCount} / {LINKEDIN_POST_MAX_LENGTH}
-            </span>
-          </div>
-          <Textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Commencez à écrire ou laissez l'IA générer votre post…"
-            rows={10}
-            className={cn('font-mono text-sm', isOverLimit && 'border-red-300')}
-          />
-        </div>
-
-        {/* Actions principales */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           <Button
-            onClick={handleGenerate}
-            disabled={generating || saving}
             variant="outline"
-            className="border-[#0077B5] text-[#0077B5] hover:bg-blue-50"
+            size="sm"
+            onClick={handleDraft}
+            disabled={saving}
           >
-            {generating ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
-            {id ? 'Regénérer' : "Générer avec l'IA"}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+            Brouillon
           </Button>
-
           <Button
-            onClick={() => savePost(undefined)}
-            disabled={saving || !content.trim()}
-            variant="outline"
+            size="sm"
+            className="bg-green-600 hover:bg-green-700"
+            onClick={handleValidate}
+            disabled={saving || isOverLimit || !content.trim()}
           >
-            {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Sauvegarder
+            <CheckCircle2 className="h-4 w-4 mr-1.5" />
+            Valider
           </Button>
-
-          {id && post?.status === 'pending_review' && (
-            <Button
-              onClick={handleApprove}
-              disabled={saving || isOverLimit}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Approuver
-            </Button>
-          )}
         </div>
-
-        {/* Programmation */}
-        {id && (
-          <Card>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <Label>Programmer la publication</Label>
-              </div>
-              <Input
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Panel feedback / révision */}
-        {id && content && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <RotateCcw className="h-4 w-4" />
-                Demander une révision IA
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Select
-                value={feedbackScope}
-                onValueChange={(v) => setFeedbackScope(v as FeedbackScope)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Que voulez-vous modifier ?" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(FEEDBACK_SCOPES).map(([value, meta]) => (
-                    <SelectItem key={value} value={value}>
-                      {meta.label} — {meta.description}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Textarea
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Ex : Rends l'accroche plus percutante, ajoute une question en ouverture…"
-                rows={2}
-              />
-              <Button
-                onClick={handleRevise}
-                disabled={revising || !feedback.trim()}
-                variant="outline"
-                size="sm"
-                className="border-[#0077B5] text-[#0077B5]"
-              >
-                {revising ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                Réviser avec l'IA
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
-      {/* Preview + historique — 2 colonnes */}
-      <div className="lg:col-span-2 space-y-4">
-        {/* Preview LinkedIn */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Linkedin className="h-4 w-4 text-[#0077B5]" />
-            <span className="text-sm font-medium text-gray-700">Aperçu LinkedIn</span>
+      {/* Zone principale : éditeur + sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Colonne gauche — source + échange IA (2/3) */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Sélecteur de mode source */}
+          <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit">
+            {SOURCE_MODES.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setSourceMode(value)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                  sourceMode === value
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700',
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
-          <LinkedInPreview content={content} userName="Votre nom" />
-        </div>
 
-        {/* Historique des versions */}
-        {versions.length > 0 && (
+          {/* Contenu du mode source */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Historique des versions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-3">
-              {versions.map((v) => (
-                <button
-                  key={v.id}
-                  className="w-full text-left p-2 rounded-lg border hover:bg-gray-50 transition-colors"
-                  onClick={() => setContent(v.content)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-700">
-                      Version {v.version_number}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(v.created_at).toLocaleDateString('fr-FR')}
-                    </span>
-                  </div>
-                  {v.feedback && (
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1 italic">
-                      "{v.feedback}"
-                    </p>
-                  )}
-                </button>
-              ))}
+            <CardContent className="pt-4">
+              {sourceMode === 'free_writing' && (
+                <SourceFreeWriting
+                  content={content}
+                  onChange={setContent}
+                  onSubmitToAI={handleFreeWritingSubmit}
+                  loading={aiLoading}
+                />
+              )}
+              {sourceMode === 'url' && (
+                <SourceURL
+                  initialUrl={post?.source_url ?? ''}
+                  onGenerate={(url, scraped) => handleGenerateFromSource(scraped)}
+                  loading={aiLoading}
+                />
+              )}
+              {sourceMode === 'document' && (
+                <SourceDocument
+                  onGenerate={(text, mode) => handleGenerateFromSource(text, mode)}
+                  loading={aiLoading}
+                />
+              )}
             </CardContent>
           </Card>
-        )}
+
+          {/* Zone d'échange IA */}
+          {(aiMessages.length > 0 || aiLoading) && (
+            <Card>
+              <CardContent className="pt-4">
+                <AIExchangePanel
+                  messages={aiMessages}
+                  onSendRevision={handleRevision}
+                  loading={aiLoading}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Preview LinkedIn */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Linkedin className="h-4 w-4 text-[#0077B5]" />
+              <Label className="text-sm font-medium text-gray-700">Aperçu LinkedIn</Label>
+              <span className={cn(
+                'ml-auto text-xs',
+                isOverLimit ? 'text-red-500 font-medium' : 'text-gray-400',
+              )}>
+                {charCount} / {LINKEDIN_POST_MAX_LENGTH}
+              </span>
+            </div>
+            <LinkedInPreview content={content} userName="Votre nom" />
+          </div>
+
+          {/* Historique des versions */}
+          {versions.length > 0 && (
+            <Card>
+              <CardContent className="pt-4 space-y-2">
+                <p className="text-sm font-medium text-gray-700 mb-2">Historique des versions</p>
+                {versions.map((v) => (
+                  <button
+                    key={v.id}
+                    className="w-full text-left p-2 rounded-lg border hover:bg-gray-50 transition-colors"
+                    onClick={() => setContent(v.content)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-700">Version {v.version_number}</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(v.created_at).toLocaleDateString('fr-FR')}
+                      </span>
+                    </div>
+                    {v.feedback && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1 italic">"{v.feedback}"</p>
+                    )}
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Colonne droite — profil de marque + publication (1/3) */}
+        <div>
+          <Card>
+            <CardContent className="pt-4">
+              {organizationId && (
+                <BrandProfileSidebar
+                  organizationId={organizationId}
+                  scheduledAt={scheduledAt}
+                  publicationTime={publicationTime}
+                  onScheduledAtChange={setScheduledAt}
+                  onPublicationTimeChange={setPublicationTime}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

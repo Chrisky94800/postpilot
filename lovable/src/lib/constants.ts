@@ -18,6 +18,11 @@ export const POST_STATUSES: Record<
   PostStatus,
   { label: string; color: string; description: string }
 > = {
+  waiting: {
+    label: 'En attente',
+    color: 'bg-gray-100 text-gray-500',
+    description: 'Post créé par un programme, pas encore rédigé',
+  },
   draft: {
     label: 'Brouillon',
     color: 'bg-gray-100 text-gray-700',
@@ -222,6 +227,7 @@ export const NOTIFICATION_TYPES: Record<
   token_refreshed: { label: 'Connexion renouvelée', icon: '✅' },
   analytics_ready: { label: 'Analytics disponibles', icon: '📊' },
   rss_found: { label: 'Nouveau contenu RSS', icon: '📰' },
+  event_reminder: { label: 'Rappel événement', icon: '📅' },
   error: { label: 'Erreur', icon: '❌' },
 }
 

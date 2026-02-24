@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Linkedin,
+  Layers,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,11 @@ const NAV_ITEMS = [
     label: 'Calendrier',
     href: '/calendar',
     icon: CalendarDays,
+  },
+  {
+    label: 'Programmes',
+    href: '/programmes',
+    icon: Layers,
   },
   {
     label: 'Documents',

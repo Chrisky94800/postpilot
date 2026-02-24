@@ -1,0 +1,132 @@
+{
+  "name": "[PostPilot] 10 - Création Programme",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook - POST create-program",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-program",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-input",
+      "name": "IF - Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-org",
+              "leftValue": "={{ $json.body.organization_id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "calc-dates",
+      "name": "Code - Calculate Post Dates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 260],
+      "parameters": {
+        "jsCode": "const body = $('Webhook - POST create-program').item.json.body;\nconst org_id = body.organization_id;\nconst program = body.program;\n\nconst DAY_INDEX = {\n  monday: 1, tuesday: 2, wednesday: 3, thursday: 4,\n  friday: 5, saturday: 6, sunday: 0\n};\n\nconst startDate = new Date(program.start_date + 'T09:00:00Z');\n\nconst posts = (program.posts || []).map((post, idx) => {\n  const weekOffset = (post.week - 1) * 7;\n  const startDay = startDate.getDay(); // 0 = dimanche\n  const targetDay = DAY_INDEX[post.day_of_week?.toLowerCase()] ?? 1;\n  \n  // Calculer le décalage en jours depuis le début du programme\n  let dayDiff = targetDay - startDay;\n  if (dayDiff < 0) dayDiff += 7;\n  \n  const postDate = new Date(startDate);\n  postDate.setDate(postDate.getDate() + weekOffset + dayDiff);\n  \n  return {\n    title: post.title,\n    week: post.week,\n    theme: post.theme || '',\n    day_of_week: post.day_of_week || 'monday',\n    scheduled_at: postDate.toISOString(),\n    position_in_program: idx + 1\n  };\n});\n\nreturn [{ json: { org_id, program, posts_with_dates: posts } }];"
+      }
+    },
+    {
+      "id": "insert-program",
+      "name": "Supabase - INSERT program",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 260],
+      "parameters": {
+        "method": "POST",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/programs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ organization_id: $json.org_id, title: $json.program.title, description: $json.program.description || null, start_date: $json.program.start_date, end_date: $json.program.end_date, posts_per_week: $json.program.posts_per_week, status: 'active' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "insert-posts",
+      "name": "Code - INSERT Posts in Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 260],
+      "parameters": {
+        "jsCode": "const calcNode = $('Code - Calculate Post Dates').item.json;\nconst programRow = Array.isArray($json) ? $json[0] : $json;\nconst program_id = programRow.id;\nconst org_id = calcNode.org_id;\nconst postsWithDates = calcNode.posts_with_dates;\n\nconst supabaseUrl = 'https://tplgbskcvimemwtwpxyk.supabase.co';\nconst serviceKey = $env.SUPABASE_SERVICE_KEY;\n\nconst createdPosts = [];\nfor (const post of postsWithDates) {\n  const body = JSON.stringify({\n    organization_id: org_id,\n    program_id: program_id,\n    title: post.title,\n    content: '',\n    status: 'waiting',\n    scheduled_at: post.scheduled_at,\n    publication_time: '09:00',\n    position_in_program: post.position_in_program,\n    platform_type: 'linkedin'\n  });\n\n  const res = await $helpers.httpRequest({\n    method: 'POST',\n    url: `${supabaseUrl}/rest/v1/posts`,\n    headers: {\n      'apikey': $env.SUPABASE_ANON_KEY,\n      'Authorization': `Bearer ${serviceKey}`,\n      'Content-Type': 'application/json',\n      'Prefer': 'return=representation'\n    },\n    body,\n    returnFullResponse: false\n  });\n\n  const created = Array.isArray(res) ? res[0] : res;\n  createdPosts.push({ id: created.id, title: post.title, scheduled_at: post.scheduled_at });\n}\n\nreturn [{ json: { program: programRow, posts: createdPosts } }];"
+      }
+    },
+    {
+      "id": "error-response",
+      "name": "Webhook Response - Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 420],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"organization_id manquant\" }",
+        "options": { "responseCode": 400 }
+      }
+    },
+    {
+      "id": "success-response",
+      "name": "Webhook Response - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 260],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - POST create-program": {
+      "main": [[{ "node": "IF - Validate Input", "type": "main", "index": 0 }]]
+    },
+    "IF - Validate Input": {
+      "main": [
+        [{ "node": "Code - Calculate Post Dates", "type": "main", "index": 0 }],
+        [{ "node": "Webhook Response - Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code - Calculate Post Dates": {
+      "main": [[{ "node": "Supabase - INSERT program", "type": "main", "index": 0 }]]
+    },
+    "Supabase - INSERT program": {
+      "main": [[{ "node": "Code - INSERT Posts in Supabase", "type": "main", "index": 0 }]]
+    },
+    "Code - INSERT Posts in Supabase": {
+      "main": [[{ "node": "Webhook Response - Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

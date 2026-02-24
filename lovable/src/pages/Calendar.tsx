@@ -77,7 +77,7 @@ export default function Calendar() {
         .select('*')
         .eq('organization_id', organizationId!)
         .is('deleted_at', null)
-        .in('status', ['pending_review', 'approved', 'scheduled', 'published'])
+        .in('status', ['waiting', 'draft', 'pending_review', 'approved', 'scheduled', 'published'])
         .gte('scheduled_at', startOfMonth.toISOString())
         .lte('scheduled_at', endOfMonth.toISOString())
         .order('scheduled_at', { ascending: true })
@@ -219,27 +219,43 @@ export default function Calendar() {
               </CardContent>
             </Card>
           ) : (
-            selectedPosts.map((post) => (
-              <Card
-                key={post.id}
-                className="cursor-pointer hover:shadow-sm transition-shadow"
-                onClick={() => navigate(`/posts/${post.id}`)}
-              >
-                <CardContent className="py-4 flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm truncate">
-                      {post.title ?? post.content.slice(0, 60) + '…'}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatDateTime(post.scheduled_at)}
-                    </p>
-                  </div>
-                  <Badge className={POST_STATUSES[post.status].color}>
-                    {POST_STATUSES[post.status].label}
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))
+            selectedPosts.map((post) => {
+              const canEdit = post.status === 'waiting' || post.status === 'draft'
+              return (
+                <Card
+                  key={post.id}
+                  className="cursor-pointer hover:shadow-sm transition-shadow"
+                  onClick={() => navigate(`/posts/${post.id}`)}
+                >
+                  <CardContent className="py-4 flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">
+                        {post.title ?? (post.content ? post.content.slice(0, 60) + '…' : 'Sans titre')}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatDateTime(post.scheduled_at)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge className={POST_STATUSES[post.status].color}>
+                        {POST_STATUSES[post.status].label}
+                      </Badge>
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/posts/${post.id}`) }}
+                        >
+                          <PenLine className="h-3 w-3 mr-1" />
+                          Rédiger
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
           )}
         </div>
       )}

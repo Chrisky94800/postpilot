@@ -20,16 +20,18 @@ import { useOrganization } from '@/hooks/useOrganization'
 
 // ─── Lazy imports (code splitting) ───────────────────────────────────────────
 
-const Landing       = lazy(() => import('@/pages/Landing'))
-const Login         = lazy(() => import('@/pages/Login'))
-const Onboarding    = lazy(() => import('@/pages/Onboarding'))
-const Dashboard     = lazy(() => import('@/pages/Dashboard'))
-const Calendar      = lazy(() => import('@/pages/Calendar'))
-const PostEditor    = lazy(() => import('@/pages/PostEditor'))
-const Documents     = lazy(() => import('@/pages/Documents'))
-const Analytics     = lazy(() => import('@/pages/Analytics'))
-const Settings      = lazy(() => import('@/pages/Settings'))
-const Notifications = lazy(() => import('@/pages/Notifications'))
+const Landing        = lazy(() => import('@/pages/Landing'))
+const Login          = lazy(() => import('@/pages/Login'))
+const Onboarding     = lazy(() => import('@/pages/Onboarding'))
+const Dashboard      = lazy(() => import('@/pages/Dashboard'))
+const Calendar       = lazy(() => import('@/pages/Calendar'))
+const PostEditor     = lazy(() => import('@/pages/PostEditor'))
+const Documents      = lazy(() => import('@/pages/Documents'))
+const Analytics      = lazy(() => import('@/pages/Analytics'))
+const Settings       = lazy(() => import('@/pages/Settings'))
+const Notifications  = lazy(() => import('@/pages/Notifications'))
+const Programs       = lazy(() => import('@/pages/Programs'))
+const ProgramDetail  = lazy(() => import('@/pages/ProgramDetail'))
 
 // ─── QueryClient ──────────────────────────────────────────────────────────────
 
@@ -141,14 +143,16 @@ export default function App() {
             {/* ── Routes protégées avec layout ─────────────────────────── */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/dashboard"     element={<Dashboard />} />
-                <Route path="/calendar"      element={<Calendar />} />
-                <Route path="/posts/new"     element={<PostEditor />} />
-                <Route path="/posts/:id"     element={<PostEditor />} />
-                <Route path="/documents"     element={<Documents />} />
-                <Route path="/analytics"     element={<Analytics />} />
-                <Route path="/settings"      element={<Settings />} />
-                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/dashboard"        element={<Dashboard />} />
+                <Route path="/calendar"         element={<Calendar />} />
+                <Route path="/posts/new"        element={<PostEditor />} />
+                <Route path="/posts/:id"        element={<PostEditor />} />
+                <Route path="/documents"        element={<Documents />} />
+                <Route path="/analytics"        element={<Analytics />} />
+                <Route path="/settings"         element={<Settings />} />
+                <Route path="/notifications"    element={<Notifications />} />
+                <Route path="/programmes"       element={<Programs />} />
+                <Route path="/programmes/:id"   element={<ProgramDetail />} />
               </Route>
             </Route>
 

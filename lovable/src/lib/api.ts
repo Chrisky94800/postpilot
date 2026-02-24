@@ -80,6 +80,52 @@ export interface ConnectLinkedInResponse {
   oauth_url: string
 }
 
+// V2 — Programmes
+export interface ProgramPost {
+  title: string
+  week: number
+  theme?: string
+  day_of_week?: string
+}
+
+export interface CreateProgramPayload {
+  organization_id: string
+  program: {
+    title: string
+    description?: string
+    start_date: string
+    end_date: string
+    posts_per_week: number
+    posts: ProgramPost[]
+  }
+}
+
+export interface CreateProgramResponse {
+  program: { id: string; title: string; start_date: string; end_date: string }
+  posts: { id: string; title: string; scheduled_at: string }[]
+}
+
+// V2 — Chat IA
+export interface AiChatPayload {
+  organization_id: string
+  conversation_id: string | null
+  message: string
+}
+
+export interface AiChatResponse {
+  reply: string
+  conversation_id: string
+  extracted_items: {
+    type: 'program'
+    data: {
+      title: string
+      duration_weeks: number
+      posts_per_week: number
+      posts: ProgramPost[]
+    }
+  }[]
+}
+
 // ─── Fonctions publiques ──────────────────────────────────────────────────────
 
 /**
@@ -155,6 +201,28 @@ export async function connectLinkedIn(
     { organization_id: organizationId },
     signal,
   )
+}
+
+/**
+ * Crée un programme de communication et ses posts (status='waiting').
+ * Workflow n8n : 10-creation-programme
+ */
+export async function createProgram(
+  payload: CreateProgramPayload,
+  signal?: AbortSignal,
+): Promise<CreateProgramResponse> {
+  return n8nPost<CreateProgramResponse>('/webhook/create-program', payload as unknown as Record<string, unknown>, signal)
+}
+
+/**
+ * Envoie un message au chat IA du dashboard.
+ * Workflow n8n : 11-chat-ia-assistant
+ */
+export async function aiChat(
+  payload: AiChatPayload,
+  signal?: AbortSignal,
+): Promise<AiChatResponse> {
+  return n8nPost<AiChatResponse>('/webhook/ai-chat', payload as unknown as Record<string, unknown>, signal)
 }
 
 // ─── Export de l'erreur typée ─────────────────────────────────────────────────

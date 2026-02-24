@@ -15,6 +15,7 @@ export type Json =
 // ─── Enums métier ────────────────────────────────────────────────────────────
 
 export type PostStatus =
+  | 'waiting'
   | 'draft'
   | 'pending_review'
   | 'approved'
@@ -44,6 +45,7 @@ export type NotificationType =
   | 'token_refreshed'
   | 'analytics_ready'
   | 'rss_found'
+  | 'event_reminder'
   | 'error'
 
 export type FeedbackScope =
@@ -152,10 +154,67 @@ export type Post = {
   published_at: string | null
   platform_type: PlatformType
   platform_post_id: string | null
+  // V2 — Programmes
+  program_id: string | null
+  position_in_program: number | null
+  publication_time: string | null      // format "HH:MM"
+  ai_conversation_id: string | null
   created_by: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
+}
+
+// ─── V2 — Programmes de communication ────────────────────────────────────────
+
+export type ProgramStatus = 'draft' | 'active' | 'paused' | 'completed'
+
+export type Program = {
+  id: string
+  organization_id: string
+  title: string
+  description: string | null
+  start_date: string
+  end_date: string
+  posts_per_week: number
+  status: ProgramStatus
+  ai_conversation_id: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ─── V2 — Conversations IA ────────────────────────────────────────────────────
+
+export type AiConversationContext = 'program_planning' | 'post_editing'
+
+export type AiMessage = {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+}
+
+export type ExtractedItem = {
+  type: 'program'
+  data: {
+    title: string
+    duration_weeks: number
+    posts_per_week: number
+    posts: { title: string; week: number; theme?: string; day_of_week?: string }[]
+  }
+  validated: boolean
+}
+
+export type AiConversation = {
+  id: string
+  organization_id: string
+  context: AiConversationContext
+  title: string | null
+  messages: AiMessage[]
+  extracted_items: ExtractedItem[]
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export type PostVersion = {
@@ -397,6 +456,41 @@ export interface Database {
           id?: string; created_at?: string; is_read?: boolean
         }
         Update: Pick<Notification, 'is_read'>
+        Relationships: []
+      }
+      programs: {
+        Row: Program
+        Insert: {
+          id?: string
+          organization_id: string
+          title: string
+          description?: string | null
+          start_date: string
+          end_date: string
+          posts_per_week?: number
+          status?: ProgramStatus
+          ai_conversation_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<Program, 'id' | 'organization_id'>>
+        Relationships: []
+      }
+      ai_conversations: {
+        Row: AiConversation
+        Insert: {
+          id?: string
+          organization_id: string
+          context?: AiConversationContext
+          title?: string | null
+          messages?: AiMessage[]
+          extracted_items?: ExtractedItem[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<AiConversation, 'id' | 'organization_id'>>
         Relationships: []
       }
     }
