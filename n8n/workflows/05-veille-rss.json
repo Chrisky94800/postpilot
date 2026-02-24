@@ -1,0 +1,201 @@
+{
+  "name": "[PostPilot] 05 - Veille RSS",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Schedule - Every 6h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */6 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-feeds",
+      "name": "Supabase - Get Active Feeds",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/rss_feeds?is_active=eq.true&select=id,organization_id,url,title&limit=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "split-feeds",
+      "name": "Code - Split Feeds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "jsCode": "const feeds = Array.isArray($json) ? $json : [];\nif (feeds.length === 0) return [];\nreturn feeds.map(feed => ({ json: feed }));"
+      }
+    },
+    {
+      "id": "fetch-rss",
+      "name": "RSS Feed Read - Fetch Articles",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "parameters": {
+        "url": "={{ $json.url }}"
+      }
+    },
+    {
+      "id": "pick-latest",
+      "name": "Code - Pick Latest & Merge Feed Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "jsCode": "// Récupère les infos du feed depuis le node précédent\nconst feed = $('Code - Split Feeds').item.json;\nconst article = $json;\n\nif (!article || !article.title || !article.link) return [];\n\nreturn [{ json: {\n  organization_id: feed.organization_id,\n  feed_title: feed.title || 'RSS',\n  feed_id: feed.id,\n  article_title: article.title,\n  article_url: article.link,\n  article_summary: article.contentSnippet || article.summary || article.content || ''\n} }];"
+      }
+    },
+    {
+      "id": "get-brand-profile",
+      "name": "Supabase - Get Brand Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=keywords,description",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "claude-relevance",
+      "name": "Claude API - Evaluate Relevance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "ANTHROPIC_API_KEY_PLACEHOLDER" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256, messages: [{ role: 'user', content: 'Marque: ' + (Array.isArray($('Supabase - Get Brand Profile').item.json) && $('Supabase - Get Brand Profile').item.json.length > 0 ? ($('Supabase - Get Brand Profile').item.json[0].description || '') : '') + '. Mots-clés: ' + (Array.isArray($('Supabase - Get Brand Profile').item.json) && $('Supabase - Get Brand Profile').item.json.length > 0 ? JSON.stringify($('Supabase - Get Brand Profile').item.json[0].keywords || []) : '[]') + '. Article: \"' + $('Code - Pick Latest & Merge Feed Info').item.json.article_title + '\". Résumé: \"' + $('Code - Pick Latest & Merge Feed Info').item.json.article_summary.slice(0, 300) + '\". Cet article est-il pertinent pour créer du contenu LinkedIn ? Réponds UNIQUEMENT en JSON: {\"relevant\": true/false, \"reason\": \"...\"}' }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "check-relevant",
+      "name": "IF - Is Relevant?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cond-relevant",
+              "leftValue": "={{ $json.content && $json.content[0] ? $json.content[0].text : '' }}",
+              "rightValue": "\"relevant\":true",
+              "operator": { "type": "string", "operation": "contains" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "notify-rss",
+      "name": "webhook-from-n8n - rss_article_found",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 180],
+      "parameters": {
+        "method": "POST",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'rss_article_found', organization_id: $('Code - Pick Latest & Merge Feed Info').item.json.organization_id, article_title: $('Code - Pick Latest & Merge Feed Info').item.json.article_title, article_url: $('Code - Pick Latest & Merge Feed Info').item.json.article_url, article_summary: $('Code - Pick Latest & Merge Feed Info').item.json.article_summary, feed_title: $('Code - Pick Latest & Merge Feed Info').item.json.feed_title }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Schedule - Every 6h": {
+      "main": [[{ "node": "Supabase - Get Active Feeds", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get Active Feeds": {
+      "main": [[{ "node": "Code - Split Feeds", "type": "main", "index": 0 }]]
+    },
+    "Code - Split Feeds": {
+      "main": [[{ "node": "RSS Feed Read - Fetch Articles", "type": "main", "index": 0 }]]
+    },
+    "RSS Feed Read - Fetch Articles": {
+      "main": [[{ "node": "Code - Pick Latest & Merge Feed Info", "type": "main", "index": 0 }]]
+    },
+    "Code - Pick Latest & Merge Feed Info": {
+      "main": [[{ "node": "Supabase - Get Brand Profile", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get Brand Profile": {
+      "main": [[{ "node": "Claude API - Evaluate Relevance", "type": "main", "index": 0 }]]
+    },
+    "Claude API - Evaluate Relevance": {
+      "main": [[{ "node": "IF - Is Relevant?", "type": "main", "index": 0 }]]
+    },
+    "IF - Is Relevant?": {
+      "main": [
+        [{ "node": "webhook-from-n8n - rss_article_found", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

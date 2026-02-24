@@ -65,6 +65,31 @@ const TokenExpiredSchema = z.object({
   platform_type: z.string().default('linkedin'),
 })
 
+const RssArticleFoundSchema = z.object({
+  action: z.literal('rss_article_found'),
+  organization_id: z.string().uuid(),
+  article_title: z.string().min(1),
+  article_url: z.string().url(),
+  article_summary: z.string().optional(),
+  feed_title: z.string().optional(),
+})
+
+const EventReminderSchema = z.object({
+  action: z.literal('event_reminder'),
+  organization_id: z.string().uuid(),
+  event_id: z.string().uuid(),
+  event_title: z.string().min(1),
+  event_date: z.string().min(1),
+  days_until: z.number().int().min(0),
+})
+
+const InsightsGeneratedSchema = z.object({
+  action: z.literal('insights_generated'),
+  organization_id: z.string().uuid(),
+  insights: z.array(z.string()).min(1).max(10),
+  period_days: z.number().int().positive().default(30),
+})
+
 const ActionSchema = z.discriminatedUnion('action', [
   PostGeneratedSchema,
   PostRevisedSchema,
@@ -72,6 +97,9 @@ const ActionSchema = z.discriminatedUnion('action', [
   PostFailedSchema,
   AnalyticsCollectedSchema,
   TokenExpiredSchema,
+  RssArticleFoundSchema,
+  EventReminderSchema,
+  InsightsGeneratedSchema,
 ])
 
 type Action = z.infer<typeof ActionSchema>
@@ -332,6 +360,76 @@ async function handleTokenExpired(
   }
 }
 
+async function handleRssArticleFound(
+  supabase: SupabaseClient,
+  data: z.infer<typeof RssArticleFoundSchema>,
+) {
+  const { organization_id, article_title, article_url, article_summary, feed_title } = data
+
+  const { data: members, error: membersError } = await supabase
+    .from('organization_members')
+    .select('user_id')
+    .eq('organization_id', organization_id)
+    .in('role', ['owner', 'admin'])
+
+  if (membersError) throw membersError
+  if (!members || members.length === 0) return
+
+  const { error } = await supabase.from('notifications').insert(
+    members.map((m) => ({
+      organization_id,
+      user_id: m.user_id,
+      type: 'rss_found',
+      title: 'Nouvel article pertinent trouvé',
+      message: `"${article_title}" — ${feed_title ?? 'RSS'}`,
+      metadata: { article_url, article_title, article_summary },
+    })),
+  )
+  if (error) console.error('[webhook-from-n8n] rss notification error', error)
+}
+
+async function handleEventReminder(
+  supabase: SupabaseClient,
+  data: z.infer<typeof EventReminderSchema>,
+) {
+  const { organization_id, event_title, event_date, days_until, event_id } = data
+
+  const { data: members, error: membersError } = await supabase
+    .from('organization_members')
+    .select('user_id')
+    .eq('organization_id', organization_id)
+    .in('role', ['owner', 'admin'])
+
+  if (membersError) throw membersError
+  if (!members || members.length === 0) return
+
+  const { error } = await supabase.from('notifications').insert(
+    members.map((m) => ({
+      organization_id,
+      user_id: m.user_id,
+      type: 'event_reminder',
+      title: `Événement dans ${days_until}j : ${event_title}`,
+      message: `Pensez à créer un post pour "${event_title}" prévu le ${event_date}.`,
+      metadata: { event_id, event_title, event_date, days_until },
+    })),
+  )
+  if (error) console.error('[webhook-from-n8n] event_reminder notification error', error)
+}
+
+async function handleInsightsGenerated(
+  supabase: SupabaseClient,
+  data: z.infer<typeof InsightsGeneratedSchema>,
+) {
+  const { organization_id, insights, period_days } = data
+
+  const { error } = await supabase.from('analytics_insights').insert({
+    organization_id,
+    insights,
+    period_days,
+  })
+  if (error) throw error
+}
+
 // ─── Dispatch ─────────────────────────────────────────────────────────────────
 
 async function dispatch(supabase: SupabaseClient, action: Action) {
@@ -348,6 +446,12 @@ async function dispatch(supabase: SupabaseClient, action: Action) {
       return handleAnalyticsCollected(supabase, action)
     case 'token_expired':
       return handleTokenExpired(supabase, action)
+    case 'rss_article_found':
+      return handleRssArticleFound(supabase, action)
+    case 'event_reminder':
+      return handleEventReminder(supabase, action)
+    case 'insights_generated':
+      return handleInsightsGenerated(supabase, action)
   }
 }
 

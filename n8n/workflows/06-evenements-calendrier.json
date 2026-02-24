@@ -1,0 +1,105 @@
+{
+  "name": "[PostPilot] 06 - Événements Calendrier",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Schedule - Daily 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-date-range",
+      "name": "Code - Get Date Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const today = new Date().toISOString().slice(0, 10);\nconst in3days = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);\nreturn [{ json: { today, in3days } }];"
+      }
+    },
+    {
+      "id": "get-events",
+      "name": "Supabase - Get Upcoming Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/calendar_events?event_date=gte.{{ $json.today }}&event_date=lte.{{ $json.in3days }}&post_generated=eq.false&select=id,organization_id,title,event_date&limit=50",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "filter-split",
+      "name": "Code - Filter & Split Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "jsCode": "const events = Array.isArray($json) ? $json : [];\nif (events.length === 0) return [];\n\nconst now = new Date();\nreturn events.map(e => {\n  const eventDate = new Date(e.event_date);\n  const diffMs = eventDate.getTime() - now.getTime();\n  const days_until = Math.max(0, Math.ceil(diffMs / 86400000));\n  return { json: { ...e, days_until } };\n});"
+      }
+    },
+    {
+      "id": "notify-event",
+      "name": "webhook-from-n8n - event_reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'event_reminder', organization_id: $json.organization_id, event_id: $json.id, event_title: $json.title, event_date: $json.event_date, days_until: $json.days_until }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Schedule - Daily 8h": {
+      "main": [[{ "node": "Code - Get Date Range", "type": "main", "index": 0 }]]
+    },
+    "Code - Get Date Range": {
+      "main": [[{ "node": "Supabase - Get Upcoming Events", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Get Upcoming Events": {
+      "main": [[{ "node": "Code - Filter & Split Events", "type": "main", "index": 0 }]]
+    },
+    "Code - Filter & Split Events": {
+      "main": [[{ "node": "webhook-from-n8n - event_reminder", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

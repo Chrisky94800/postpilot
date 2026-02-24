@@ -1,14 +1,15 @@
 // PostPilot — Analytics LinkedIn
-// Sprint 4 : graphiques engagement, top posts, insights IA.
+// Sprint 4 : graphiques engagement (recharts), top posts, insights IA.
 
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, ThumbsUp, MessageSquare, Eye, Share2 } from 'lucide-react'
+import { TrendingUp, ThumbsUp, MessageSquare, Eye, Share2, Lightbulb } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/hooks/useOrganization'
 import { formatDate } from '@/lib/utils'
+import EngagementChart from '@/components/analytics/EngagementChart'
 import type { PostAnalytics, Post } from '@/types/database'
 
 // ─── Carte KPI ────────────────────────────────────────────────────────────────
@@ -65,7 +66,7 @@ export default function Analytics() {
         .select('*, posts(title, content, scheduled_at, platform_post_id)')
         .eq('organization_id', organizationId!)
         .gte('collected_at', since.toISOString())
-        .order('collected_at', { ascending: false })
+        .order('collected_at', { ascending: true })
       if (error) throw error
       return data as unknown as (PostAnalytics & { posts: Pick<Post, 'title' | 'content' | 'scheduled_at' | 'platform_post_id'> | null })[]
     },
@@ -86,6 +87,23 @@ export default function Analytics() {
         .limit(20)
       if (error) throw error
       return data as Post[]
+    },
+    enabled: !!organizationId,
+  })
+
+  // Insights IA (derniers générés par le workflow 09)
+  const { data: insightsRow } = useQuery({
+    queryKey: ['analytics_insights', organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('analytics_insights')
+        .select('insights, generated_at')
+        .eq('organization_id', organizationId!)
+        .order('generated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw error
+      return data as { insights: string[]; generated_at: string } | null
     },
     enabled: !!organizationId,
   })
@@ -155,7 +173,7 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Graphique — Sprint 4 */}
+      {/* Graphique engagement */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Engagement dans le temps</CardTitle>
@@ -172,11 +190,7 @@ export default function Analytics() {
               </p>
             </div>
           ) : (
-            <div className="h-48 flex items-center justify-center text-gray-400 border-2 border-dashed rounded-lg">
-              <p className="text-sm">
-                📊 Graphique — Sprint 4 (recharts ou nivo)
-              </p>
-            </div>
+            <EngagementChart data={analytics} />
           )}
         </CardContent>
       </Card>
@@ -233,20 +247,35 @@ export default function Analytics() {
         </CardContent>
       </Card>
 
-      {/* Insights IA — Sprint 4 */}
-      <Card className="border-dashed">
+      {/* Insights IA */}
+      <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            ✨ Insights IA
-            <Badge variant="secondary">Sprint 4</Badge>
+            <Lightbulb className="h-4 w-4 text-amber-500" />
+            Insights IA
+            {insightsRow && (
+              <span className="text-xs font-normal text-gray-400 ml-auto">
+                Généré le {formatDate(insightsRow.generated_at)}
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500">
-            L'IA analysera vos performances et vous donnera des recommandations
-            personnalisées : meilleurs jours/horaires, formats qui engagent, sujets
-            à approfondir…
-          </p>
+          {insightsRow && insightsRow.insights.length > 0 ? (
+            <ul className="space-y-2">
+              {insightsRow.insights.map((insight, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+                  {insight}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-400">
+              Les insights sont générés automatiquement chaque lundi à partir de 3 posts publiés.
+              Ils apparaîtront ici après la première analyse.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
