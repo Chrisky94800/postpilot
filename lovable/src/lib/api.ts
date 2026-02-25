@@ -1,22 +1,25 @@
-// PostPilot — Client API n8n
-// Toutes les interactions avec les webhooks n8n passent par ce fichier.
+// PostPilot — Client API
+// Les workflows interactifs (IA) passent par des Supabase Edge Functions.
+// Les workflows background (publication, analytics) restent sur n8n.
 // Le frontend ne parle JAMAIS directement à Claude API ni à l'API LinkedIn.
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
+// Supabase Edge Functions (generate, revise, create-program, ai-chat, scrape-url)
+const SUPABASE_URL = (
+  import.meta.env.VITE_SUPABASE_URL as string
+).replace(/\/$/, '')
+
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+// n8n webhooks (conservé pour les éventuels autres appels)
 const N8N_BASE_URL = (
-  import.meta.env.VITE_N8N_WEBHOOK_BASE_URL as string
+  import.meta.env.VITE_N8N_WEBHOOK_BASE_URL as string ?? ''
 ).replace(/\/$/, '')
 
 const N8N_API_KEY = import.meta.env.VITE_N8N_API_KEY as string
 
-if (!N8N_BASE_URL) {
-  console.warn(
-    '[api] VITE_N8N_WEBHOOK_BASE_URL non défini — les appels n8n échoueront',
-  )
-}
-
-// ─── Fetch wrapper ────────────────────────────────────────────────────────────
+// ─── Fetch wrappers ───────────────────────────────────────────────────────────
 
 class ApiError extends Error {
   constructor(
@@ -28,6 +31,35 @@ class ApiError extends Error {
   }
 }
 
+/** Appelle une Supabase Edge Function (fonctions interactives IA) */
+async function edgeFunctionPost<TResponse>(
+  functionName: string,
+  body: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<TResponse> {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: 'POST',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}))
+    throw new ApiError(
+      res.status,
+      (payload as { error?: string }).error ?? `HTTP ${res.status}`,
+    )
+  }
+
+  return res.json() as Promise<TResponse>
+}
+
+/** Appelle un webhook n8n (workflows background) */
 async function n8nPost<TResponse>(
   path: string,
   body: Record<string, unknown>,
@@ -130,15 +162,15 @@ export interface AiChatResponse {
 
 /**
  * Déclenche la génération IA d'un post LinkedIn.
- * Workflow n8n : 01-redaction-ia
+ * Edge Function Supabase : generate-post
  */
 export async function generatePost(
   postId: string,
   organizationId: string,
   signal?: AbortSignal,
 ): Promise<GeneratePostResponse> {
-  return n8nPost<GeneratePostResponse>(
-    '/webhook/generate-post',
+  return edgeFunctionPost<GeneratePostResponse>(
+    'generate-post',
     { post_id: postId, organization_id: organizationId },
     signal,
   )
@@ -146,7 +178,7 @@ export async function generatePost(
 
 /**
  * Demande une révision partielle ou complète du post.
- * Workflow n8n : 02-revision-ia
+ * Edge Function Supabase : revise-post
  */
 export async function revisePost(
   postId: string,
@@ -154,8 +186,8 @@ export async function revisePost(
   scope: string = 'full',
   signal?: AbortSignal,
 ): Promise<RevisePostResponse> {
-  return n8nPost<RevisePostResponse>(
-    '/webhook/revise-post',
+  return edgeFunctionPost<RevisePostResponse>(
+    'revise-post',
     { post_id: postId, feedback, scope },
     signal,
   )
@@ -163,13 +195,13 @@ export async function revisePost(
 
 /**
  * Scrape une URL et retourne le titre + contenu extrait.
- * Workflow n8n : 07-scraping-url
+ * Edge Function Supabase : scrape-url (déjà existante)
  */
 export async function scrapeUrl(
   url: string,
   signal?: AbortSignal,
 ): Promise<ScrapeUrlResponse> {
-  return n8nPost<ScrapeUrlResponse>('/webhook/scrape-url', { url }, signal)
+  return edgeFunctionPost<ScrapeUrlResponse>('scrape-url', { url }, signal)
 }
 
 /**
@@ -205,24 +237,24 @@ export async function connectLinkedIn(
 
 /**
  * Crée un programme de communication et ses posts (status='waiting').
- * Workflow n8n : 10-creation-programme
+ * Edge Function Supabase : create-program
  */
 export async function createProgram(
   payload: CreateProgramPayload,
   signal?: AbortSignal,
 ): Promise<CreateProgramResponse> {
-  return n8nPost<CreateProgramResponse>('/webhook/create-program', payload as unknown as Record<string, unknown>, signal)
+  return edgeFunctionPost<CreateProgramResponse>('create-program', payload as unknown as Record<string, unknown>, signal)
 }
 
 /**
  * Envoie un message au chat IA du dashboard.
- * Workflow n8n : 11-chat-ia-assistant
+ * Edge Function Supabase : ai-chat
  */
 export async function aiChat(
   payload: AiChatPayload,
   signal?: AbortSignal,
 ): Promise<AiChatResponse> {
-  return n8nPost<AiChatResponse>('/webhook/ai-chat', payload as unknown as Record<string, unknown>, signal)
+  return edgeFunctionPost<AiChatResponse>('ai-chat', payload as unknown as Record<string, unknown>, signal)
 }
 
 // ─── Export de l'erreur typée ─────────────────────────────────────────────────

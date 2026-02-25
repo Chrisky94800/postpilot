@@ -59,7 +59,7 @@ export default function AIChatPanel({ organizationId }: AIChatPanelProps) {
       setConversationId(res.conversation_id)
 
       if (res.extracted_items?.length > 0) {
-        setExtractedItems(res.extracted_items)
+        setExtractedItems(res.extracted_items.map(item => ({ ...item, validated: false })))
       }
     } catch {
       const errMsg: AiMessage = {

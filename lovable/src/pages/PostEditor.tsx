@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
-import { generatePost, revisePost, scrapeUrl } from '@/lib/api'
+import { generatePost, revisePost } from '@/lib/api'
 import { useOrganization } from '@/hooks/useOrganization'
 import { POST_STATUSES, LINKEDIN_POST_MAX_LENGTH } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -46,7 +46,7 @@ function toSourceMode(s: SourceType | null | undefined): SourceMode {
 
 // ─── Preview LinkedIn ─────────────────────────────────────────────────────────
 
-function LinkedInPreview({ content, userName }: { content: string; userName: string }) {
+export function LinkedInPreview({ content, userName }: { content: string; userName: string }) {
   return (
     <div className="border rounded-xl p-4 bg-white shadow-sm">
       <div className="flex items-center gap-2 mb-3">
@@ -173,7 +173,7 @@ export default function PostEditor() {
   })
 
   // Génération IA (depuis les modes source)
-  const handleGenerateFromSource = async (sourceContent: string, docMode?: 'synthesis' | 'surprise_me') => {
+  const handleGenerateFromSource = async (sourceContent: string, _docMode?: 'synthesis' | 'surprise_me') => {
     if (!organizationId) return
     setAiLoading(true)
     try {
@@ -365,7 +365,7 @@ export default function PostEditor() {
               {sourceMode === 'url' && (
                 <SourceURL
                   initialUrl={post?.source_url ?? ''}
-                  onGenerate={(url, scraped) => handleGenerateFromSource(scraped)}
+                  onGenerate={(_url, scraped) => handleGenerateFromSource(scraped)}
                   loading={aiLoading}
                 />
               )}
