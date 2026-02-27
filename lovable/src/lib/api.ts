@@ -137,11 +137,30 @@ export interface CreateProgramResponse {
   posts: { id: string; title: string; scheduled_at: string }[]
 }
 
+// V2 — Brainstorming IA
+export interface BrainstormPostPayload {
+  organization_id: string
+  message: string
+  conversation_history?: { role: 'user' | 'assistant'; content: string }[]
+}
+
+export interface BrainstormTheme {
+  title: string
+  angle: string
+}
+
+export interface BrainstormPostResponse {
+  reply: string
+  themes: BrainstormTheme[] | null
+  conversation_history: { role: 'user' | 'assistant'; content: string }[]
+}
+
 // V2 — Chat IA
 export interface AiChatPayload {
   organization_id: string
   conversation_id: string | null
   message: string
+  conversation_history?: { role: 'user' | 'assistant'; content: string }[]
 }
 
 export interface AiChatResponse {
@@ -156,6 +175,7 @@ export interface AiChatResponse {
       posts: ProgramPost[]
     }
   }[]
+  conversation_history: { role: 'user' | 'assistant'; content: string }[]
 }
 
 // ─── Fonctions publiques ──────────────────────────────────────────────────────
@@ -244,6 +264,17 @@ export async function createProgram(
   signal?: AbortSignal,
 ): Promise<CreateProgramResponse> {
   return edgeFunctionPost<CreateProgramResponse>('create-program', payload as unknown as Record<string, unknown>, signal)
+}
+
+/**
+ * Échange conversationnel pour brainstormer des angles de post.
+ * Edge Function Supabase : brainstorm-post
+ */
+export async function brainstormPost(
+  payload: BrainstormPostPayload,
+  signal?: AbortSignal,
+): Promise<BrainstormPostResponse> {
+  return edgeFunctionPost<BrainstormPostResponse>('brainstorm-post', payload as unknown as Record<string, unknown>, signal)
 }
 
 /**

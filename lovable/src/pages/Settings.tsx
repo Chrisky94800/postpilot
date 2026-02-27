@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Linkedin, Check, AlertCircle, Loader2, Trash2, CreditCard, Save,
+  User, Building2, Plus, AtSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -20,12 +21,13 @@ import { supabase } from '@/lib/supabase'
 import { connectLinkedIn } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
+import { useContacts } from '@/hooks/useContacts'
 import { TagInput } from '@/components/onboarding/TagInput'
 import {
   TONE_OPTIONS, WEEK_DAYS, INDUSTRIES, SUBSCRIPTION_PLANS,
 } from '@/lib/constants'
 import { formatDateTime } from '@/lib/utils'
-import type { Platform, PostLength, HashtagStrategy } from '@/types/database'
+import type { Platform, PostLength, HashtagStrategy, ContactType } from '@/types/database'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -806,6 +808,167 @@ function CompteTab() {
   )
 }
 
+// ─── Onglet Contacts fréquents ────────────────────────────────────────────────
+
+function ContactsTab() {
+  const { contacts, isLoading, createContact, deleteContact } = useContacts()
+  const [name, setName] = useState('')
+  const [linkedinUrl, setLinkedinUrl] = useState('')
+  const [type, setType] = useState<ContactType>('person')
+  const [adding, setAdding] = useState(false)
+
+  const handleAdd = async () => {
+    if (!name.trim()) return
+    setAdding(true)
+    try {
+      await createContact.mutateAsync({ name: name.trim(), linkedin_url: linkedinUrl || undefined, type })
+      setName('')
+      setLinkedinUrl('')
+      setType('person')
+      toast.success('Contact ajouté')
+    } catch {
+      toast.error("Erreur lors de l'ajout")
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <AtSign className="h-4 w-4 text-[#0077B5]" />
+            Contacts fréquents
+          </CardTitle>
+          <CardDescription>
+            Les contacts enregistrés ici sont disponibles dans le bouton "Mentionner" de l'éditeur
+            de post. Cliquez sur un contact pour insérer <code>@[Nom]</code> dans votre rédaction.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+
+          {/* Formulaire d'ajout */}
+          <div className="space-y-3 p-4 bg-gray-50 rounded-xl border">
+            <p className="text-sm font-medium text-gray-700">Ajouter un contact</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nom complet *</Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Jean Dupont"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL LinkedIn (optionnel)</Label>
+                <Input
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/..."
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setType('person')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                    type === 'person'
+                      ? 'bg-[#0077B5] text-white border-[#0077B5]'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#0077B5]'
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" />
+                  Personne
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setType('company')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                    type === 'company'
+                      ? 'bg-[#0077B5] text-white border-[#0077B5]'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#0077B5]'
+                  }`}
+                >
+                  <Building2 className="h-3.5 w-3.5" />
+                  Entreprise
+                </button>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleAdd}
+                disabled={!name.trim() || adding}
+                className="bg-[#0077B5] hover:bg-[#005885] ml-auto"
+              >
+                {adding
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  : <Plus className="h-4 w-4 mr-1.5" />
+                }
+                Ajouter
+              </Button>
+            </div>
+          </div>
+
+          {/* Liste des contacts */}
+          {isLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            </div>
+          ) : contacts.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6 italic">
+              Aucun contact enregistré. Ajoutez vos contacts LinkedIn fréquents ci-dessus.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {contacts.map((contact) => (
+                <div
+                  key={contact.id}
+                  className="flex items-center gap-3 p-3 rounded-xl border bg-white hover:border-gray-300 transition-colors"
+                >
+                  <div className="shrink-0 h-8 w-8 rounded-full bg-[#0077B5] flex items-center justify-center">
+                    {contact.type === 'company'
+                      ? <Building2 className="h-4 w-4 text-white" />
+                      : <User className="h-4 w-4 text-white" />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{contact.name}</p>
+                    {contact.linkedin_url && (
+                      <a
+                        href={contact.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-[#0077B5] hover:underline truncate block"
+                      >
+                        {contact.linkedin_url}
+                      </a>
+                    )}
+                  </div>
+                  <code className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded shrink-0">
+                    @[{contact.name}]
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => deleteContact.mutate(contact.id)}
+                    disabled={deleteContact.isPending}
+                    className="text-gray-300 hover:text-red-500 transition-colors ml-1"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function Settings() {
@@ -830,6 +993,7 @@ export default function Settings() {
         <TabsList className="mb-6">
           <TabsTrigger value="brand">Profil de marque</TabsTrigger>
           <TabsTrigger value="plateformes">Plateformes</TabsTrigger>
+          <TabsTrigger value="contacts">Contacts</TabsTrigger>
           <TabsTrigger value="compte">Compte</TabsTrigger>
         </TabsList>
         <TabsContent value="brand">
@@ -837,6 +1001,9 @@ export default function Settings() {
         </TabsContent>
         <TabsContent value="plateformes">
           <PlateformesTab />
+        </TabsContent>
+        <TabsContent value="contacts">
+          <ContactsTab />
         </TabsContent>
         <TabsContent value="compte">
           <CompteTab />

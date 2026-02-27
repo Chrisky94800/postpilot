@@ -383,3 +383,16 @@ Supabase Schema → Edge Functions → N8N Workflows → Lovable Frontend
 
 Le frontend ne doit JAMAIS appeler Claude API directement. Tout passe par n8n (via webhooks) qui orchestre les appels LLM.
 Le frontend ne doit JAMAIS appeler l'API LinkedIn directement. Tout passe par n8n.
+
+## ⚡ REFONTE V2 — Assistant Conversationnel
+
+Voir le fichier docs/SPEC-V2-REFONTE-UX.md pour les spécifications complètes.
+
+Points clés :
+- Le Dashboard intègre un chat IA conversationnel
+- Les "programmes de communication" remplacent la création manuelle de posts
+- L'éditeur de post a 3 modes : rédaction libre, URL, document
+- Le profil de marque est affiché en sidebar de l'éditeur (overridable par post)
+- Nouvelles tables : programs, ai_conversations
+- Nouveaux workflows : 09-creation-programme, 10-chat-ia-assistant
+- Nouveaux statuts : waiting (post créé par programme, pas encore rédigé)

@@ -1,5 +1,6 @@
 // PostPilot — Mode source : Rédaction libre
 
+import type React from 'react'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,6 +12,7 @@ interface SourceFreeWritingProps {
   onChange: (v: string) => void
   onSubmitToAI: () => void
   loading?: boolean
+  textareaRef?: React.RefObject<HTMLTextAreaElement>
 }
 
 export default function SourceFreeWriting({
@@ -18,6 +20,7 @@ export default function SourceFreeWriting({
   onChange,
   onSubmitToAI,
   loading,
+  textareaRef,
 }: SourceFreeWritingProps) {
   const charCount = content.length
   const isOver = charCount > LINKEDIN_POST_MAX_LENGTH
@@ -33,6 +36,7 @@ export default function SourceFreeWriting({
         </span>
       </div>
       <Textarea
+        ref={textareaRef}
         value={content}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Commencez à écrire votre post LinkedIn ici…"

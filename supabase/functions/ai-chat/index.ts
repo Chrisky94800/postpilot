@@ -1,7 +1,7 @@
 // PostPilot — Edge Function : ai-chat
-// Remplace le workflow n8n 11-chat-ia-assistant.
 // Reçoit { organization_id, message, conversation_history? },
 // retourne { reply, conversation_id, extracted_items, conversation_history }.
+// Mission unique : créer un programme en collectant titre + durée + fréquence.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
@@ -37,6 +37,15 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
+const DAY_LABELS: Record<string, string> = {
+  monday: 'lundi', tuesday: 'mardi', wednesday: 'mercredi',
+  thursday: 'jeudi', friday: 'vendredi', saturday: 'samedi', sunday: 'dimanche',
+}
+
+const PLAN_LABELS: Record<string, string> = {
+  starter: 'Starter', pro: 'Pro', business: 'Business',
+}
+
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -54,81 +63,96 @@ Deno.serve(async (req: Request) => {
     console.log(`[ai-chat] org=${organization_id} msg_length=${message.length}`)
 
     // ── 1. Fetch contexte en parallèle ────────────────────────────────────────
-    const [brandRes, programsRes, analyticsRes] = await Promise.all([
+    const [brandRes, orgRes, programsRes] = await Promise.all([
       supabase
         .from('brand_profiles')
-        .select('company_name, description, industry, target_audience, tone, keywords, post_length')
+        .select('company_name, industry, posting_frequency, preferred_days')
         .eq('organization_id', organization_id)
+        .single(),
+      supabase
+        .from('organizations')
+        .select('subscription_plan, max_posts_per_month')
+        .eq('id', organization_id)
         .single(),
       supabase
         .from('programs')
         .select('title, status, start_date, end_date, posts_per_week')
         .eq('organization_id', organization_id)
         .in('status', ['draft', 'active'])
-        .limit(10),
-      supabase
-        .from('post_analytics')
-        .select('likes_count, comments_count, impressions_count, engagement_rate')
-        .eq('organization_id', organization_id)
-        .limit(20),
+        .limit(5),
     ])
 
     const brand = brandRes.data
+    const org = orgRes.data
     const programs = programsRes.data ?? []
-    const analytics = analyticsRes.data ?? []
 
-    // ── 2. Construire le prompt système ───────────────────────────────────────
+    // ── 2. Construire le contexte ─────────────────────────────────────────────
     const companyName = brand?.company_name ?? 'votre entreprise'
     const industry = brand?.industry ?? 'votre secteur'
-    const tone = Array.isArray(brand?.tone) ? brand.tone.join(', ') : (brand?.tone ?? 'professionnel')
-    const targetAudience = brand?.target_audience ?? 'votre audience'
+    const postingFrequency = brand?.posting_frequency ?? 2
+    const maxPostsPerMonth = org?.max_posts_per_month ?? 8
+    const subscriptionPlan = PLAN_LABELS[org?.subscription_plan ?? 'starter'] ?? 'Starter'
+
+    const preferredDays = Array.isArray(brand?.preferred_days) && brand.preferred_days.length > 0
+      ? brand.preferred_days.map((d: string) => DAY_LABELS[d] ?? d).join(', ')
+      : 'lundi, jeudi'
+
+    const today = new Date().toISOString().split('T')[0]
 
     const programsCtx = programs.length > 0
-      ? programs.map(p => `- ${p.title} (${p.status}, ${p.start_date} → ${p.end_date}, ${p.posts_per_week} posts/sem)`).join('\n')
-      : 'Aucun programme actif.'
+      ? `Programmes déjà créés :\n${programs.map(p => `- "${p.title}" (${p.status}, ${p.start_date} → ${p.end_date})`).join('\n')}`
+      : 'Aucun programme en cours.'
 
-    const avgEngagement = analytics.length > 0
-      ? (analytics.reduce((s, a) => s + (parseFloat(String(a.engagement_rate)) || 0), 0) / analytics.length).toFixed(2)
-      : 'N/A'
+    // ── 3. Prompt système focalisé sur la création de programme ───────────────
+    const systemPrompt = `Tu es l'assistant de création de programme LinkedIn de ${companyName} (${industry}).
 
-    const systemPrompt = `Tu es l'assistant de communication LinkedIn de ${companyName}, une entreprise de ${industry}.
-Tu aides à planifier des programmes de publication LinkedIn stratégiques.
+TA SEULE MISSION : créer un programme de publication en 3 étapes. Sois bref et direct.
 
-CONTEXTE DE LA MARQUE :
-- Entreprise : ${companyName}
-- Secteur : ${industry}
-- Ton : ${tone}
-- Audience cible : ${targetAudience}
+PROFIL DÉJÀ CONFIGURÉ (ne JAMAIS redemander) :
+- Fréquence habituelle : ${postingFrequency} post(s)/semaine
+- Jours préférés : ${preferredDays}
+- Plan ${subscriptionPlan} : quota de ${maxPostsPerMonth} posts/mois
 
-PROGRAMMES EN COURS :
 ${programsCtx}
 
-ANALYTICS (engagement moyen sur les derniers posts) : ${avgEngagement}%
+ÉTAPES À SUIVRE DANS L'ORDRE :
+1. Demande le TITRE du programme (une seule question courte)
+2. Demande la DURÉE en semaines (une seule question courte)
+3. Propose de garder ${postingFrequency} post(s)/semaine — demande juste confirmation (oui/non)
+   → Si l'utilisateur veut plus et que ça dépasse ${maxPostsPerMonth} posts/mois, signale-le clairement mais laisse-le décider
+4. Dès que titre + durée + fréquence sont confirmés, génère IMMÉDIATEMENT le [PROGRAM_PROPOSAL]
 
-INSTRUCTIONS :
-- Réponds en français, sois concis et actionnable
-- Propose des idées créatives et adaptées au profil de la marque
-- Quand l'utilisateur valide un programme, utilise EXACTEMENT ce format JSON dans ta réponse :
+NE PAS DEMANDER :
+- Le ton ou le style (déjà configuré dans le profil de marque)
+- Les thèmes des posts (l'utilisateur les définit dans l'éditeur de post, pas ici)
+- L'audience cible (déjà configurée)
+- Toute autre information
+
+CALCUL DES DATES :
+- start_date = prochain lundi après aujourd'hui (aujourd'hui = ${today})
+- end_date = start_date + (durée × 7 jours)
+- Utilise les jours préférés de la marque : ${preferredDays}
+
+FORMAT OBLIGATOIRE dès que les 3 infos sont confirmées :
 
 [PROGRAM_PROPOSAL]
 {
-  "title": "Titre du programme",
-  "description": "Description courte",
+  "title": "Titre exact donné par l'utilisateur",
+  "description": "Programme de X semaines pour ${companyName}",
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD",
-  "posts_per_week": 2,
+  "posts_per_week": ${postingFrequency},
   "posts": [
-    {"week": 1, "day_of_week": "monday", "title": "Titre du post semaine 1", "theme": "Thème"},
-    {"week": 1, "day_of_week": "thursday", "title": "Titre du post semaine 1", "theme": "Thème"},
-    {"week": 2, "day_of_week": "monday", "title": "Titre du post semaine 2", "theme": "Thème"},
-    {"week": 2, "day_of_week": "thursday", "title": "Titre du post semaine 2", "theme": "Thème"}
+    {"week": 1, "day_of_week": "monday", "title": "Post 1 — Semaine 1"},
+    {"week": 1, "day_of_week": "thursday", "title": "Post 2 — Semaine 1"}
   ]
 }
 [/PROGRAM_PROPOSAL]
 
-N'utilise ce format QUE si l'utilisateur demande explicitement à créer/valider un programme.`
+Les titres des posts sont des placeholders ("Post N — Semaine X"). Les thèmes seront choisis dans l'éditeur.
+Réponds TOUJOURS en français. Maximum 2-3 phrases par réponse.`
 
-    // ── 3. Appel Claude API ───────────────────────────────────────────────────
+    // ── 4. Appel Claude API ───────────────────────────────────────────────────
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY non configuré')
 
@@ -146,7 +170,7 @@ N'utilise ce format QUE si l'utilisateur demande explicitement à créer/valider
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
+        max_tokens: 1024,
         system: systemPrompt,
         messages: claudeMessages,
       }),
@@ -160,7 +184,7 @@ N'utilise ce format QUE si l'utilisateur demande explicitement à créer/valider
     const claudeData = await claudeRes.json() as { content: { text: string }[] }
     const reply = claudeData.content[0]?.text ?? ''
 
-    // ── 4. Parser les propositions de programme ───────────────────────────────
+    // ── 5. Parser les propositions de programme ───────────────────────────────
     type ExtractedItem = { type: 'program'; data: Record<string, unknown> }
     const extractedItems: ExtractedItem[] = []
 
@@ -174,7 +198,7 @@ N'utilise ce format QUE si l'utilisateur demande explicitement à créer/valider
       }
     }
 
-    // ── 5. Mettre à jour l'historique ─────────────────────────────────────────
+    // ── 6. Mettre à jour l'historique ─────────────────────────────────────────
     const updatedHistory = [
       ...conversation_history,
       { role: 'user' as const, content: message },

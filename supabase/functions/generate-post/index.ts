@@ -31,62 +31,98 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function buildPrompt(post: Record<string, unknown>, brand: Record<string, unknown>): { system: string; user: string } {
-  const companyName = (brand.company_name as string) ?? 'Notre entreprise'
-  const industry = (brand.industry as string) ?? 'notre secteur'
-  const tone = (Array.isArray(brand.tone) ? brand.tone.join(', ') : brand.tone as string) ?? 'professionnel'
-  const targetAudience = (brand.target_audience as string) ?? 'notre audience'
-  const keywords = (Array.isArray(brand.keywords) ? brand.keywords.join(', ') : '') ?? ''
-  const keywordsAvoid = (Array.isArray(brand.keywords_avoid) ? brand.keywords_avoid.join(', ') : '') ?? ''
-  const postLength = (brand.post_length as string) ?? 'medium'
+  // ── Profil de marque ──────────────────────────────────────────────────────
+  const companyName    = (brand.company_name as string) ?? 'Notre entreprise'
+  const description    = (brand.description as string) ?? ''
+  const industry       = (brand.industry as string) ?? 'notre secteur'
+  const tone           = (Array.isArray(brand.tone) ? (brand.tone as string[]).join(', ') : (brand.tone as string)) ?? 'professionnel'
+  const targetAudience = (brand.target_audience as string) ?? 'professionnels LinkedIn'
+  // keywords = contexte sur l'entreprise uniquement, jamais forcés dans le post
+  const keywordsContext = Array.isArray(brand.keywords) && (brand.keywords as string[]).length > 0
+    ? (brand.keywords as string[]).join(', ')
+    : ''
+  const keywordsAvoid  = Array.isArray(brand.keywords_avoid) ? (brand.keywords_avoid as string[]).join(', ') : ''
+  const postLength     = (brand.post_length as string) ?? 'medium'
+  // hashtagCount : le profil définit COMBIEN de hashtags, pas lesquels (ils doivent venir du sujet du post)
   const hashtagStrategy = (brand.hashtag_strategy as string) ?? 'few'
-  const signature = (brand.signature as string) ?? ''
+  const hashtagCount   = hashtagStrategy === 'none' ? '0' : hashtagStrategy === 'few' ? '2 à 3' : hashtagStrategy === 'many' ? '7 à 10' : '4 à 6'
+  const signature      = (brand.signature as string) ?? ''
+  const examplePosts   = Array.isArray(brand.example_posts) && (brand.example_posts as string[]).length > 0
+    ? (brand.example_posts as string[]).slice(0, 2).join('\n\n---\n\n')
+    : ''
 
   const lengthTarget = postLength === 'short' ? '~600' : postLength === 'long' ? '~2000' : '~1200'
 
-  const system = `Tu es un expert en rédaction de posts LinkedIn pour ${companyName}, une entreprise de ${industry}.
-Tu rédiges des contenus professionnels, engageants et authentiques qui reflètent la voix de la marque.
+  // ── Données du post ────────────────────────────────────────────────────────
+  const sourceType      = (post.source_type as string) ?? 'manual'
+  const sourceContent   = (post.source_content as string) ?? ''   // angle brainstormé ou doc
+  const sourceUrl       = (post.source_url as string) ?? ''
+  const title           = (post.title as string) ?? ''
+  const existingContent = (post.content as string) ?? ''           // brouillon libre
 
-Profil de marque :
-- Audience cible : ${targetAudience}
+  // ── System prompt ─────────────────────────────────────────────────────────
+  const system = `Tu rédiges des posts LinkedIn au nom de ${companyName}${description ? ` (${description})` : ''}, actif dans le secteur ${industry}.
+
+STYLE D'ÉCRITURE (profil de marque) :
 - Ton : ${tone}
-- Mots-clés à intégrer : ${keywords}
-- Mots-clés interdits : ${keywordsAvoid}
-- Longueur cible : ${lengthTarget} caractères
-- Hashtags : stratégie "${hashtagStrategy}"${signature ? `\n- Signature : ${signature}` : ''}`
+- Audience cible : ${targetAudience}
+- Longueur : ${lengthTarget} caractères
+- Hashtags : ${hashtagCount} hashtag(s) — choisis en fonction du sujet EXACT du post, pas des thèmes généraux de l'entreprise${keywordsAvoid ? `\n- Vocabulaire à bannir : ${keywordsAvoid}` : ''}${signature ? `\n- Signature : ${signature}` : ''}
+${keywordsContext ? `\nCONTEXTE ENTREPRISE (pour comprendre le positionnement — NE PAS forcer ces termes dans le post) :\n${keywordsContext}` : ''}${examplePosts ? `\nEXEMPLES DE STYLE APPRÉCIÉ :\n${examplePosts}` : ''}
 
-  const sourceType = (post.source_type as string) ?? 'manual'
-  const sourceContent = (post.source_content as string) ?? ''
-  const sourceUrl = (post.source_url as string) ?? ''
-  const title = (post.title as string) ?? ''
+RÈGLE FONDAMENTALE — SUJET DU POST :
+Le contenu, les exemples et les hashtags doivent être déterminés par le SUJET SPÉCIFIQUE fourni ci-dessous.
+Le profil de marque donne le style d'écriture — il ne détermine PAS le sujet ni les hashtags.
 
+STANDARDS DE QUALITÉ :
+- SUBSTANCE : chiffres réels, dates réglementaires, exemples concrets, étapes actionnables, noms d'acteurs — pas de généralités
+- EXPERTISE : écrire en expert qui maîtrise son sujet, pas en communicant qui "parle de" quelque chose
+- AUTHENTICITÉ : interdire les formules vides ("Dans un monde où…", "Plus que jamais…", "Il est crucial de…")
+- STRUCTURE : hook fort en 1ère ligne, corps aéré avec sauts de ligne, CTA final`
+
+  // ── User prompt selon la source ────────────────────────────────────────────
   let sourceInstruction = ''
+
   if (sourceType === 'url' && sourceUrl) {
-    sourceInstruction = `Article extrait de : ${sourceUrl}
-Contenu : ${sourceContent}
-Rédige un post LinkedIn ORIGINAL inspiré de cet article. Apporte la perspective unique de ${companyName}.`
+    sourceInstruction = `SOURCE : article extrait de ${sourceUrl}
+CONTENU EXTRAIT : ${sourceContent}
+
+MISSION : rédige un post LinkedIn original sur CE sujet précis — pas un résumé, une prise de position ou un insight concret.
+Les hashtags doivent correspondre au thème de cet article.`
+
   } else if (sourceType === 'document') {
-    sourceInstruction = `Document uploadé par le client.
-Contenu : ${sourceContent}
-Rédige un post LinkedIn qui synthétise les points clés en les adaptant à l'audience LinkedIn.`
-  } else if (sourceType === 'manual' && (post.content as string)) {
-    sourceInstruction = `Le client a rédigé ce brouillon :
-${post.content as string}
-Optimise-le pour LinkedIn : améliore le hook, la structure et les hashtags. Conserve la voix originale.`
+    sourceInstruction = `SOURCE : document fourni
+CONTENU : ${sourceContent}
+
+MISSION : synthétise les points clés de CE document en un post LinkedIn expert. Les hashtags viennent du contenu du document.`
+
+  } else if (existingContent.trim()) {
+    sourceInstruction = `BROUILLON À OPTIMISER :
+${existingContent}
+
+MISSION : améliore ce brouillon pour LinkedIn (hook, structure, lisibilité). Ne change pas les idées ni le sujet. Conserve la voix de l'auteur.`
+
+  } else if (sourceContent.trim()) {
+    // Brainstorm ou post waiting avec angle défini — la source_content est la directive principale
+    sourceInstruction = `SUJET ET ANGLE DU POST :
+${sourceContent}
+
+MISSION : rédige un post LinkedIn expert et substantiel sur CE sujet, en suivant CET angle précis.
+- Traite uniquement ce sujet — ne le noie pas dans des considérations générales sur l'entreprise
+- Mobilise des données factuelles, des exemples réels ou des étapes concrètes propres à CE domaine
+- Les hashtags doivent refléter le sujet du post, pas les thèmes habituels de la marque`
+
   } else {
     sourceInstruction = title
-      ? `Sujet du post : ${title}\nRédige un post LinkedIn engageant sur ce sujet.`
-      : `Rédige un post LinkedIn généraliste valorisant l'expertise de ${companyName}.`
+      ? `SUJET : ${title}\n\nMISSION : rédige un post LinkedIn expert sur ce sujet.`
+      : `MISSION : rédige un post LinkedIn valorisant l'expertise de ${companyName}.`
   }
 
   const user = `${sourceInstruction}
 
-Consignes :
-1. Accroche percutante en première ligne (avant "...voir plus")
-2. Structure avec sauts de ligne pour la lisibilité LinkedIn
-3. CTA en fin de post
-4. Hashtags selon la stratégie définie
-5. Longueur : ${lengthTarget} caractères
-6. Langue : français
+Format final :
+- Longueur : ${lengthTarget} caractères
+- Langue : français${signature ? `\n- Terminer par la signature : ${signature}` : ''}
 
 Génère uniquement le post LinkedIn, sans commentaire ni explication.`
 

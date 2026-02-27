@@ -1,28 +1,18 @@
 // PostPilot — Page détail d'un programme de communication
 
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Pause, Play, Trash2 } from 'lucide-react'
+import { ArrowLeft, Pause, Play, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/hooks/useOrganization'
 import { formatDate } from '@/lib/utils'
 import ProgramTimeline from '@/components/programs/ProgramTimeline'
-import type { Program, Post } from '@/types/database'
+import type { Program, Post, ProgramStatus } from '@/types/database'
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Brouillon',
@@ -43,6 +33,7 @@ export default function ProgramDetail() {
   const navigate = useNavigate()
   const { organizationId } = useOrganization()
   const queryClient = useQueryClient()
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const { data: program, isLoading: programLoading } = useQuery({
     queryKey: ['program', id],
@@ -74,7 +65,7 @@ export default function ProgramDetail() {
   })
 
   const updateStatus = useMutation({
-    mutationFn: async (status: string) => {
+    mutationFn: async (status: ProgramStatus) => {
       const { error } = await supabase
         .from('programs')
         .update({ status, updated_at: new Date().toISOString() })
@@ -175,10 +166,10 @@ export default function ProgramDetail() {
       </div>
 
       {/* Timeline */}
-      <ProgramTimeline posts={posts} />
+      <ProgramTimeline posts={posts} organizationId={organizationId ?? ''} />
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2 border-t">
+      <div className="flex gap-3 pt-2 border-t flex-wrap">
         {program.status === 'active' ? (
           <Button
             variant="outline"
@@ -201,31 +192,35 @@ export default function ProgramDetail() {
           </Button>
         ) : null}
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer
+        {!confirmDelete ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-red-600 border-red-200 hover:bg-red-50"
+            onClick={() => setConfirmDelete(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Supprimer
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50">
+            <span className="text-xs text-red-700">Confirmer la suppression ?</span>
+            <Button
+              size="sm"
+              className="h-6 px-2 text-xs bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => deleteProgram.mutate()}
+              disabled={deleteProgram.isPending}
+            >
+              Oui, supprimer
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Supprimer ce programme ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Le programme sera marqué comme terminé. Les posts associés restent dans votre calendrier.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
-                onClick={() => deleteProgram.mutate()}
-              >
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <button
+              className="text-gray-400 hover:text-gray-600"
+              onClick={() => setConfirmDelete(false)}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

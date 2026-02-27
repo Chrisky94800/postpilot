@@ -165,6 +165,22 @@ export type Post = {
   deleted_at: string | null
 }
 
+// ─── Contacts fréquents (mentions LinkedIn) ──────────────────────────────────
+
+export type ContactType = 'person' | 'company'
+
+export type Contact = {
+  id: string
+  organization_id: string
+  name: string
+  linkedin_url: string | null
+  linkedin_urn: string | null   // Phase 2 : urn:li:person:XXXX
+  type: ContactType
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ─── V2 — Programmes de communication ────────────────────────────────────────
 
 export type ProgramStatus = 'draft' | 'active' | 'paused' | 'completed'
@@ -198,8 +214,13 @@ export type ExtractedItem = {
   type: 'program'
   data: {
     title: string
-    duration_weeks: number
+    description?: string
+    // Format renvoyé par l'Edge Function ai-chat
+    start_date?: string
+    end_date?: string
     posts_per_week: number
+    // Champ legacy (ancienne version du prompt)
+    duration_weeks?: number
     posts: { title: string; week: number; theme?: string; day_of_week?: string }[]
   }
   validated: boolean

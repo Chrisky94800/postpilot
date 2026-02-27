@@ -14,7 +14,7 @@ import type { AiMessage, ExtractedItem } from '@/types/database'
 const WELCOME_MESSAGE: AiMessage = {
   role: 'assistant',
   content:
-    'Bonjour ! Je suis votre assistant de communication.\n\nJe peux vous aider à :\n• Créer un programme de communication\n• Préparer vos prochains posts\n• Analyser vos performances LinkedIn\n\nComment puis-je vous aider aujourd\'hui ?',
+    'Bonjour ! Je suis votre assistant de planification LinkedIn.\n\nJe suis là pour créer votre programme de publication en quelques questions rapides.\n\nPar où souhaitez-vous commencer ?',
   timestamp: new Date().toISOString(),
 }
 
@@ -28,6 +28,10 @@ export default function AIChatPanel({ organizationId }: AIChatPanelProps) {
 
   const [messages, setMessages] = useState<AiMessage[]>([WELCOME_MESSAGE])
   const [conversationId, setConversationId] = useState<string | null>(null)
+  // Historique au format attendu par l'Edge Function (sans timestamp)
+  const [conversationHistory, setConversationHistory] = useState<
+    { role: 'user' | 'assistant'; content: string }[]
+  >([])
   const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -48,6 +52,7 @@ export default function AIChatPanel({ organizationId }: AIChatPanelProps) {
         organization_id: organizationId,
         conversation_id: conversationId,
         message: text,
+        conversation_history: conversationHistory,
       })
 
       const assistantMsg: AiMessage = {
@@ -57,6 +62,11 @@ export default function AIChatPanel({ organizationId }: AIChatPanelProps) {
       }
       setMessages((prev) => [...prev, assistantMsg])
       setConversationId(res.conversation_id)
+
+      // Mettre à jour l'historique depuis la réponse du serveur
+      if (res.conversation_history) {
+        setConversationHistory(res.conversation_history)
+      }
 
       if (res.extracted_items?.length > 0) {
         setExtractedItems(res.extracted_items.map(item => ({ ...item, validated: false })))
@@ -75,13 +85,16 @@ export default function AIChatPanel({ organizationId }: AIChatPanelProps) {
 
   const handleProgramValidated = () => {
     setExtractedItems([])
-    toast.success('Programme créé avec succès ! Les posts sont visibles dans le calendrier.')
+    // Réinitialiser la conversation pour en démarrer une nouvelle
+    setConversationHistory([])
+    setConversationId(null)
+    toast.success('Programme créé ! Les posts sont visibles dans la page Programmes.')
     queryClient.invalidateQueries({ queryKey: ['programs', organizationId] })
     queryClient.invalidateQueries({ queryKey: ['posts', organizationId] })
 
     const confirmMsg: AiMessage = {
       role: 'assistant',
-      content: 'Programme créé avec succès ! Les posts ont été ajoutés à votre calendrier en statut "En attente". Vous pouvez maintenant commencer à les rédiger depuis la page Programmes ou le Calendrier.',
+      content: 'Programme créé ! Les posts sont maintenant dans votre calendrier en statut "En attente".\n\nRendez-vous dans la page Programmes pour définir les thèmes et générer chaque post.',
       timestamp: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, confirmMsg])
@@ -95,7 +108,7 @@ export default function AIChatPanel({ organizationId }: AIChatPanelProps) {
           <Bot className="h-4 w-4 text-white" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900">Assistant de communication</p>
+          <p className="text-sm font-semibold text-gray-900">Assistant de planification</p>
           <p className="text-xs text-gray-400">Propulsé par Claude</p>
         </div>
       </div>

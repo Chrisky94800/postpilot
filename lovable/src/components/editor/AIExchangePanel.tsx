@@ -37,41 +37,45 @@ export default function AIExchangePanel({
     await onSendRevision(text)
   }
 
-  if (messages.length === 0 && !loading) return null
-
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-[#0077B5]" />
-        <p className="text-sm font-medium text-gray-900">Échange avec l'IA</p>
+        <p className="text-sm font-medium text-gray-900">Affiner avec l'IA</p>
       </div>
 
-      {/* Messages */}
-      <div
-        ref={scrollRef}
-        className="space-y-3 max-h-64 overflow-y-auto pr-1"
-      >
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
-                msg.role === 'user'
-                  ? 'bg-[#0077B5] text-white rounded-br-sm'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-              }`}
-            >
-              {msg.content}
+      {/* Messages (ou placeholder vide) */}
+      {(messages.length > 0 || loading) ? (
+        <div
+          ref={scrollRef}
+          className="space-y-3 max-h-64 overflow-y-auto pr-1"
+        >
+          {messages.map((msg, i) => (
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
+                  msg.role === 'user'
+                    ? 'bg-[#0077B5] text-white rounded-br-sm'
+                    : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                }`}
+              >
+                {msg.content}
+              </div>
             </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-xl rounded-bl-sm px-3 py-2">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 rounded-xl rounded-bl-sm px-3 py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 italic">
+          Donnez une instruction à l'IA pour améliorer le post : accroche, ton, structure, longueur…
+        </p>
+      )}
 
       {/* Input */}
       <div className="flex gap-2">
@@ -81,7 +85,7 @@ export default function AIExchangePanel({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
           }}
-          placeholder="Ex : Rends l'accroche plus percutante, ajoute une question…"
+          placeholder="Ex : Rends l'accroche plus percutante, raccourcis de 20%…"
           disabled={loading}
           rows={2}
           className="resize-none text-sm"
@@ -92,7 +96,7 @@ export default function AIExchangePanel({
           size="icon"
           className="shrink-0 h-auto bg-[#0077B5] hover:bg-[#005885]"
         >
-          <Send className="h-4 w-4" />
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
     </div>
