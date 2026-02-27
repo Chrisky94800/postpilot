@@ -6,7 +6,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Linkedin, Check, AlertCircle, Loader2, Trash2, CreditCard, Save,
-  User, Building2, Plus, AtSign,
+  User, Building2, RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
-import { connectLinkedIn } from '@/lib/api'
+import { connectLinkedIn, syncLinkedInContacts } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
 import { useContacts } from '@/hooks/useContacts'
@@ -27,7 +27,7 @@ import {
   TONE_OPTIONS, WEEK_DAYS, INDUSTRIES, SUBSCRIPTION_PLANS,
 } from '@/lib/constants'
 import { formatDateTime } from '@/lib/utils'
-import type { Platform, PostLength, HashtagStrategy, ContactType } from '@/types/database'
+import type { Platform, PostLength, HashtagStrategy } from '@/types/database'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -504,15 +504,51 @@ function PlateformesTab() {
   const { organizationId } = useOrganization()
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const { contacts, deleteContact } = useContacts()
+  const linkedinContacts = contacts.filter((c) => c.linkedin_urn !== null)
 
   // Détection du callback OAuth dans l'URL
   const [searchParams] = useSearchParams()
   const linkedinStatus = searchParams.get('linkedin')
 
   useEffect(() => {
-    if (linkedinStatus === 'connected') toast.success('LinkedIn connecté avec succès !')
-    if (linkedinStatus === 'error')     toast.error('Erreur lors de la connexion LinkedIn. Réessayez.')
-  }, [linkedinStatus])
+    if (linkedinStatus === 'connected') {
+      toast.success('LinkedIn connecté avec succès !')
+      // Sync automatique des pages entreprise après connexion
+      if (organizationId) {
+        syncLinkedInContacts(organizationId)
+          .then((res) => {
+            if (res.synced > 0) {
+              queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] })
+              toast.success(`${res.synced} page(s) entreprise LinkedIn synchronisée(s)`)
+            }
+          })
+          .catch(() => {
+            // Silencieux — l'utilisateur peut resynchroniser manuellement
+          })
+      }
+    }
+    if (linkedinStatus === 'error') toast.error('Erreur lors de la connexion LinkedIn. Réessayez.')
+  }, [linkedinStatus, organizationId, queryClient])
+
+  const handleSyncContacts = async () => {
+    if (!organizationId) return
+    setSyncing(true)
+    try {
+      const res = await syncLinkedInContacts(organizationId)
+      queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] })
+      if (res.synced > 0) {
+        toast.success(`${res.synced} page(s) entreprise synchronisée(s)`)
+      } else {
+        toast.info(res.message ?? 'Aucune page entreprise LinkedIn trouvée.')
+      }
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const { data: platform, isLoading } = useQuery({
     queryKey: ['platform', organizationId, 'linkedin'],
@@ -643,6 +679,107 @@ function PlateformesTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Contacts LinkedIn (pages entreprise) */}
+      {isConnected && !isExpired && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Linkedin className="h-4 w-4 text-[#0077B5]" />
+                  Contacts LinkedIn
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Pages entreprise que vous gérez sur LinkedIn. Disponibles pour les mentions
+                  dans vos posts via le bouton <code>@Mentionner</code>.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncContacts}
+                disabled={syncing}
+                className="shrink-0"
+              >
+                {syncing
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  : <RefreshCw className="h-4 w-4 mr-2" />
+                }
+                Resynchroniser
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {linkedinContacts.length === 0 ? (
+              <div className="text-center py-6 space-y-2">
+                <p className="text-sm text-gray-500">
+                  Aucune page entreprise LinkedIn synchronisée.
+                </p>
+                <p className="text-xs text-gray-400 max-w-md mx-auto">
+                  PostPilot peut synchroniser les pages entreprise que vous administrez sur LinkedIn.
+                  Cliquez sur "Resynchroniser" pour les importer.
+                </p>
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-left">
+                  <p className="text-xs text-amber-700">
+                    <strong>Note :</strong> L'API LinkedIn ne permet pas de récupérer vos connexions personnelles.
+                    Pour mentionner des personnes, ajoutez-les directement depuis le bouton{' '}
+                    <code>@ Mentionner</code> dans l'éditeur de post.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {linkedinContacts.map((contact) => (
+                    <div
+                      key={contact.id}
+                      className="flex items-center gap-3 p-2.5 rounded-lg border bg-white hover:border-gray-300 transition-colors"
+                    >
+                      <div className="h-7 w-7 rounded-full bg-[#0077B5] flex items-center justify-center shrink-0">
+                        {contact.type === 'company'
+                          ? <Building2 className="h-3.5 w-3.5 text-white" />
+                          : <User className="h-3.5 w-3.5 text-white" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{contact.name}</p>
+                        {contact.linkedin_url && (
+                          <a
+                            href={contact.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[#0077B5] hover:underline truncate block"
+                          >
+                            {contact.linkedin_url}
+                          </a>
+                        )}
+                      </div>
+                      <code className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded shrink-0 hidden sm:block">
+                        @[{contact.name}]
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => deleteContact.mutate(contact.id)}
+                        disabled={deleteContact.isPending}
+                        className="text-gray-300 hover:text-red-500 transition-colors"
+                        title="Supprimer ce contact"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 pt-1">
+                  Pour mentionner des personnes (non récupérables via l'API LinkedIn), utilisez
+                  le bouton <code>@ Mentionner</code> dans l'éditeur — vous pourrez y ajouter
+                  des contacts manuellement.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Plateformes à venir */}
       <Card className="border-dashed opacity-60">
@@ -808,167 +945,6 @@ function CompteTab() {
   )
 }
 
-// ─── Onglet Contacts fréquents ────────────────────────────────────────────────
-
-function ContactsTab() {
-  const { contacts, isLoading, createContact, deleteContact } = useContacts()
-  const [name, setName] = useState('')
-  const [linkedinUrl, setLinkedinUrl] = useState('')
-  const [type, setType] = useState<ContactType>('person')
-  const [adding, setAdding] = useState(false)
-
-  const handleAdd = async () => {
-    if (!name.trim()) return
-    setAdding(true)
-    try {
-      await createContact.mutateAsync({ name: name.trim(), linkedin_url: linkedinUrl || undefined, type })
-      setName('')
-      setLinkedinUrl('')
-      setType('person')
-      toast.success('Contact ajouté')
-    } catch {
-      toast.error("Erreur lors de l'ajout")
-    } finally {
-      setAdding(false)
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AtSign className="h-4 w-4 text-[#0077B5]" />
-            Contacts fréquents
-          </CardTitle>
-          <CardDescription>
-            Les contacts enregistrés ici sont disponibles dans le bouton "Mentionner" de l'éditeur
-            de post. Cliquez sur un contact pour insérer <code>@[Nom]</code> dans votre rédaction.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-
-          {/* Formulaire d'ajout */}
-          <div className="space-y-3 p-4 bg-gray-50 rounded-xl border">
-            <p className="text-sm font-medium text-gray-700">Ajouter un contact</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Nom complet *</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jean Dupont"
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">URL LinkedIn (optionnel)</Label>
-                <Input
-                  value={linkedinUrl}
-                  onChange={(e) => setLinkedinUrl(e.target.value)}
-                  placeholder="https://linkedin.com/in/..."
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setType('person')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                    type === 'person'
-                      ? 'bg-[#0077B5] text-white border-[#0077B5]'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#0077B5]'
-                  }`}
-                >
-                  <User className="h-3.5 w-3.5" />
-                  Personne
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType('company')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                    type === 'company'
-                      ? 'bg-[#0077B5] text-white border-[#0077B5]'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#0077B5]'
-                  }`}
-                >
-                  <Building2 className="h-3.5 w-3.5" />
-                  Entreprise
-                </button>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleAdd}
-                disabled={!name.trim() || adding}
-                className="bg-[#0077B5] hover:bg-[#005885] ml-auto"
-              >
-                {adding
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  : <Plus className="h-4 w-4 mr-1.5" />
-                }
-                Ajouter
-              </Button>
-            </div>
-          </div>
-
-          {/* Liste des contacts */}
-          {isLoading ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-            </div>
-          ) : contacts.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6 italic">
-              Aucun contact enregistré. Ajoutez vos contacts LinkedIn fréquents ci-dessus.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {contacts.map((contact) => (
-                <div
-                  key={contact.id}
-                  className="flex items-center gap-3 p-3 rounded-xl border bg-white hover:border-gray-300 transition-colors"
-                >
-                  <div className="shrink-0 h-8 w-8 rounded-full bg-[#0077B5] flex items-center justify-center">
-                    {contact.type === 'company'
-                      ? <Building2 className="h-4 w-4 text-white" />
-                      : <User className="h-4 w-4 text-white" />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{contact.name}</p>
-                    {contact.linkedin_url && (
-                      <a
-                        href={contact.linkedin_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-[#0077B5] hover:underline truncate block"
-                      >
-                        {contact.linkedin_url}
-                      </a>
-                    )}
-                  </div>
-                  <code className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded shrink-0">
-                    @[{contact.name}]
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => deleteContact.mutate(contact.id)}
-                    disabled={deleteContact.isPending}
-                    className="text-gray-300 hover:text-red-500 transition-colors ml-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function Settings() {
@@ -981,7 +957,7 @@ export default function Settings() {
   const defaultTab =
     linkedinCallback
       ? 'plateformes'
-      : tabParam === 'plateformes' || tabParam === 'connections'
+      : tabParam === 'plateformes'
         ? 'plateformes'
         : tabParam === 'compte'
           ? 'compte'
@@ -993,7 +969,6 @@ export default function Settings() {
         <TabsList className="mb-6">
           <TabsTrigger value="brand">Profil de marque</TabsTrigger>
           <TabsTrigger value="plateformes">Plateformes</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
           <TabsTrigger value="compte">Compte</TabsTrigger>
         </TabsList>
         <TabsContent value="brand">
@@ -1001,9 +976,6 @@ export default function Settings() {
         </TabsContent>
         <TabsContent value="plateformes">
           <PlateformesTab />
-        </TabsContent>
-        <TabsContent value="contacts">
-          <ContactsTab />
         </TabsContent>
         <TabsContent value="compte">
           <CompteTab />

@@ -112,6 +112,12 @@ export interface ConnectLinkedInResponse {
   oauth_url: string
 }
 
+export interface SyncLinkedInContactsResponse {
+  synced: number
+  companies: { name: string; urn: string }[]
+  message?: string
+}
+
 // V2 — Programmes
 export interface ProgramPost {
   title: string
@@ -240,16 +246,34 @@ export async function transcribeVocal(
 }
 
 /**
- * Initie le flow OAuth LinkedIn pour une organisation.
- * Retourne l'URL d'autorisation LinkedIn vers laquelle rediriger l'utilisateur.
- * Workflow n8n : linkedin-oauth-flow
+ * Génère l'URL d'autorisation OAuth LinkedIn pour une organisation.
+ * Edge Function Supabase : linkedin-oauth-url
  */
 export async function connectLinkedIn(
   organizationId: string,
   signal?: AbortSignal,
 ): Promise<ConnectLinkedInResponse> {
-  return n8nPost<ConnectLinkedInResponse>(
-    '/webhook/linkedin-connect',
+  return edgeFunctionPost<ConnectLinkedInResponse>(
+    'linkedin-oauth-url',
+    { organization_id: organizationId },
+    signal,
+  )
+}
+
+/**
+ * Synchronise les pages entreprise LinkedIn gérées par l'utilisateur
+ * dans la table contacts.
+ * Edge Function Supabase : linkedin-sync-contacts
+ *
+ * Note : LinkedIn ne permet pas de récupérer les connexions (personnes)
+ * via l'API standard. Seules les pages entreprise administrées sont accessibles.
+ */
+export async function syncLinkedInContacts(
+  organizationId: string,
+  signal?: AbortSignal,
+): Promise<SyncLinkedInContactsResponse> {
+  return edgeFunctionPost<SyncLinkedInContactsResponse>(
+    'linkedin-sync-contacts',
     { organization_id: organizationId },
     signal,
   )
