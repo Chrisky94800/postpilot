@@ -19,6 +19,7 @@ const CORS = {
 const PostGeneratedSchema = z.object({
   action: z.literal('post_generated'),
   post_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   content: z.string().min(1),
   version_number: z.number().int().positive(),
 })
@@ -26,6 +27,7 @@ const PostGeneratedSchema = z.object({
 const PostRevisedSchema = z.object({
   action: z.literal('post_revised'),
   post_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   content: z.string().min(1),
   version_number: z.number().int().positive(),
   feedback: z.string().optional(),
@@ -34,6 +36,7 @@ const PostRevisedSchema = z.object({
 const PostPublishedSchema = z.object({
   action: z.literal('post_published'),
   post_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   platform_post_id: z.string().min(1),
   published_at: z.string().datetime(),
 })
@@ -41,6 +44,7 @@ const PostPublishedSchema = z.object({
 const PostFailedSchema = z.object({
   action: z.literal('post_failed'),
   post_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   error_message: z.string().optional(),
 })
 
@@ -113,18 +117,20 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
-/** Récupère le post et ses champs utiles (organization_id, created_by, title) */
+/** Récupère le post et valide qu'il appartient bien à l'organisation attendue */
 async function fetchPost(
   supabase: SupabaseClient,
   postId: string,
+  organizationId: string,
 ) {
   const { data, error } = await supabase
     .from('posts')
     .select('id, organization_id, created_by, title, platform_type')
     .eq('id', postId)
+    .eq('organization_id', organizationId)   // ← isolation multi-tenant
     .single()
 
-  if (error || !data) throw new Error(`Post not found: ${postId}`)
+  if (error || !data) throw new Error(`Post not found or org mismatch: ${postId}`)
   return data
 }
 
@@ -150,7 +156,7 @@ async function handlePostGenerated(
   supabase: SupabaseClient,
   data: z.infer<typeof PostGeneratedSchema>,
 ) {
-  const post = await fetchPost(supabase, data.post_id)
+  const post = await fetchPost(supabase, data.post_id, data.organization_id)
 
   // 1. Mise à jour du post : statut → pending_review + contenu généré
   const { error: updateError } = await supabase
@@ -187,7 +193,7 @@ async function handlePostRevised(
   supabase: SupabaseClient,
   data: z.infer<typeof PostRevisedSchema>,
 ) {
-  const post = await fetchPost(supabase, data.post_id)
+  const post = await fetchPost(supabase, data.post_id, data.organization_id)
 
   // 1. Mise à jour du contenu (statut reste pending_review)
   const { error: updateError } = await supabase
@@ -225,7 +231,7 @@ async function handlePostPublished(
   supabase: SupabaseClient,
   data: z.infer<typeof PostPublishedSchema>,
 ) {
-  const post = await fetchPost(supabase, data.post_id)
+  const post = await fetchPost(supabase, data.post_id, data.organization_id)
 
   // 1. Mise à jour du post : published + platform_post_id
   const { error } = await supabase
@@ -260,7 +266,7 @@ async function handlePostFailed(
   supabase: SupabaseClient,
   data: z.infer<typeof PostFailedSchema>,
 ) {
-  const post = await fetchPost(supabase, data.post_id)
+  const post = await fetchPost(supabase, data.post_id, data.organization_id)
 
   // 1. Statut → failed
   const { error } = await supabase

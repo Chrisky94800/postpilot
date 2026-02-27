@@ -18,6 +18,7 @@ const CORS = {
 
 const RequestSchema = z.object({
   post_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   feedback: z.string().min(1),
   scope: z.enum(['full', 'opening', 'closing', 'tone', 'length', 'keywords']).default('full'),
 })
@@ -54,15 +55,16 @@ Deno.serve(async (req: Request) => {
     )
 
     const raw = await req.json()
-    const { post_id, feedback, scope } = RequestSchema.parse(raw)
+    const { post_id, organization_id, feedback, scope } = RequestSchema.parse(raw)
 
-    console.log(`[revise-post] post_id=${post_id} scope=${scope}`)
+    console.log(`[revise-post] post_id=${post_id} org=${organization_id} scope=${scope}`)
 
-    // ── 1. Fetch post ─────────────────────────────────────────────────────────
+    // ── 1. Fetch post (with org isolation check) ──────────────────────────────
     const { data: post, error: postError } = await supabase
       .from('posts')
       .select('id, organization_id, content, title, created_by')
       .eq('id', post_id)
+      .eq('organization_id', organization_id)   // ← isolation multi-tenant
       .single()
 
     if (postError || !post) {

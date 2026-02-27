@@ -26,12 +26,12 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/posts?status=eq.approved&scheduled_at=lte.{{ new Date().toISOString() }}&deleted_at=is.null&select=id,content,organization_id,created_by,platform_type&order=scheduled_at.asc&limit=20",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/posts?status=eq.approved&scheduled_at=lte.{{ new Date().toISOString() }}&deleted_at=is.null&select=id,content,organization_id,created_by,platform_type&order=scheduled_at.asc&limit=20",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -56,12 +56,12 @@
       "position": [900, 300],
       "parameters": {
         "method": "GET",
-        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/platforms?organization_id=eq.{{ $json.organization_id }}&platform_type=eq.linkedin&select=id,oauth_tokens,token_expires_at,platform_user_id,is_active",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/platforms?organization_id=eq.{{ $json.organization_id }}&platform_type=eq.linkedin&select=id,oauth_tokens,token_expires_at,platform_user_id,is_active",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
+            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -160,19 +160,19 @@
       "position": [2000, 60],
       "parameters": {
         "method": "POST",
-        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
-            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ action: 'post_published', post_id: $('Code - Build LinkedIn Payload').item.json.id, platform_post_id: $json.id, published_at: new Date().toISOString() }) }}",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_published', post_id: $('Code - Build LinkedIn Payload').item.json.id, organization_id: $('Code - Build LinkedIn Payload').item.json.organization_id, platform_post_id: $json.id, published_at: new Date().toISOString() }) }}",
         "options": {}
       }
     },
@@ -184,19 +184,19 @@
       "position": [2000, 300],
       "parameters": {
         "method": "POST",
-        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
-            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ action: 'post_failed', post_id: $('Code - Build LinkedIn Payload').item.json.id, error_message: $json.message || ('LinkedIn API error - status: ' + ($json.status || 'unknown')) }) }}",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_failed', post_id: $('Code - Build LinkedIn Payload').item.json.id, organization_id: $('Code - Build LinkedIn Payload').item.json.organization_id, error_message: $json.message || ('LinkedIn API error - status: ' + ($json.status || 'unknown')) }) }}",
         "options": {}
       }
     },
@@ -208,13 +208,13 @@
       "position": [1560, 420],
       "parameters": {
         "method": "POST",
-        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
-            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -232,19 +232,19 @@
       "position": [1780, 420],
       "parameters": {
         "method": "POST",
-        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc2MzY1NywiZXhwIjoyMDg3MzM5NjU3fQ.dDGpZB4fRFfkEMp7mBVBXRyoowGbsvfD4efoIa0bQJI" },
-            { "name": "x-n8n-api-key", "value": "postpilot_secret_2025" },
+            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ action: 'post_failed', post_id: $json.id, error_message: $json.tokenErrorMsg || 'LinkedIn token invalid or expired' }) }}",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_failed', post_id: $json.id, organization_id: $json.organization_id, error_message: $json.tokenErrorMsg || 'LinkedIn token invalid or expired' }) }}",
         "options": {}
       }
     }

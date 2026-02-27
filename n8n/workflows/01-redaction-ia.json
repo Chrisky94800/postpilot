@@ -202,7 +202,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ action: 'post_generated', post_id: $json.postId, content: $json.content, version_number: $json.versionNumber }) }}",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_generated', post_id: $json.postId, organization_id: $json.orgId, content: $json.content, version_number: $json.versionNumber }) }}",
         "options": {}
       }
     },

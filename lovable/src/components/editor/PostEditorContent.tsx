@@ -346,7 +346,7 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
         // Persister le contenu en cours avant la révision
         await supabase.from('posts').update({ content }).eq('id', id)
       }
-      const response = await revisePost(id, instruction, 'full')
+      const response = await revisePost(id, organizationId!, instruction, 'full')
       contentFromAI.current = true
       setContent(response.content)
       setAiMessages((prev) => [...prev, { role: 'assistant', content: response.content }])

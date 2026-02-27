@@ -208,13 +208,14 @@ export async function generatePost(
  */
 export async function revisePost(
   postId: string,
+  organizationId: string,
   feedback: string,
   scope: string = 'full',
   signal?: AbortSignal,
 ): Promise<RevisePostResponse> {
   return edgeFunctionPost<RevisePostResponse>(
     'revise-post',
-    { post_id: postId, feedback, scope },
+    { post_id: postId, organization_id: organizationId, feedback, scope },
     signal,
   )
 }

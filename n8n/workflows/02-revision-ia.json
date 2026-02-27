@@ -121,7 +121,7 @@
       "typeVersion": 2,
       "position": [1560, 300],
       "parameters": {
-        "jsCode": "const claudeResponse = $('Claude API - Revise').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourné aucun contenu');\n}\n\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId   = $('Webhook - revise-post').item.json.body.post_id;\nconst feedback = $('Code - Build Revision Prompt').item.json.feedback;\n\nreturn [{\n  json: { content, versionNumber, postId, feedback }\n}];"
+        "jsCode": "const claudeResponse = $('Claude API - Revise').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourné aucun contenu');\n}\n\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId   = $('Webhook - revise-post').item.json.body.post_id;\nconst orgId    = $('Webhook - revise-post').item.json.body.organization_id;\nconst feedback = $('Code - Build Revision Prompt').item.json.feedback;\n\nreturn [{\n  json: { content, versionNumber, postId, orgId, feedback }\n}];"
       }
     },
     {
@@ -144,7 +144,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ action: 'post_revised', post_id: $json.postId, content: $json.content, version_number: $json.versionNumber, feedback: $json.feedback }) }}",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_revised', post_id: $json.postId, organization_id: $json.orgId, content: $json.content, version_number: $json.versionNumber, feedback: $json.feedback }) }}",
         "options": {}
       }
     },
