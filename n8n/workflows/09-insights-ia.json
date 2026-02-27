@@ -26,12 +26,12 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/post_analytics?collected_at=gte.{{ new Date(Date.now() - 30*86400000).toISOString() }}&select=organization_id,likes_count,comments_count,shares_count,impressions_count,engagement_rate,collected_at&limit=500",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/post_analytics?collected_at=gte.{{ new Date(Date.now() - 30*86400000).toISOString() }}&select=organization_id,likes_count,comments_count,shares_count,impressions_count,engagement_rate,collected_at&limit=500",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -56,12 +56,12 @@
       "position": [900, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=company_name,keywords,tone",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=company_name,keywords,tone",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -115,13 +115,13 @@
       "position": [1560, 300],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },

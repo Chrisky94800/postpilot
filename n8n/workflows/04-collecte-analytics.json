@@ -26,12 +26,12 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/posts?status=eq.published&platform_post_id=not.is.null&deleted_at=is.null&select=id,organization_id,platform_post_id,platform_type&limit=50",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/posts?status=eq.published&platform_post_id=not.is.null&deleted_at=is.null&select=id,organization_id,platform_post_id,platform_type&limit=50",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -56,12 +56,12 @@
       "position": [900, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/platforms?organization_id=eq.{{ $json.organization_id }}&platform_type=eq.linkedin&is_active=eq.true&select=oauth_tokens",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/platforms?organization_id=eq.{{ $json.organization_id }}&platform_type=eq.linkedin&is_active=eq.true&select=oauth_tokens",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -112,13 +112,13 @@
       "position": [1560, 300],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },

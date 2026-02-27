@@ -36,12 +36,12 @@
       "position": [680, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/calendar_events?event_date=gte.{{ $json.today }}&event_date=lte.{{ $json.in3days }}&post_generated=eq.false&select=id,organization_id,title,event_date&limit=50",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/calendar_events?event_date=gte.{{ $json.today }}&event_date=lte.{{ $json.in3days }}&post_generated=eq.false&select=id,organization_id,title,event_date&limit=50",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -66,13 +66,13 @@
       "position": [1120, 300],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
