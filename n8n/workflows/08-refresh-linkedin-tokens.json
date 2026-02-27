@@ -1,12 +1,21 @@
 {
+  "updatedAt": "2026-02-27T20:08:19.810Z",
+  "createdAt": "2026-02-23T16:45:04.341Z",
+  "id": "Uv1hf4zHia37gFZv",
   "name": "[PostPilot] 08 - Refresh LinkedIn Tokens",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "id": "schedule-trigger",
       "name": "Schedule - Daily 2h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -23,16 +32,28 @@
       "name": "Supabase - Get Expiring Tokens",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/platforms?platform_type=eq.linkedin&is_active=eq.true&select=id,organization_id,oauth_tokens,token_expires_at",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/platforms?platform_type=eq.linkedin&is_active=eq.true&select=id,organization_id,oauth_tokens,token_expires_at",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -43,7 +64,10 @@
       "name": "Code - Filter Expiring & Split",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "jsCode": "// Filter platforms where token expires in < 7 days\nconst platforms = Array.isArray($json) ? $json : [];\nif (platforms.length === 0) return [];\n\nconst sevenDaysFromNow = new Date();\nsevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);\n\nconst expiring = platforms.filter(p => {\n  if (!p.token_expires_at) return true; // no expiry set → refresh\n  return new Date(p.token_expires_at) < sevenDaysFromNow;\n});\n\nif (expiring.length === 0) return [];\nreturn expiring.map(p => ({ json: p }));"
       }
@@ -53,19 +77,25 @@
       "name": "LinkedIn - Refresh Token",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://www.linkedin.com/oauth/v2/accessToken",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "=grant_type=refresh_token&refresh_token={{ $json.oauth_tokens.refresh_token }}&client_id=78sccdsqwrtsiu&client_secret=WPL_AP1.EMC3qzt4noCa80Qr.KykWog%3D%3D",
+        "body": "=grant_type=refresh_token&refresh_token={{ $json.oauth_tokens.refresh_token }}&client_id=78sccdsqwrtsiu&client_secret=LINKEDIN_CLIENT_SECRET_PLACEHOLDER",
         "options": {
           "response": {
             "response": {
@@ -80,16 +110,26 @@
       "name": "IF - Refresh OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cond-refresh",
               "leftValue": "={{ $json.access_token }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "notEmpty" }
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
             }
           ],
           "combinator": "and"
@@ -102,17 +142,32 @@
       "name": "Supabase - Update Token",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1340, 180],
+      "position": [
+        1340,
+        180
+      ],
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/platforms?id=eq.{{ $('Code - Filter Expiring & Split').item.json.id }}",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/platforms?id=eq.{{ $('Code - Filter Expiring & Split').item.json.id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
@@ -126,17 +181,32 @@
       "name": "webhook-from-n8n - token_expired",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1340, 420],
+      "position": [
+        1340,
+        420
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "x-n8n-api-key",
+              "value": "postpilot_secret_2025"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -148,27 +218,416 @@
   ],
   "connections": {
     "Schedule - Daily 2h": {
-      "main": [[{ "node": "Supabase - Get Expiring Tokens", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Expiring Tokens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Expiring Tokens": {
-      "main": [[{ "node": "Code - Filter Expiring & Split", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Filter Expiring & Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Filter Expiring & Split": {
-      "main": [[{ "node": "LinkedIn - Refresh Token", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "LinkedIn - Refresh Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "LinkedIn - Refresh Token": {
-      "main": [[{ "node": "IF - Refresh OK?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF - Refresh OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF - Refresh OK?": {
       "main": [
-        [{ "node": "Supabase - Update Token", "type": "main", "index": 0 }],
-        [{ "node": "webhook-from-n8n - token_expired", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Supabase - Update Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "webhook-from-n8n - token_expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule - Daily 2h": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "347cf685-4d4a-43bb-8a84-92932eb5cae6",
+  "activeVersionId": "347cf685-4d4a-43bb-8a84-92932eb5cae6",
+  "versionCounter": 7,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-23T16:45:04.343Z",
+      "createdAt": "2026-02-23T16:45:04.343Z",
+      "role": "workflow:owner",
+      "workflowId": "Uv1hf4zHia37gFZv",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-27T20:08:19.811Z",
+    "createdAt": "2026-02-27T20:08:19.811Z",
+    "versionId": "347cf685-4d4a-43bb-8a84-92932eb5cae6",
+    "workflowId": "Uv1hf4zHia37gFZv",
+    "nodes": [
+      {
+        "id": "schedule-trigger",
+        "name": "Schedule - Daily 2h",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 2 * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "get-expiring-tokens",
+        "name": "Supabase - Get Expiring Tokens",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/platforms?platform_type=eq.linkedin&is_active=eq.true&select=id,organization_id,oauth_tokens,token_expires_at",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "filter-expiring",
+        "name": "Code - Filter Expiring & Split",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "jsCode": "// Filter platforms where token expires in < 7 days\nconst platforms = Array.isArray($json) ? $json : [];\nif (platforms.length === 0) return [];\n\nconst sevenDaysFromNow = new Date();\nsevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);\n\nconst expiring = platforms.filter(p => {\n  if (!p.token_expires_at) return true; // no expiry set → refresh\n  return new Date(p.token_expires_at) < sevenDaysFromNow;\n});\n\nif (expiring.length === 0) return [];\nreturn expiring.map(p => ({ json: p }));"
+        }
+      },
+      {
+        "id": "linkedin-refresh",
+        "name": "LinkedIn - Refresh Token",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          900,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://www.linkedin.com/oauth/v2/accessToken",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "string",
+          "body": "=grant_type=refresh_token&refresh_token={{ $json.oauth_tokens.refresh_token }}&client_id=78sccdsqwrtsiu&client_secret=LINKEDIN_CLIENT_SECRET_PLACEHOLDER",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "check-refresh-ok",
+        "name": "IF - Refresh OK?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "id": "cond-refresh",
+                "leftValue": "={{ $json.access_token }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "update-token",
+        "name": "Supabase - Update Token",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1340,
+          180
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/platforms?id=eq.{{ $('Code - Filter Expiring & Split').item.json.id }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Prefer",
+                "value": "return=minimal"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ oauth_tokens: { ...($('Code - Filter Expiring & Split').item.json.oauth_tokens || {}), access_token: $json.access_token, refresh_token: $json.refresh_token || $('Code - Filter Expiring & Split').item.json.oauth_tokens.refresh_token }, token_expires_at: new Date(Date.now() + ($json.expires_in || 5183999) * 1000).toISOString(), is_active: true }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "notify-token-expired",
+        "name": "webhook-from-n8n - token_expired",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1340,
+          420
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "x-n8n-api-key",
+                "value": "postpilot_secret_2025"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ action: 'token_expired', organization_id: $('Code - Filter Expiring & Split').item.json.organization_id, platform_type: 'linkedin' }) }}",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Schedule - Daily 2h": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Expiring Tokens",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Expiring Tokens": {
+        "main": [
+          [
+            {
+              "node": "Code - Filter Expiring & Split",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Filter Expiring & Split": {
+        "main": [
+          [
+            {
+              "node": "LinkedIn - Refresh Token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "LinkedIn - Refresh Token": {
+        "main": [
+          [
+            {
+              "node": "IF - Refresh OK?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF - Refresh OK?": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Update Token",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "webhook-from-n8n - token_expired",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Christopher Mesquita",
+    "name": null,
+    "description": null
   }
 }

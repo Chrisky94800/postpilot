@@ -1,12 +1,21 @@
 {
+  "updatedAt": "2026-02-27T20:08:19.036Z",
+  "createdAt": "2026-02-24T08:49:48.276Z",
+  "id": "L9uR6MPylarrECFD",
   "name": "[PostPilot] 06 - Événements Calendrier",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "id": "schedule-trigger",
       "name": "Schedule - Daily 8h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -23,7 +32,10 @@
       "name": "Code - Get Date Range",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "jsCode": "const today = new Date().toISOString().slice(0, 10);\nconst in3days = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);\nreturn [{ json: { today, in3days } }];"
       }
@@ -33,16 +45,28 @@
       "name": "Supabase - Get Upcoming Events",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/calendar_events?event_date=gte.{{ $json.today }}&event_date=lte.{{ $json.in3days }}&post_generated=eq.false&select=id,organization_id,title,event_date&limit=50",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/calendar_events?event_date=gte.{{ $json.today }}&event_date=lte.{{ $json.in3days }}&post_generated=eq.false&select=id,organization_id,title,event_date&limit=50",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -53,7 +77,10 @@
       "name": "Code - Filter & Split Events",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "jsCode": "const events = Array.isArray($json) ? $json : [];\nif (events.length === 0) return [];\n\nconst now = new Date();\nreturn events.map(e => {\n  const eventDate = new Date(e.event_date);\n  const diffMs = eventDate.getTime() - now.getTime();\n  const days_until = Math.max(0, Math.ceil(diffMs / 86400000));\n  return { json: { ...e, days_until } };\n});"
       }
@@ -63,17 +90,32 @@
       "name": "webhook-from-n8n - event_reminder",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "x-n8n-api-key",
+              "value": "postpilot_secret_2025"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -85,21 +127,289 @@
   ],
   "connections": {
     "Schedule - Daily 8h": {
-      "main": [[{ "node": "Code - Get Date Range", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Get Date Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Get Date Range": {
-      "main": [[{ "node": "Supabase - Get Upcoming Events", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Upcoming Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Upcoming Events": {
-      "main": [[{ "node": "Code - Filter & Split Events", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Filter & Split Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Filter & Split Events": {
-      "main": [[{ "node": "webhook-from-n8n - event_reminder", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "webhook-from-n8n - event_reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule - Daily 8h": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "2e4b2d41-7947-4146-a581-08bcc10e85a4",
+  "activeVersionId": "2e4b2d41-7947-4146-a581-08bcc10e85a4",
+  "versionCounter": 7,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-24T08:49:48.278Z",
+      "createdAt": "2026-02-24T08:49:48.278Z",
+      "role": "workflow:owner",
+      "workflowId": "L9uR6MPylarrECFD",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-27T20:08:19.036Z",
+    "createdAt": "2026-02-27T20:08:19.036Z",
+    "versionId": "2e4b2d41-7947-4146-a581-08bcc10e85a4",
+    "workflowId": "L9uR6MPylarrECFD",
+    "nodes": [
+      {
+        "id": "schedule-trigger",
+        "name": "Schedule - Daily 8h",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 8 * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "get-date-range",
+        "name": "Code - Get Date Range",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          460,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const today = new Date().toISOString().slice(0, 10);\nconst in3days = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);\nreturn [{ json: { today, in3days } }];"
+        }
+      },
+      {
+        "id": "get-events",
+        "name": "Supabase - Get Upcoming Events",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/calendar_events?event_date=gte.{{ $json.today }}&event_date=lte.{{ $json.in3days }}&post_generated=eq.false&select=id,organization_id,title,event_date&limit=50",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "filter-split",
+        "name": "Code - Filter & Split Events",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          900,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const events = Array.isArray($json) ? $json : [];\nif (events.length === 0) return [];\n\nconst now = new Date();\nreturn events.map(e => {\n  const eventDate = new Date(e.event_date);\n  const diffMs = eventDate.getTime() - now.getTime();\n  const days_until = Math.max(0, Math.ceil(diffMs / 86400000));\n  return { json: { ...e, days_until } };\n});"
+        }
+      },
+      {
+        "id": "notify-event",
+        "name": "webhook-from-n8n - event_reminder",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1120,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "x-n8n-api-key",
+                "value": "postpilot_secret_2025"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ action: 'event_reminder', organization_id: $json.organization_id, event_id: $json.id, event_title: $json.title, event_date: $json.event_date, days_until: $json.days_until }) }}",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Schedule - Daily 8h": {
+        "main": [
+          [
+            {
+              "node": "Code - Get Date Range",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Get Date Range": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Upcoming Events",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Upcoming Events": {
+        "main": [
+          [
+            {
+              "node": "Code - Filter & Split Events",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Filter & Split Events": {
+        "main": [
+          [
+            {
+              "node": "webhook-from-n8n - event_reminder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Christopher Mesquita",
+    "name": null,
+    "description": null
   }
 }

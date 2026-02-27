@@ -1,12 +1,21 @@
 {
+  "updatedAt": "2026-02-27T20:08:17.165Z",
+  "createdAt": "2026-02-23T13:02:15.986Z",
+  "id": "B1HBUHs8hGnfFAHr",
   "name": "[PostPilot] 01 - Rédaction IA",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "id": "webhook-trigger",
       "name": "Webhook - generate-post",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "generate-post",
@@ -16,7 +25,7 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "postpilot-api-key",
+          "id": "gH4oLORaj4z23eB4",
           "name": "PostPilot API Key"
         }
       }
@@ -26,16 +35,28 @@
       "name": "Supabase - Get Post",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/posts?id=eq.{{ $json.body.post_id }}&select=id,content,source_type,source_url,source_content,organization_id,title",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/posts?id=eq.{{ $json.body.post_id }}&select=id,content,source_type,source_url,source_content,organization_id,title",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -46,16 +67,28 @@
       "name": "Supabase - Get Brand Profile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $('Webhook - generate-post').item.json.body.organization_id }}&select=*&limit=1",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $('Webhook - generate-post').item.json.body.organization_id }}&select=*&limit=1",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -66,16 +99,28 @@
       "name": "Supabase - Get Max Version",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/post_versions?post_id=eq.{{ $('Webhook - generate-post').item.json.body.post_id }}&select=version_number&order=version_number.desc&limit=1",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/post_versions?post_id=eq.{{ $('Webhook - generate-post').item.json.body.post_id }}&select=version_number&order=version_number.desc&limit=1",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -86,16 +131,26 @@
       "name": "IF - Source is URL",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "cond-url",
               "leftValue": "={{ $('Supabase - Get Post').item.json[0].source_type }}",
               "rightValue": "url",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -108,16 +163,28 @@
       "name": "Supabase - Scrape URL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1340, 180],
+      "position": [
+        1340,
+        180
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/scrape-url",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/scrape-url",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -131,7 +198,10 @@
       "name": "Merge - Source Data",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1560, 300],
+      "position": [
+        1560,
+        300
+      ],
       "parameters": {
         "mode": "chooseBranch",
         "chooseBranchMode": "waitForAll",
@@ -144,7 +214,10 @@
       "name": "Code - Build Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 300],
+      "position": [
+        1780,
+        300
+      ],
       "parameters": {
         "jsCode": "const post = $('Supabase - Get Post').item.json[0];\nconst bp   = $('Supabase - Get Brand Profile').item.json[0] || {};\n\n// Source content\nlet sourceContent = '';\nif (post.source_type === 'url') {\n  try {\n    const scraped = $('Supabase - Scrape URL').item.json;\n    sourceContent = `Titre : ${scraped.title}\\n\\n${scraped.content}`;\n  } catch(e) {\n    sourceContent = post.source_url || '';\n  }\n} else if (post.source_content) {\n  sourceContent = post.source_content;\n} else if (post.content) {\n  sourceContent = post.content;\n}\n\n// Tone list\nconst tone = Array.isArray(bp.tone) ? bp.tone.join(', ') : (bp.tone || 'professionnel');\n\n// Keywords\nconst keywords = Array.isArray(bp.keywords) ? bp.keywords.join(', ') : '';\nconst keywordsAvoid = Array.isArray(bp.keywords_avoid) ? bp.keywords_avoid.join(', ') : '';\n\n// Hashtags\nconst hashtags = Array.isArray(bp.hashtags_preferred) ? bp.hashtags_preferred.join(' ') : '';\nconst hashtagStrategy = bp.hashtag_strategy || 'medium';\n\n// CTAs\nconst ctas = Array.isArray(bp.ctas_preferred) ? bp.ctas_preferred.join(', ') : '';\n\n// Examples\nconst examples = Array.isArray(bp.example_posts) && bp.example_posts.length > 0\n  ? bp.example_posts.slice(0,3).map((p, i) => `Exemple ${i+1}:\\n${p}`).join('\\n\\n')\n  : 'Aucun exemple fourni.';\n\n// Length target\nconst lengthMap = { short: '800-1200', medium: '1200-2000', long: '2000-3000' };\nconst targetChars = lengthMap[bp.post_length] || '1200-2000';\n\n// Emoji style\nconst emojiMap = { 0: 'Aucun emoji', 1: 'Très peu (1-2 max)', 2: 'Modéré (3-5)', 3: 'Beaucoup (6+)' };\nconst emojiUsage = emojiMap[bp.emoji_style] || 'Modéré (3-5)';\n\nconst systemPrompt = `Tu es un expert en rédaction de posts LinkedIn pour ${bp.company_name || 'cette entreprise'}, une entreprise de ${bp.industry || 'ce secteur'}.\nTu rédiges des contenus professionnels, engageants et authentiques qui reflètent la voix de la marque.\n\nProfil de marque :\n- Entreprise : ${bp.company_name} — ${bp.description || ''}\n- Audience cible : ${bp.target_audience || 'professionnels'}\n- Ton : ${tone}\n- Mots-clés à intégrer : ${keywords || 'aucun spécifié'}\n- Mots-clés interdits : ${keywordsAvoid || 'aucun'}\n- Emojis : ${emojiUsage}\n- Longueur cible : ${bp.post_length || 'medium'} (~${targetChars} caractères)\n- Hashtags : stratégie ${hashtagStrategy}, préférés : ${hashtags || 'aucun'}\n- CTA préférés : ${ctas || 'aucun spécifié'}\n- Signature : ${bp.signature || 'aucune'}\n\nExemples de posts appréciés :\n${examples}`;\n\nconst userPrompt = `Source du post :\n- Type : ${post.source_type || 'manual'}\n- Contenu : ${sourceContent}\n\nConsignes :\n1. Accroche percutante en première ligne (hook avant \"...voir plus\")\n2. Développement structuré avec sauts de ligne pour lisibilité LinkedIn\n3. Conclusion avec CTA selon les préférences\n4. Hashtags selon la stratégie (en fin de post)\n5. Authentique, voix de la marque, pas de plagiat\n6. Longueur : ~${targetChars} caractères\n7. Langue : français\n\nGénère le post LinkedIn.`;\n\nreturn [{\n  json: {\n    systemPrompt,\n    userPrompt,\n    model: 'claude-sonnet-4-6',\n    max_tokens: 1500\n  }\n}];"
       }
@@ -154,16 +227,28 @@
       "name": "Claude API - Generate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2000, 300],
+      "position": [
+        2000,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "={{ $vars.ANTHROPIC_API_KEY }}" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "ANTHROPIC_API_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -177,7 +262,10 @@
       "name": "Code - Extract Content",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2220, 300],
+      "position": [
+        2220,
+        300
+      ],
       "parameters": {
         "jsCode": "const claudeResponse = $('Claude API - Generate').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourné aucun contenu');\n}\n\n// Version number\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId       = $('Webhook - generate-post').item.json.body.post_id;\nconst orgId        = $('Webhook - generate-post').item.json.body.organization_id;\n\nreturn [{\n  json: { content, versionNumber, postId, orgId }\n}];"
       }
@@ -187,22 +275,37 @@
       "name": "Supabase - webhook-from-n8n",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2440, 300],
+      "position": [
+        2440,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "x-n8n-api-key",
+              "value": "postpilot_secret_2025"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ action: 'post_generated', post_id: $json.postId, organization_id: $json.orgId, content: $json.content, version_number: $json.versionNumber }) }}",
+        "jsonBody": "={{ JSON.stringify({ action: 'post_generated', post_id: $json.postId, content: $json.content, version_number: $json.versionNumber }) }}",
         "options": {}
       }
     },
@@ -211,57 +314,671 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2660, 300],
+      "position": [
+        2660,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ content: $('Code - Extract Content').item.json.content, version_id: $('Supabase - webhook-from-n8n').item.json.action }) }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     }
   ],
   "connections": {
     "Webhook - generate-post": {
-      "main": [[{ "node": "Supabase - Get Post", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Post": {
-      "main": [[{ "node": "Supabase - Get Brand Profile", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Brand Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Brand Profile": {
-      "main": [[{ "node": "Supabase - Get Max Version", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Max Version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Max Version": {
-      "main": [[{ "node": "IF - Source is URL", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF - Source is URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF - Source is URL": {
       "main": [
-        [{ "node": "Supabase - Scrape URL", "type": "main", "index": 0 }],
-        [{ "node": "Merge - Source Data", "type": "main", "index": 1 }]
+        [
+          {
+            "node": "Supabase - Scrape URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge - Source Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
       ]
     },
     "Supabase - Scrape URL": {
-      "main": [[{ "node": "Merge - Source Data", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Merge - Source Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Merge - Source Data": {
-      "main": [[{ "node": "Code - Build Prompt", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Build Prompt": {
-      "main": [[{ "node": "Claude API - Generate", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Claude API - Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Claude API - Generate": {
-      "main": [[{ "node": "Code - Extract Content", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Extract Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Extract Content": {
-      "main": [[{ "node": "Supabase - webhook-from-n8n", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - webhook-from-n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - webhook-from-n8n": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "",
-    "timezone": "Europe/Paris"
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": ""
   },
-  "tags": [{ "name": "PostPilot" }]
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "92f5af5e-dbad-4eee-bbd6-3f2f98e65982",
+  "activeVersionId": "92f5af5e-dbad-4eee-bbd6-3f2f98e65982",
+  "versionCounter": 20,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-23T13:02:15.989Z",
+      "createdAt": "2026-02-23T13:02:15.989Z",
+      "role": "workflow:owner",
+      "workflowId": "B1HBUHs8hGnfFAHr",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-27T20:08:17.167Z",
+    "createdAt": "2026-02-27T20:08:17.167Z",
+    "versionId": "92f5af5e-dbad-4eee-bbd6-3f2f98e65982",
+    "workflowId": "B1HBUHs8hGnfFAHr",
+    "nodes": [
+      {
+        "id": "webhook-trigger",
+        "name": "Webhook - generate-post",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "generate-post",
+          "authentication": "headerAuth",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "gH4oLORaj4z23eB4",
+            "name": "PostPilot API Key"
+          }
+        }
+      },
+      {
+        "id": "get-post",
+        "name": "Supabase - Get Post",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/posts?id=eq.{{ $json.body.post_id }}&select=id,content,source_type,source_url,source_content,organization_id,title",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "get-brand-profile",
+        "name": "Supabase - Get Brand Profile",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $('Webhook - generate-post').item.json.body.organization_id }}&select=*&limit=1",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "get-max-version",
+        "name": "Supabase - Get Max Version",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          900,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/post_versions?post_id=eq.{{ $('Webhook - generate-post').item.json.body.post_id }}&select=version_number&order=version_number.desc&limit=1",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "check-source-url",
+        "name": "IF - Source is URL",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "cond-url",
+                "leftValue": "={{ $('Supabase - Get Post').item.json[0].source_type }}",
+                "rightValue": "url",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "scrape-url",
+        "name": "Supabase - Scrape URL",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1340,
+          180
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/scrape-url",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ url: $('Supabase - Get Post').item.json[0].source_url }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "merge-source",
+        "name": "Merge - Source Data",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          1560,
+          300
+        ],
+        "parameters": {
+          "mode": "chooseBranch",
+          "chooseBranchMode": "waitForAll",
+          "output": "preferBranch",
+          "options": {}
+        }
+      },
+      {
+        "id": "build-prompt",
+        "name": "Code - Build Prompt",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1780,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const post = $('Supabase - Get Post').item.json[0];\nconst bp   = $('Supabase - Get Brand Profile').item.json[0] || {};\n\n// Source content\nlet sourceContent = '';\nif (post.source_type === 'url') {\n  try {\n    const scraped = $('Supabase - Scrape URL').item.json;\n    sourceContent = `Titre : ${scraped.title}\\n\\n${scraped.content}`;\n  } catch(e) {\n    sourceContent = post.source_url || '';\n  }\n} else if (post.source_content) {\n  sourceContent = post.source_content;\n} else if (post.content) {\n  sourceContent = post.content;\n}\n\n// Tone list\nconst tone = Array.isArray(bp.tone) ? bp.tone.join(', ') : (bp.tone || 'professionnel');\n\n// Keywords\nconst keywords = Array.isArray(bp.keywords) ? bp.keywords.join(', ') : '';\nconst keywordsAvoid = Array.isArray(bp.keywords_avoid) ? bp.keywords_avoid.join(', ') : '';\n\n// Hashtags\nconst hashtags = Array.isArray(bp.hashtags_preferred) ? bp.hashtags_preferred.join(' ') : '';\nconst hashtagStrategy = bp.hashtag_strategy || 'medium';\n\n// CTAs\nconst ctas = Array.isArray(bp.ctas_preferred) ? bp.ctas_preferred.join(', ') : '';\n\n// Examples\nconst examples = Array.isArray(bp.example_posts) && bp.example_posts.length > 0\n  ? bp.example_posts.slice(0,3).map((p, i) => `Exemple ${i+1}:\\n${p}`).join('\\n\\n')\n  : 'Aucun exemple fourni.';\n\n// Length target\nconst lengthMap = { short: '800-1200', medium: '1200-2000', long: '2000-3000' };\nconst targetChars = lengthMap[bp.post_length] || '1200-2000';\n\n// Emoji style\nconst emojiMap = { 0: 'Aucun emoji', 1: 'Très peu (1-2 max)', 2: 'Modéré (3-5)', 3: 'Beaucoup (6+)' };\nconst emojiUsage = emojiMap[bp.emoji_style] || 'Modéré (3-5)';\n\nconst systemPrompt = `Tu es un expert en rédaction de posts LinkedIn pour ${bp.company_name || 'cette entreprise'}, une entreprise de ${bp.industry || 'ce secteur'}.\nTu rédiges des contenus professionnels, engageants et authentiques qui reflètent la voix de la marque.\n\nProfil de marque :\n- Entreprise : ${bp.company_name} — ${bp.description || ''}\n- Audience cible : ${bp.target_audience || 'professionnels'}\n- Ton : ${tone}\n- Mots-clés à intégrer : ${keywords || 'aucun spécifié'}\n- Mots-clés interdits : ${keywordsAvoid || 'aucun'}\n- Emojis : ${emojiUsage}\n- Longueur cible : ${bp.post_length || 'medium'} (~${targetChars} caractères)\n- Hashtags : stratégie ${hashtagStrategy}, préférés : ${hashtags || 'aucun'}\n- CTA préférés : ${ctas || 'aucun spécifié'}\n- Signature : ${bp.signature || 'aucune'}\n\nExemples de posts appréciés :\n${examples}`;\n\nconst userPrompt = `Source du post :\n- Type : ${post.source_type || 'manual'}\n- Contenu : ${sourceContent}\n\nConsignes :\n1. Accroche percutante en première ligne (hook avant \"...voir plus\")\n2. Développement structuré avec sauts de ligne pour lisibilité LinkedIn\n3. Conclusion avec CTA selon les préférences\n4. Hashtags selon la stratégie (en fin de post)\n5. Authentique, voix de la marque, pas de plagiat\n6. Longueur : ~${targetChars} caractères\n7. Langue : français\n\nGénère le post LinkedIn.`;\n\nreturn [{\n  json: {\n    systemPrompt,\n    userPrompt,\n    model: 'claude-sonnet-4-6',\n    max_tokens: 1500\n  }\n}];"
+        }
+      },
+      {
+        "id": "call-claude",
+        "name": "Claude API - Generate",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2000,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.anthropic.com/v1/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-api-key",
+                "value": "ANTHROPIC_API_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "anthropic-version",
+                "value": "2023-06-01"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: $json.model, max_tokens: $json.max_tokens, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "extract-content",
+        "name": "Code - Extract Content",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2220,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const claudeResponse = $('Claude API - Generate').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourné aucun contenu');\n}\n\n// Version number\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId       = $('Webhook - generate-post').item.json.body.post_id;\nconst orgId        = $('Webhook - generate-post').item.json.body.organization_id;\n\nreturn [{\n  json: { content, versionNumber, postId, orgId }\n}];"
+        }
+      },
+      {
+        "id": "notify-supabase",
+        "name": "Supabase - webhook-from-n8n",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2440,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "x-n8n-api-key",
+                "value": "postpilot_secret_2025"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ action: 'post_generated', post_id: $json.postId, content: $json.content, version_number: $json.versionNumber }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "respond",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          2660,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ content: $('Code - Extract Content').item.json.content, version_id: $('Supabase - webhook-from-n8n').item.json.action }) }}",
+          "options": {
+            "responseCode": 200
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook - generate-post": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Post",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Post": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Brand Profile",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Brand Profile": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Max Version",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Max Version": {
+        "main": [
+          [
+            {
+              "node": "IF - Source is URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF - Source is URL": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Scrape URL",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Merge - Source Data",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Supabase - Scrape URL": {
+        "main": [
+          [
+            {
+              "node": "Merge - Source Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge - Source Data": {
+        "main": [
+          [
+            {
+              "node": "Code - Build Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Build Prompt": {
+        "main": [
+          [
+            {
+              "node": "Claude API - Generate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude API - Generate": {
+        "main": [
+          [
+            {
+              "node": "Code - Extract Content",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Extract Content": {
+        "main": [
+          [
+            {
+              "node": "Supabase - webhook-from-n8n",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - webhook-from-n8n": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Christopher Mesquita",
+    "name": null,
+    "description": null
+  }
 }

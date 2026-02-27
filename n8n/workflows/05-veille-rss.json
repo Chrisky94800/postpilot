@@ -1,12 +1,21 @@
 {
+  "updatedAt": "2026-02-27T20:08:18.717Z",
+  "createdAt": "2026-02-24T08:49:47.939Z",
+  "id": "oJxNQc1jvLue6zbM",
   "name": "[PostPilot] 05 - Veille RSS",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "id": "schedule-trigger",
       "name": "Schedule - Every 6h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -23,16 +32,28 @@
       "name": "Supabase - Get Active Feeds",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/rss_feeds?is_active=eq.true&select=id,organization_id,url,title&limit=100",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/rss_feeds?is_active=eq.true&select=id,organization_id,url,title&limit=100",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -43,7 +64,10 @@
       "name": "Code - Split Feeds",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "jsCode": "const feeds = Array.isArray($json) ? $json : [];\nif (feeds.length === 0) return [];\nreturn feeds.map(feed => ({ json: feed }));"
       }
@@ -53,7 +77,10 @@
       "name": "RSS Feed Read - Fetch Articles",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "url": "={{ $json.url }}"
       }
@@ -63,7 +90,10 @@
       "name": "Code - Pick Latest & Merge Feed Info",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "parameters": {
         "jsCode": "// Récupère les infos du feed depuis le node précédent\nconst feed = $('Code - Split Feeds').item.json;\nconst article = $json;\n\nif (!article || !article.title || !article.link) return [];\n\nreturn [{ json: {\n  organization_id: feed.organization_id,\n  feed_title: feed.title || 'RSS',\n  feed_id: feed.id,\n  article_title: article.title,\n  article_url: article.link,\n  article_summary: article.contentSnippet || article.summary || article.content || ''\n} }];"
       }
@@ -73,16 +103,28 @@
       "name": "Supabase - Get Brand Profile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1340, 300],
+      "position": [
+        1340,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=keywords,description",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=keywords,description",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -93,16 +135,28 @@
       "name": "Claude API - Evaluate Relevance",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1560, 300],
+      "position": [
+        1560,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "ANTHROPIC_API_KEY_PLACEHOLDER" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "ANTHROPIC_API_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -122,16 +176,26 @@
       "name": "IF - Is Relevant?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1780, 300],
+      "position": [
+        1780,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "cond-relevant",
               "leftValue": "={{ $json.content && $json.content[0] ? $json.content[0].text : '' }}",
               "rightValue": "\"relevant\":true",
-              "operator": { "type": "string", "operation": "contains" }
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
             }
           ],
           "combinator": "and"
@@ -144,17 +208,32 @@
       "name": "webhook-from-n8n - rss_article_found",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2000, 180],
+      "position": [
+        2000,
+        180
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "x-n8n-api-key",
+              "value": "postpilot_secret_2025"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -166,29 +245,91 @@
   ],
   "connections": {
     "Schedule - Every 6h": {
-      "main": [[{ "node": "Supabase - Get Active Feeds", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Active Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Active Feeds": {
-      "main": [[{ "node": "Code - Split Feeds", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Split Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Split Feeds": {
-      "main": [[{ "node": "RSS Feed Read - Fetch Articles", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read - Fetch Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "RSS Feed Read - Fetch Articles": {
-      "main": [[{ "node": "Code - Pick Latest & Merge Feed Info", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Pick Latest & Merge Feed Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Pick Latest & Merge Feed Info": {
-      "main": [[{ "node": "Supabase - Get Brand Profile", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Brand Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Brand Profile": {
-      "main": [[{ "node": "Claude API - Evaluate Relevance", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Claude API - Evaluate Relevance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Claude API - Evaluate Relevance": {
-      "main": [[{ "node": "IF - Is Relevant?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF - Is Relevant?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF - Is Relevant?": {
       "main": [
-        [{ "node": "webhook-from-n8n - rss_article_found", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "webhook-from-n8n - rss_article_found",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     }
@@ -196,6 +337,405 @@
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule - Every 6h": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "8fae0e67-0e5e-4c06-8bb1-d1cfb047ffe6",
+  "activeVersionId": "8fae0e67-0e5e-4c06-8bb1-d1cfb047ffe6",
+  "versionCounter": 7,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-24T08:49:47.941Z",
+      "createdAt": "2026-02-24T08:49:47.941Z",
+      "role": "workflow:owner",
+      "workflowId": "oJxNQc1jvLue6zbM",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-27T20:08:18.717Z",
+    "createdAt": "2026-02-27T20:08:18.717Z",
+    "versionId": "8fae0e67-0e5e-4c06-8bb1-d1cfb047ffe6",
+    "workflowId": "oJxNQc1jvLue6zbM",
+    "nodes": [
+      {
+        "id": "schedule-trigger",
+        "name": "Schedule - Every 6h",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 */6 * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "get-feeds",
+        "name": "Supabase - Get Active Feeds",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/rss_feeds?is_active=eq.true&select=id,organization_id,url,title&limit=100",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "split-feeds",
+        "name": "Code - Split Feeds",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const feeds = Array.isArray($json) ? $json : [];\nif (feeds.length === 0) return [];\nreturn feeds.map(feed => ({ json: feed }));"
+        }
+      },
+      {
+        "id": "fetch-rss",
+        "name": "RSS Feed Read - Fetch Articles",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "typeVersion": 1,
+        "position": [
+          900,
+          300
+        ],
+        "parameters": {
+          "url": "={{ $json.url }}"
+        }
+      },
+      {
+        "id": "pick-latest",
+        "name": "Code - Pick Latest & Merge Feed Info",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          300
+        ],
+        "parameters": {
+          "jsCode": "// Récupère les infos du feed depuis le node précédent\nconst feed = $('Code - Split Feeds').item.json;\nconst article = $json;\n\nif (!article || !article.title || !article.link) return [];\n\nreturn [{ json: {\n  organization_id: feed.organization_id,\n  feed_title: feed.title || 'RSS',\n  feed_id: feed.id,\n  article_title: article.title,\n  article_url: article.link,\n  article_summary: article.contentSnippet || article.summary || article.content || ''\n} }];"
+        }
+      },
+      {
+        "id": "get-brand-profile",
+        "name": "Supabase - Get Brand Profile",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1340,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=keywords,description",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "claude-relevance",
+        "name": "Claude API - Evaluate Relevance",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1560,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.anthropic.com/v1/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-api-key",
+                "value": "ANTHROPIC_API_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "anthropic-version",
+                "value": "2023-06-01"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256, messages: [{ role: 'user', content: 'Marque: ' + (Array.isArray($('Supabase - Get Brand Profile').item.json) && $('Supabase - Get Brand Profile').item.json.length > 0 ? ($('Supabase - Get Brand Profile').item.json[0].description || '') : '') + '. Mots-clés: ' + (Array.isArray($('Supabase - Get Brand Profile').item.json) && $('Supabase - Get Brand Profile').item.json.length > 0 ? JSON.stringify($('Supabase - Get Brand Profile').item.json[0].keywords || []) : '[]') + '. Article: \"' + $('Code - Pick Latest & Merge Feed Info').item.json.article_title + '\". Résumé: \"' + $('Code - Pick Latest & Merge Feed Info').item.json.article_summary.slice(0, 300) + '\". Cet article est-il pertinent pour créer du contenu LinkedIn ? Réponds UNIQUEMENT en JSON: {\"relevant\": true/false, \"reason\": \"...\"}' }] }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "check-relevant",
+        "name": "IF - Is Relevant?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1780,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "id": "cond-relevant",
+                "leftValue": "={{ $json.content && $json.content[0] ? $json.content[0].text : '' }}",
+                "rightValue": "\"relevant\":true",
+                "operator": {
+                  "type": "string",
+                  "operation": "contains"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "notify-rss",
+        "name": "webhook-from-n8n - rss_article_found",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2000,
+          180
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "x-n8n-api-key",
+                "value": "postpilot_secret_2025"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ action: 'rss_article_found', organization_id: $('Code - Pick Latest & Merge Feed Info').item.json.organization_id, article_title: $('Code - Pick Latest & Merge Feed Info').item.json.article_title, article_url: $('Code - Pick Latest & Merge Feed Info').item.json.article_url, article_summary: $('Code - Pick Latest & Merge Feed Info').item.json.article_summary, feed_title: $('Code - Pick Latest & Merge Feed Info').item.json.feed_title }) }}",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Schedule - Every 6h": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Active Feeds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Active Feeds": {
+        "main": [
+          [
+            {
+              "node": "Code - Split Feeds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Split Feeds": {
+        "main": [
+          [
+            {
+              "node": "RSS Feed Read - Fetch Articles",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "RSS Feed Read - Fetch Articles": {
+        "main": [
+          [
+            {
+              "node": "Code - Pick Latest & Merge Feed Info",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Pick Latest & Merge Feed Info": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Brand Profile",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Brand Profile": {
+        "main": [
+          [
+            {
+              "node": "Claude API - Evaluate Relevance",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude API - Evaluate Relevance": {
+        "main": [
+          [
+            {
+              "node": "IF - Is Relevant?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF - Is Relevant?": {
+        "main": [
+          [
+            {
+              "node": "webhook-from-n8n - rss_article_found",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    },
+    "authors": "Christopher Mesquita",
+    "name": null,
+    "description": null
   }
 }

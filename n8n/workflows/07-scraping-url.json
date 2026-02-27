@@ -1,24 +1,27 @@
 {
+  "updatedAt": "2026-02-27T20:08:19.385Z",
+  "createdAt": "2026-02-23T13:48:52.091Z",
+  "id": "oQi3INiBsDzUGQoG",
   "name": "[PostPilot] 07 - Scraping URL",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "id": "webhook-trigger",
       "name": "Webhook - scrape-url",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "scrape-url",
-        "authentication": "headerAuth",
+        "authentication": "none",
         "responseMode": "responseNode",
         "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "postpilot-api-key",
-          "name": "PostPilot API Key"
-        }
       }
     },
     {
@@ -26,21 +29,33 @@
       "name": "Supabase - Scrape URL Edge Function",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/scrape-url",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/scrape-url",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ url: $('Webhook - scrape-url').item.json.body.url }) }}",
+        "jsonBody": "={{ JSON.stringify({ url: $json.body.url }) }}",
         "options": {}
       }
     },
@@ -49,27 +64,203 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ title: $json.title, summary: $json.summary, content: $json.content }) }}",
-        "options": { "responseCode": 200 }
+        "respondWith": "firstIncomingItem",
+        "options": {}
       }
     }
   ],
   "connections": {
     "Webhook - scrape-url": {
-      "main": [[{ "node": "Supabase - Scrape URL Edge Function", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Scrape URL Edge Function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Scrape URL Edge Function": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "",
-    "timezone": "Europe/Paris"
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": ""
   },
-  "tags": [{ "name": "PostPilot" }]
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "e591123f-a16f-417f-a0c2-468275a3c64f",
+  "activeVersionId": "e591123f-a16f-417f-a0c2-468275a3c64f",
+  "versionCounter": 22,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-23T13:48:52.093Z",
+      "createdAt": "2026-02-23T13:48:52.093Z",
+      "role": "workflow:owner",
+      "workflowId": "oQi3INiBsDzUGQoG",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-27T20:08:19.386Z",
+    "createdAt": "2026-02-27T20:08:19.386Z",
+    "versionId": "e591123f-a16f-417f-a0c2-468275a3c64f",
+    "workflowId": "oQi3INiBsDzUGQoG",
+    "nodes": [
+      {
+        "id": "webhook-trigger",
+        "name": "Webhook - scrape-url",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "scrape-url",
+          "authentication": "none",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "call-scrape-function",
+        "name": "Supabase - Scrape URL Edge Function",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/scrape-url",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ url: $json.body.url }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "respond",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "respondWith": "firstIncomingItem",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Webhook - scrape-url": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Scrape URL Edge Function",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Scrape URL Edge Function": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Christopher Mesquita",
+    "name": null,
+    "description": null
+  }
 }

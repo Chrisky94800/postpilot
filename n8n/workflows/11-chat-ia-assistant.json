@@ -1,12 +1,21 @@
 {
+  "updatedAt": "2026-02-27T20:21:49.269Z",
+  "createdAt": "2026-02-25T06:21:23.428Z",
+  "id": "WHS56KU6ho6wzETV",
   "name": "[PostPilot] 11 - Chat IA Assistant",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
-      "id": "webhook-trigger",
+      "id": "0b808fd5-2807-46cd-a418-a1408bfe3ca3",
       "name": "Webhook - POST ai-chat",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "ai-chat",
@@ -15,90 +24,141 @@
       }
     },
     {
-      "id": "get-brand-profile",
+      "id": "0f5f5c75-2446-4f6a-b83d-8c60f76893c7",
       "name": "Supabase - Get Brand Profile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 220],
+      "position": [
+        460,
+        180
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $('Webhook - POST ai-chat').item.json.body.organization_id }}&select=company_name,description,industry,target_audience,tone,keywords,emoji_style,post_length&limit=1",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $(\"Webhook - POST ai-chat\").item.json.body.organization_id }}&select=company_name,description,industry,target_audience,tone,keywords,emoji_style,post_length&limit=1",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
       }
     },
     {
-      "id": "get-programs",
+      "id": "c4bbae95-c459-4852-8cc7-675fedba593c",
       "name": "Supabase - Get Active Programs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 340],
+      "position": [
+        460,
+        320
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/programs?organization_id=eq.{{ $('Webhook - POST ai-chat').item.json.body.organization_id }}&status=in.(draft,active)&select=title,status,start_date,end_date,posts_per_week&limit=10",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/programs?organization_id=eq.{{ $(\"Webhook - POST ai-chat\").item.json.body.organization_id }}&status=in.(draft,active)&select=title,status,start_date,end_date,posts_per_week&limit=10",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
       }
     },
     {
-      "id": "get-analytics",
+      "id": "d6a7df26-eb94-45c4-a02c-b0a8e5360648",
       "name": "Supabase - Get Analytics 7d",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 460],
+      "position": [
+        460,
+        460
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/post_analytics?organization_id=eq.{{ $('Webhook - POST ai-chat').item.json.body.organization_id }}&collected_at=gte.{{ new Date(Date.now() - 7*86400000).toISOString() }}&select=likes_count,comments_count,impressions_count,engagement_rate&limit=50",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/post_analytics?organization_id=eq.{{ $(\"Webhook - POST ai-chat\").item.json.body.organization_id }}&select=likes_count,comments_count,impressions_count,engagement_rate&limit=20",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
       }
     },
     {
-      "id": "build-conversation",
+      "id": "6360e633-ca58-4694-85f6-30a89e43977e",
       "name": "Code - Build Conversation & Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [700, 340],
+      "position": [
+        700,
+        320
+      ],
       "parameters": {
-        "jsCode": "const webhookBody = $('Webhook - POST ai-chat').item.json.body;\nconst org_id = webhookBody.organization_id;\nconst conversation_id = webhookBody.conversation_id || null;\nconst userMessage = webhookBody.message;\n\n// Brand profile\nconst brandProfiles = $('Supabase - Get Brand Profile').all().map(i => i.json);\nconst brand = Array.isArray(brandProfiles[0]) ? brandProfiles[0][0] : (brandProfiles[0] || {});\n\n// Programs\nconst programsData = $('Supabase - Get Active Programs').all().map(i => i.json);\nconst programs = Array.isArray(programsData[0]) ? programsData[0] : programsData;\n\n// Analytics\nconst analyticsData = $('Supabase - Get Analytics 7d').all().map(i => i.json);\nconst analytics = Array.isArray(analyticsData[0]) ? analyticsData[0] : analyticsData;\n\n// Build programs summary\nlet programsSummary = 'Aucun programme en cours.';\nif (programs.length > 0) {\n  programsSummary = programs.map(p =>\n    `- ${p.title} (${p.status}) : ${p.posts_per_week} posts/sem, du ${p.start_date} au ${p.end_date}`\n  ).join('\\n');\n}\n\n// Build analytics summary\nlet analyticsSummary = 'Pas encore de données.';\nif (analytics.length > 0) {\n  const totalLikes = analytics.reduce((s, a) => s + (a.likes_count || 0), 0);\n  const totalComments = analytics.reduce((s, a) => s + (a.comments_count || 0), 0);\n  const totalImpressions = analytics.reduce((s, a) => s + (a.impressions_count || 0), 0);\n  const avgEng = analytics.filter(a => a.engagement_rate).length > 0\n    ? (analytics.reduce((s, a) => s + (a.engagement_rate || 0), 0) / analytics.filter(a => a.engagement_rate).length).toFixed(2)\n    : '0';\n  analyticsSummary = `7 derniers jours : ${analytics.length} posts analysés. ${totalLikes} likes, ${totalComments} commentaires, ${totalImpressions} impressions. Engagement moyen : ${avgEng}%.`;\n}\n\n// System prompt\nconst systemPrompt = `Tu es l'assistant personnel de communication de ${brand.company_name || 'cette entreprise'}.\n\nTon rôle : accompagner le client dans la planification de ses campagnes LinkedIn.\n\nProfil de l'entreprise :\n- Entreprise : ${brand.company_name || '?'} — ${brand.description || '?'}\n- Secteur : ${brand.industry || '?'}\n- Audience : ${brand.target_audience || '?'}\n- Ton : ${JSON.stringify(brand.tone || [])}\n- Mots-clés : ${JSON.stringify(brand.keywords || [])}\n\nProgrammes en cours :\n${programsSummary}\n\nPerformances récentes :\n${analyticsSummary}\n\nRègles impératives :\n- Sois proactif et concret. Propose des titres de posts précis.\n- Parle en français.\n- Quand le client valide un programme, génère OBLIGATOIREMENT ce format JSON :\n[PROGRAM_PROPOSAL]\n{ \"title\": \"...\", \"duration_weeks\": N, \"posts_per_week\": N, \"posts\": [{\"title\": \"...\", \"week\": 1, \"theme\": \"...\", \"day_of_week\": \"monday\"}, ...] }\n[/PROGRAM_PROPOSAL]\n- Ne génère ce format QUE quand le client dit explicitement qu'il valide.`;\n\n// Fetch or init conversation\nlet existingMessages = [];\nlet convId = conversation_id;\n\nif (conversation_id) {\n  const supabaseUrl = $vars.POSTPILOT_SUPABASE_URL;\n  const res = await $helpers.httpRequest({\n    method: 'GET',\n    url: `${supabaseUrl}/rest/v1/ai_conversations?id=eq.${conversation_id}&select=messages&limit=1`,\n    headers: {\n      'apikey': $vars.POSTPILOT_SUPABASE_ANON_KEY,\n      'Authorization': `Bearer ${$vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY}`,\n      'Accept': 'application/json'\n    }\n  });\n  const rows = Array.isArray(res) ? res : [res];\n  if (rows.length > 0 && rows[0].messages) {\n    existingMessages = Array.isArray(rows[0].messages) ? rows[0].messages : JSON.parse(rows[0].messages);\n  }\n}\n\n// Append user message\nexistingMessages.push({ role: 'user', content: userMessage, timestamp: new Date().toISOString() });\n\n// Build Claude messages format\nconst claudeMessages = existingMessages.map(m => ({ role: m.role, content: m.content }));\n\nreturn [{ json: {\n  org_id,\n  conv_id: convId,\n  system_prompt: systemPrompt,\n  claude_messages: claudeMessages,\n  existing_messages: existingMessages\n} }];"
+        "jsCode": "const webhookBody = $('Webhook - POST ai-chat').item.json.body;\nconst userMessage = webhookBody.message || '';\nconst conversationHistory = webhookBody.conversation_history || [];\nconst orgId = webhookBody.organization_id;\n\nconst brandProfile = $('Supabase - Get Brand Profile').item.json;\nconst programs = $('Supabase - Get Active Programs').all().map(i => i.json);\nconst analytics = $('Supabase - Get Analytics 7d').all().map(i => i.json);\n\nconst brandCtx = brandProfile && brandProfile.company_name\n  ? `Entreprise: ${brandProfile.company_name}\\nSecteur: ${brandProfile.industry || 'Non précisé'}\\nTon: ${brandProfile.tone || 'professionnel'}\\nAudience: ${brandProfile.target_audience || 'Non précisé'}`\n  : 'Profil de marque non configuré.';\n\nconst programsCtx = programs.length\n  ? programs.map(p => `- ${p.title} (${p.status}, ${p.start_date} → ${p.end_date}, ${p.posts_per_week} posts/sem)`).join('\\n')\n  : 'Aucun programme actif.';\n\nconst avgEngagement = analytics.length\n  ? (analytics.reduce((s, a) => s + (parseFloat(a.engagement_rate) || 0), 0) / analytics.length).toFixed(2)\n  : 'N/A';\n\nconst systemPrompt = `Tu es l\\'assistant de communication LinkedIn de ${brandProfile?.company_name || 'cette entreprise'}.\nTu aides à planifier des programmes de publication LinkedIn.\n\nCONTEXTE:\n${brandCtx}\n\nPROGRAMMES EN COURS:\n${programsCtx}\n\nANALYTICS (7 derniers jours, engagement moyen): ${avgEngagement}%\n\nINSTRUCTIONS:\n- Réponds en français, sois concis et actionnable\n- Quand tu proposes un programme validable, utilise EXACTEMENT ce format JSON dans ta réponse:\n[PROGRAM_PROPOSAL]\n{\n  \\\"title\\\": \\\"Titre du programme\\\",\n  \\\"description\\\": \\\"Description courte\\\",\n  \\\"start_date\\\": \\\"YYYY-MM-DD\\\",\n  \\\"end_date\\\": \\\"YYYY-MM-DD\\\",\n  \\\"posts_per_week\\\": 2,\n  \\\"posts\\\": [\n    {\\\"week\\\": 1, \\\"day_of_week\\\": \\\"monday\\\", \\\"title\\\": \\\"Titre du post\\\", \\\"theme\\\": \\\"Thème\\\"},\n    {\\\"week\\\": 1, \\\"day_of_week\\\": \\\"thursday\\\", \\\"title\\\": \\\"Titre du post\\\", \\\"theme\\\": \\\"Thème\\\"}\n  ]\n}\n[/PROGRAM_PROPOSAL]`;\n\nconst claudeMessages = [\n  ...conversationHistory.map(m => ({ role: m.role, content: m.content })),\n  { role: 'user', content: userMessage }\n];\n\nreturn [{ json: { system_prompt: systemPrompt, claude_messages: claudeMessages, org_id: orgId, user_message: userMessage, conversation_history: conversationHistory } }];"
       }
     },
     {
-      "id": "claude-chat",
+      "id": "25698d5e-2dc3-4b00-8de5-46c1d46f22ea",
       "name": "Claude API - Chat Response",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [940, 340],
+      "position": [
+        940,
+        320
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "={{ $vars.ANTHROPIC_API_KEY }}" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -106,31 +166,41 @@
         "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2048, system: $json.system_prompt, messages: $json.claude_messages }) }}",
         "options": {
           "response": {
-            "response": { "neverError": true }
+            "response": {
+              "neverError": true
+            }
           }
         }
       }
     },
     {
-      "id": "parse-save",
+      "id": "f6647eb5-7ab8-48fe-a47d-01ce4bcfe7a5",
       "name": "Code - Parse & Save Conversation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1180, 340],
+      "position": [
+        1180,
+        320
+      ],
       "parameters": {
-        "jsCode": "const buildNode = $('Code - Build Conversation & Prompt').item.json;\nconst claudeResp = $json;\n\nconst org_id = buildNode.org_id;\nlet conv_id = buildNode.conv_id;\nconst existingMessages = buildNode.existing_messages || [];\n\n// Extract reply text\nconst replyText = claudeResp.content && claudeResp.content[0] ? claudeResp.content[0].text : '';\n\n// Append assistant message\nexistingMessages.push({ role: 'assistant', content: replyText, timestamp: new Date().toISOString() });\n\n// Parse PROGRAM_PROPOSAL if present\nconst extracted_items = [];\nconst proposalMatch = replyText.match(/\\[PROGRAM_PROPOSAL\\]([\\s\\S]*?)\\[\\/PROGRAM_PROPOSAL\\]/);\nif (proposalMatch) {\n  try {\n    const proposalData = JSON.parse(proposalMatch[1].trim());\n    extracted_items.push({ type: 'program', data: proposalData, validated: false });\n  } catch (e) {\n    // ignore parse error\n  }\n}\n\n// Save conversation to Supabase\nconst supabaseUrl = $vars.POSTPILOT_SUPABASE_URL;\nconst headers = {\n  'apikey': $vars.POSTPILOT_SUPABASE_ANON_KEY,\n  'Authorization': `Bearer ${$vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY}`,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=representation'\n};\n\nlet savedConv;\nif (conv_id) {\n  // Update existing\n  savedConv = await $helpers.httpRequest({\n    method: 'PATCH',\n    url: `${supabaseUrl}/rest/v1/ai_conversations?id=eq.${conv_id}`,\n    headers,\n    body: JSON.stringify({\n      messages: existingMessages,\n      extracted_items,\n      updated_at: new Date().toISOString()\n    })\n  });\n  savedConv = Array.isArray(savedConv) ? savedConv[0] : { id: conv_id };\n} else {\n  // Create new conversation\n  const title = existingMessages[0]?.content?.slice(0, 60) || 'Nouvelle conversation';\n  savedConv = await $helpers.httpRequest({\n    method: 'POST',\n    url: `${supabaseUrl}/rest/v1/ai_conversations`,\n    headers,\n    body: JSON.stringify({\n      organization_id: org_id,\n      context: 'program_planning',\n      title,\n      messages: existingMessages,\n      extracted_items,\n      is_active: true\n    })\n  });\n  savedConv = Array.isArray(savedConv) ? savedConv[0] : savedConv;\n  conv_id = savedConv?.id || conv_id;\n}\n\nreturn [{ json: {\n  reply: replyText,\n  conversation_id: conv_id,\n  extracted_items\n} }];"
+        "jsCode": "const buildNode = $('Code - Build Conversation & Prompt').item.json;\nconst apiResponse = $json;\n\nlet replyText = '';\nif (apiResponse.content && apiResponse.content.length > 0) {\n  replyText = apiResponse.content[0].text || '';\n} else if (apiResponse.error) {\n  replyText = 'Désolé, une erreur est survenue. Réessayez dans quelques instants.';\n}\n\nlet extractedItems = [];\nconst programMatch = replyText.match(/\\[PROGRAM_PROPOSAL\\]([\\s\\S]*?)\\[\\/PROGRAM_PROPOSAL\\]/);\nif (programMatch) {\n  try {\n    const programData = JSON.parse(programMatch[1].trim());\n    extractedItems = [{ type: 'program', data: programData }];\n  } catch (e) {\n    // ignore parse error\n  }\n}\n\nconst conversationId = buildNode.conversation_id || null;\nconst updatedHistory = [\n  ...buildNode.conversation_history,\n  { role: 'user', content: buildNode.user_message },\n  { role: 'assistant', content: replyText }\n];\n\nreturn [{ json: { reply: replyText, conversation_id: conversationId, extracted_items: extractedItems, conversation_history: updatedHistory } }];"
       }
     },
     {
-      "id": "success-response",
+      "id": "9f96c226-6c0e-4451-8e22-0d1597287870",
       "name": "Webhook Response - Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1420, 340],
+      "position": [
+        1420,
+        320
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     }
   ],
@@ -138,34 +208,448 @@
     "Webhook - POST ai-chat": {
       "main": [
         [
-          { "node": "Supabase - Get Brand Profile", "type": "main", "index": 0 },
-          { "node": "Supabase - Get Active Programs", "type": "main", "index": 0 },
-          { "node": "Supabase - Get Analytics 7d", "type": "main", "index": 0 }
+          {
+            "node": "Supabase - Get Brand Profile",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase - Get Active Programs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase - Get Analytics 7d",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Supabase - Get Brand Profile": {
-      "main": [[{ "node": "Code - Build Conversation & Prompt", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Build Conversation & Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Active Programs": {
-      "main": [[{ "node": "Code - Build Conversation & Prompt", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Build Conversation & Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Analytics 7d": {
-      "main": [[{ "node": "Code - Build Conversation & Prompt", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Build Conversation & Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Build Conversation & Prompt": {
-      "main": [[{ "node": "Claude API - Chat Response", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Claude API - Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Claude API - Chat Response": {
-      "main": [[{ "node": "Code - Parse & Save Conversation", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Parse & Save Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Parse & Save Conversation": {
-      "main": [[{ "node": "Webhook Response - Success", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Webhook Response - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "d59902b0-d6df-4865-bd4c-39d3d8dd9069",
+  "activeVersionId": "d59902b0-d6df-4865-bd4c-39d3d8dd9069",
+  "versionCounter": 6,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-25T06:21:23.429Z",
+      "createdAt": "2026-02-25T06:21:23.429Z",
+      "role": "workflow:owner",
+      "workflowId": "WHS56KU6ho6wzETV",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-27T20:21:49.269Z",
+    "createdAt": "2026-02-27T20:21:49.269Z",
+    "versionId": "d59902b0-d6df-4865-bd4c-39d3d8dd9069",
+    "workflowId": "WHS56KU6ho6wzETV",
+    "nodes": [
+      {
+        "id": "0b808fd5-2807-46cd-a418-a1408bfe3ca3",
+        "name": "Webhook - POST ai-chat",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "ai-chat",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "0f5f5c75-2446-4f6a-b83d-8c60f76893c7",
+        "name": "Supabase - Get Brand Profile",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          180
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $(\"Webhook - POST ai-chat\").item.json.body.organization_id }}&select=company_name,description,industry,target_audience,tone,keywords,emoji_style,post_length&limit=1",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "c4bbae95-c459-4852-8cc7-675fedba593c",
+        "name": "Supabase - Get Active Programs",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          320
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/programs?organization_id=eq.{{ $(\"Webhook - POST ai-chat\").item.json.body.organization_id }}&status=in.(draft,active)&select=title,status,start_date,end_date,posts_per_week&limit=10",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "d6a7df26-eb94-45c4-a02c-b0a8e5360648",
+        "name": "Supabase - Get Analytics 7d",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          460
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/post_analytics?organization_id=eq.{{ $(\"Webhook - POST ai-chat\").item.json.body.organization_id }}&select=likes_count,comments_count,impressions_count,engagement_rate&limit=20",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "6360e633-ca58-4694-85f6-30a89e43977e",
+        "name": "Code - Build Conversation & Prompt",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          700,
+          320
+        ],
+        "parameters": {
+          "jsCode": "const webhookBody = $('Webhook - POST ai-chat').item.json.body;\nconst userMessage = webhookBody.message || '';\nconst conversationHistory = webhookBody.conversation_history || [];\nconst orgId = webhookBody.organization_id;\n\nconst brandProfile = $('Supabase - Get Brand Profile').item.json;\nconst programs = $('Supabase - Get Active Programs').all().map(i => i.json);\nconst analytics = $('Supabase - Get Analytics 7d').all().map(i => i.json);\n\nconst brandCtx = brandProfile && brandProfile.company_name\n  ? `Entreprise: ${brandProfile.company_name}\\nSecteur: ${brandProfile.industry || 'Non précisé'}\\nTon: ${brandProfile.tone || 'professionnel'}\\nAudience: ${brandProfile.target_audience || 'Non précisé'}`\n  : 'Profil de marque non configuré.';\n\nconst programsCtx = programs.length\n  ? programs.map(p => `- ${p.title} (${p.status}, ${p.start_date} → ${p.end_date}, ${p.posts_per_week} posts/sem)`).join('\\n')\n  : 'Aucun programme actif.';\n\nconst avgEngagement = analytics.length\n  ? (analytics.reduce((s, a) => s + (parseFloat(a.engagement_rate) || 0), 0) / analytics.length).toFixed(2)\n  : 'N/A';\n\nconst systemPrompt = `Tu es l\\'assistant de communication LinkedIn de ${brandProfile?.company_name || 'cette entreprise'}.\nTu aides à planifier des programmes de publication LinkedIn.\n\nCONTEXTE:\n${brandCtx}\n\nPROGRAMMES EN COURS:\n${programsCtx}\n\nANALYTICS (7 derniers jours, engagement moyen): ${avgEngagement}%\n\nINSTRUCTIONS:\n- Réponds en français, sois concis et actionnable\n- Quand tu proposes un programme validable, utilise EXACTEMENT ce format JSON dans ta réponse:\n[PROGRAM_PROPOSAL]\n{\n  \\\"title\\\": \\\"Titre du programme\\\",\n  \\\"description\\\": \\\"Description courte\\\",\n  \\\"start_date\\\": \\\"YYYY-MM-DD\\\",\n  \\\"end_date\\\": \\\"YYYY-MM-DD\\\",\n  \\\"posts_per_week\\\": 2,\n  \\\"posts\\\": [\n    {\\\"week\\\": 1, \\\"day_of_week\\\": \\\"monday\\\", \\\"title\\\": \\\"Titre du post\\\", \\\"theme\\\": \\\"Thème\\\"},\n    {\\\"week\\\": 1, \\\"day_of_week\\\": \\\"thursday\\\", \\\"title\\\": \\\"Titre du post\\\", \\\"theme\\\": \\\"Thème\\\"}\n  ]\n}\n[/PROGRAM_PROPOSAL]`;\n\nconst claudeMessages = [\n  ...conversationHistory.map(m => ({ role: m.role, content: m.content })),\n  { role: 'user', content: userMessage }\n];\n\nreturn [{ json: { system_prompt: systemPrompt, claude_messages: claudeMessages, org_id: orgId, user_message: userMessage, conversation_history: conversationHistory } }];"
+        }
+      },
+      {
+        "id": "25698d5e-2dc3-4b00-8de5-46c1d46f22ea",
+        "name": "Claude API - Chat Response",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          940,
+          320
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.anthropic.com/v1/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-api-key",
+                "value": "={{ $env.ANTHROPIC_API_KEY }}"
+              },
+              {
+                "name": "anthropic-version",
+                "value": "2023-06-01"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2048, system: $json.system_prompt, messages: $json.claude_messages }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "f6647eb5-7ab8-48fe-a47d-01ce4bcfe7a5",
+        "name": "Code - Parse & Save Conversation",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1180,
+          320
+        ],
+        "parameters": {
+          "jsCode": "const buildNode = $('Code - Build Conversation & Prompt').item.json;\nconst apiResponse = $json;\n\nlet replyText = '';\nif (apiResponse.content && apiResponse.content.length > 0) {\n  replyText = apiResponse.content[0].text || '';\n} else if (apiResponse.error) {\n  replyText = 'Désolé, une erreur est survenue. Réessayez dans quelques instants.';\n}\n\nlet extractedItems = [];\nconst programMatch = replyText.match(/\\[PROGRAM_PROPOSAL\\]([\\s\\S]*?)\\[\\/PROGRAM_PROPOSAL\\]/);\nif (programMatch) {\n  try {\n    const programData = JSON.parse(programMatch[1].trim());\n    extractedItems = [{ type: 'program', data: programData }];\n  } catch (e) {\n    // ignore parse error\n  }\n}\n\nconst conversationId = buildNode.conversation_id || null;\nconst updatedHistory = [\n  ...buildNode.conversation_history,\n  { role: 'user', content: buildNode.user_message },\n  { role: 'assistant', content: replyText }\n];\n\nreturn [{ json: { reply: replyText, conversation_id: conversationId, extracted_items: extractedItems, conversation_history: updatedHistory } }];"
+        }
+      },
+      {
+        "id": "9f96c226-6c0e-4451-8e22-0d1597287870",
+        "name": "Webhook Response - Success",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          1420,
+          320
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "responseCode": 200
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook - POST ai-chat": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Brand Profile",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Supabase - Get Active Programs",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Supabase - Get Analytics 7d",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Brand Profile": {
+        "main": [
+          [
+            {
+              "node": "Code - Build Conversation & Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Active Programs": {
+        "main": [
+          [
+            {
+              "node": "Code - Build Conversation & Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Analytics 7d": {
+        "main": [
+          [
+            {
+              "node": "Code - Build Conversation & Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Build Conversation & Prompt": {
+        "main": [
+          [
+            {
+              "node": "Claude API - Chat Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude API - Chat Response": {
+        "main": [
+          [
+            {
+              "node": "Code - Parse & Save Conversation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Parse & Save Conversation": {
+        "main": [
+          [
+            {
+              "node": "Webhook Response - Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Christopher Mesquita",
+    "name": null,
+    "description": null
   }
 }

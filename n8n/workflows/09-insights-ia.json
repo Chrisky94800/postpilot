@@ -1,12 +1,21 @@
 {
+  "updatedAt": "2026-02-27T20:08:20.100Z",
+  "createdAt": "2026-02-24T08:49:48.503Z",
+  "id": "GDIHy3uBaTlOYMGI",
   "name": "[PostPilot] 09 - Insights IA",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "id": "schedule-trigger",
       "name": "Schedule - Weekly Monday 7h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -23,16 +32,28 @@
       "name": "Supabase - Get Analytics 30d",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/post_analytics?collected_at=gte.{{ new Date(Date.now() - 30*86400000).toISOString() }}&select=organization_id,likes_count,comments_count,shares_count,impressions_count,engagement_rate,collected_at&limit=500",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/post_analytics?collected_at=gte.{{ new Date(Date.now() - 30*86400000).toISOString() }}&select=organization_id,likes_count,comments_count,shares_count,impressions_count,engagement_rate,collected_at&limit=500",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -43,7 +64,10 @@
       "name": "Code - Group by Org & Build Summaries",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "jsCode": "const analytics = Array.isArray($json) ? $json : [];\nif (analytics.length === 0) return [];\n\n// Grouper par organization_id\nconst byOrg = {};\nfor (const a of analytics) {\n  if (!byOrg[a.organization_id]) byOrg[a.organization_id] = [];\n  byOrg[a.organization_id].push(a);\n}\n\nconst results = [];\nfor (const [org_id, rows] of Object.entries(byOrg)) {\n  const total_posts = rows.length;\n  const total_likes = rows.reduce((s, r) => s + (r.likes_count || 0), 0);\n  const total_comments = rows.reduce((s, r) => s + (r.comments_count || 0), 0);\n  const total_shares = rows.reduce((s, r) => s + (r.shares_count || 0), 0);\n  const total_impressions = rows.reduce((s, r) => s + (r.impressions_count || 0), 0);\n  const avg_engagement = rows.filter(r => r.engagement_rate).length > 0\n    ? (rows.reduce((s, r) => s + (r.engagement_rate || 0), 0) / rows.filter(r => r.engagement_rate).length).toFixed(2)\n    : '0';\n\n  // Best day of week analysis\n  const byDay = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };\n  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];\n  const dayCounters = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };\n  for (const r of rows) {\n    const day = dayNames[new Date(r.collected_at).getDay()];\n    const eng = (r.likes_count || 0) + (r.comments_count || 0) + (r.shares_count || 0);\n    byDay[day] = (byDay[day] || 0) + eng;\n    dayCounters[day] = (dayCounters[day] || 0) + 1;\n  }\n  const bestDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0];\n\n  const summary_text = `30 derniers jours: ${total_posts} posts analysés. Total: ${total_likes} likes, ${total_comments} commentaires, ${total_shares} partages, ${total_impressions} impressions. Engagement moyen: ${avg_engagement}%. Meilleur jour: ${bestDay ? bestDay[0] + ' (total engagement: ' + bestDay[1] + ')' : 'N/A'}.`;\n\n  results.push({ json: { organization_id: org_id, summary_text } });\n}\n\nreturn results;"
       }
@@ -53,16 +77,28 @@
       "name": "Supabase - Get Brand Profile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=company_name,keywords,tone",
+        "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=company_name,keywords,tone",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -73,16 +109,28 @@
       "name": "Claude API - Generate Insights",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "ANTHROPIC_API_KEY_PLACEHOLDER" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "ANTHROPIC_API_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -102,7 +150,10 @@
       "name": "Code - Parse Insights",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 300],
+      "position": [
+        1340,
+        300
+      ],
       "parameters": {
         "jsCode": "const org_id = $('Code - Group by Org & Build Summaries').item.json.organization_id;\nconst responseText = $json.content && $json.content[0] ? $json.content[0].text : '';\n\nif (!responseText) return [];\n\ntry {\n  // Extraire le JSON array de la réponse\n  const jsonMatch = responseText.match(/\\[.*\\]/s);\n  if (!jsonMatch) return [];\n  \n  const insights = JSON.parse(jsonMatch[0]);\n  if (!Array.isArray(insights) || insights.length === 0) return [];\n  \n  // Garder uniquement les strings\n  const validInsights = insights.filter(i => typeof i === 'string' && i.trim().length > 0);\n  if (validInsights.length === 0) return [];\n  \n  return [{ json: { organization_id: org_id, insights: validInsights.slice(0, 5) } }];\n} catch (e) {\n  return [];\n}"
       }
@@ -112,17 +163,32 @@
       "name": "webhook-from-n8n - insights_generated",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1560, 300],
+      "position": [
+        1560,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "x-n8n-api-key",
+              "value": "postpilot_secret_2025"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -134,27 +200,406 @@
   ],
   "connections": {
     "Schedule - Weekly Monday 7h": {
-      "main": [[{ "node": "Supabase - Get Analytics 30d", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Analytics 30d",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Analytics 30d": {
-      "main": [[{ "node": "Code - Group by Org & Build Summaries", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Group by Org & Build Summaries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Group by Org & Build Summaries": {
-      "main": [[{ "node": "Supabase - Get Brand Profile", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Brand Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - Get Brand Profile": {
-      "main": [[{ "node": "Claude API - Generate Insights", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Claude API - Generate Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Claude API - Generate Insights": {
-      "main": [[{ "node": "Code - Parse Insights", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - Parse Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - Parse Insights": {
-      "main": [[{ "node": "webhook-from-n8n - insights_generated", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "webhook-from-n8n - insights_generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule - Weekly Monday 7h": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "638bf1e2-533a-4349-a925-d21a024b7d1c",
+  "activeVersionId": "638bf1e2-533a-4349-a925-d21a024b7d1c",
+  "versionCounter": 10,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-24T08:49:48.505Z",
+      "createdAt": "2026-02-24T08:49:48.505Z",
+      "role": "workflow:owner",
+      "workflowId": "GDIHy3uBaTlOYMGI",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-27T20:08:20.100Z",
+    "createdAt": "2026-02-27T20:08:20.100Z",
+    "versionId": "638bf1e2-533a-4349-a925-d21a024b7d1c",
+    "workflowId": "GDIHy3uBaTlOYMGI",
+    "nodes": [
+      {
+        "id": "schedule-trigger",
+        "name": "Schedule - Weekly Monday 7h",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 7 * * 1"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "get-analytics",
+        "name": "Supabase - Get Analytics 30d",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          460,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/post_analytics?collected_at=gte.{{ new Date(Date.now() - 30*86400000).toISOString() }}&select=organization_id,likes_count,comments_count,shares_count,impressions_count,engagement_rate,collected_at&limit=500",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "group-by-org",
+        "name": "Code - Group by Org & Build Summaries",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const analytics = Array.isArray($json) ? $json : [];\nif (analytics.length === 0) return [];\n\n// Grouper par organization_id\nconst byOrg = {};\nfor (const a of analytics) {\n  if (!byOrg[a.organization_id]) byOrg[a.organization_id] = [];\n  byOrg[a.organization_id].push(a);\n}\n\nconst results = [];\nfor (const [org_id, rows] of Object.entries(byOrg)) {\n  const total_posts = rows.length;\n  const total_likes = rows.reduce((s, r) => s + (r.likes_count || 0), 0);\n  const total_comments = rows.reduce((s, r) => s + (r.comments_count || 0), 0);\n  const total_shares = rows.reduce((s, r) => s + (r.shares_count || 0), 0);\n  const total_impressions = rows.reduce((s, r) => s + (r.impressions_count || 0), 0);\n  const avg_engagement = rows.filter(r => r.engagement_rate).length > 0\n    ? (rows.reduce((s, r) => s + (r.engagement_rate || 0), 0) / rows.filter(r => r.engagement_rate).length).toFixed(2)\n    : '0';\n\n  // Best day of week analysis\n  const byDay = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };\n  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];\n  const dayCounters = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };\n  for (const r of rows) {\n    const day = dayNames[new Date(r.collected_at).getDay()];\n    const eng = (r.likes_count || 0) + (r.comments_count || 0) + (r.shares_count || 0);\n    byDay[day] = (byDay[day] || 0) + eng;\n    dayCounters[day] = (dayCounters[day] || 0) + 1;\n  }\n  const bestDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0];\n\n  const summary_text = `30 derniers jours: ${total_posts} posts analysés. Total: ${total_likes} likes, ${total_comments} commentaires, ${total_shares} partages, ${total_impressions} impressions. Engagement moyen: ${avg_engagement}%. Meilleur jour: ${bestDay ? bestDay[0] + ' (total engagement: ' + bestDay[1] + ')' : 'N/A'}.`;\n\n  results.push({ json: { organization_id: org_id, summary_text } });\n}\n\nreturn results;"
+        }
+      },
+      {
+        "id": "get-brand-profile",
+        "name": "Supabase - Get Brand Profile",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          900,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/brand_profiles?organization_id=eq.{{ $json.organization_id }}&select=company_name,keywords,tone",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "claude-insights",
+        "name": "Claude API - Generate Insights",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1120,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.anthropic.com/v1/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-api-key",
+                "value": "ANTHROPIC_API_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "anthropic-version",
+                "value": "2023-06-01"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'Tu es un expert en marketing LinkedIn et analytics. Tu analyses des données de performance et génères des insights actionnables. Réponds UNIQUEMENT avec un JSON array de strings, sans texte avant ou après.', messages: [{ role: 'user', content: 'Données LinkedIn 30 jours pour ' + (Array.isArray($('Supabase - Get Brand Profile').item.json) && $('Supabase - Get Brand Profile').item.json.length > 0 ? ($('Supabase - Get Brand Profile').item.json[0].company_name || 'cette organisation') : 'cette organisation') + ':\\n' + $('Code - Group by Org & Build Summaries').item.json.summary_text + '\\nMots-clés marque: ' + (Array.isArray($('Supabase - Get Brand Profile').item.json) && $('Supabase - Get Brand Profile').item.json.length > 0 ? JSON.stringify($('Supabase - Get Brand Profile').item.json[0].keywords || []) : '[]') + '\\nGénère 3 à 5 insights actionnables en français pour améliorer les performances LinkedIn. Format attendu: [\"insight 1\", \"insight 2\", \"insight 3\"]' }] }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "parse-insights",
+        "name": "Code - Parse Insights",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1340,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const org_id = $('Code - Group by Org & Build Summaries').item.json.organization_id;\nconst responseText = $json.content && $json.content[0] ? $json.content[0].text : '';\n\nif (!responseText) return [];\n\ntry {\n  // Extraire le JSON array de la réponse\n  const jsonMatch = responseText.match(/\\[.*\\]/s);\n  if (!jsonMatch) return [];\n  \n  const insights = JSON.parse(jsonMatch[0]);\n  if (!Array.isArray(insights) || insights.length === 0) return [];\n  \n  // Garder uniquement les strings\n  const validInsights = insights.filter(i => typeof i === 'string' && i.trim().length > 0);\n  if (validInsights.length === 0) return [];\n  \n  return [{ json: { organization_id: org_id, insights: validInsights.slice(0, 5) } }];\n} catch (e) {\n  return [];\n}"
+        }
+      },
+      {
+        "id": "save-insights",
+        "name": "webhook-from-n8n - insights_generated",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1560,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+              },
+              {
+                "name": "x-n8n-api-key",
+                "value": "postpilot_secret_2025"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ action: 'insights_generated', organization_id: $json.organization_id, insights: $json.insights, period_days: 30 }) }}",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Schedule - Weekly Monday 7h": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Analytics 30d",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Analytics 30d": {
+        "main": [
+          [
+            {
+              "node": "Code - Group by Org & Build Summaries",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Group by Org & Build Summaries": {
+        "main": [
+          [
+            {
+              "node": "Supabase - Get Brand Profile",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase - Get Brand Profile": {
+        "main": [
+          [
+            {
+              "node": "Claude API - Generate Insights",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude API - Generate Insights": {
+        "main": [
+          [
+            {
+              "node": "Code - Parse Insights",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code - Parse Insights": {
+        "main": [
+          [
+            {
+              "node": "webhook-from-n8n - insights_generated",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Christopher Mesquita",
+    "name": null,
+    "description": null
   }
 }

@@ -1,12 +1,21 @@
 {
+  "updatedAt": "2026-02-27T20:20:37.140Z",
+  "createdAt": "2026-02-24T19:56:25.166Z",
+  "id": "WR6gzXQeuSN3EiXH",
   "name": "[PostPilot] 10 - Création Programme",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
-      "id": "webhook-trigger",
+      "id": "7690ea02-6236-409a-a068-65e1d317350c",
       "name": "Webhook - POST create-program",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "create-program",
@@ -15,20 +24,30 @@
       }
     },
     {
-      "id": "validate-input",
+      "id": "2c7ff0d3-7209-4b42-a74f-c4c9c5a382a2",
       "name": "IF - Validate Input",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
-              "id": "check-org",
+              "id": "bd152307-55fd-4bbe-89bd-5239f6595013",
               "leftValue": "={{ $json.body.organization_id }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "notEmpty" }
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
             }
           ],
           "combinator": "and"
@@ -36,31 +55,49 @@
       }
     },
     {
-      "id": "calc-dates",
+      "id": "9a9d3c1f-b79b-498c-b7bb-5529bb4476cb",
       "name": "Code - Calculate Post Dates",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 260],
+      "position": [
+        680,
+        260
+      ],
       "parameters": {
-        "jsCode": "const body = $('Webhook - POST create-program').item.json.body;\nconst org_id = body.organization_id;\nconst program = body.program;\n\nconst DAY_INDEX = {\n  monday: 1, tuesday: 2, wednesday: 3, thursday: 4,\n  friday: 5, saturday: 6, sunday: 0\n};\n\nconst startDate = new Date(program.start_date + 'T09:00:00Z');\n\nconst posts = (program.posts || []).map((post, idx) => {\n  const weekOffset = (post.week - 1) * 7;\n  const startDay = startDate.getDay(); // 0 = dimanche\n  const targetDay = DAY_INDEX[post.day_of_week?.toLowerCase()] ?? 1;\n  \n  // Calculer le décalage en jours depuis le début du programme\n  let dayDiff = targetDay - startDay;\n  if (dayDiff < 0) dayDiff += 7;\n  \n  const postDate = new Date(startDate);\n  postDate.setDate(postDate.getDate() + weekOffset + dayDiff);\n  \n  return {\n    title: post.title,\n    week: post.week,\n    theme: post.theme || '',\n    day_of_week: post.day_of_week || 'monday',\n    scheduled_at: postDate.toISOString(),\n    position_in_program: idx + 1\n  };\n});\n\nreturn [{ json: { org_id, program, posts_with_dates: posts } }];"
+        "jsCode": "const body = $('Webhook - POST create-program').item.json.body;\nconst org_id = body.organization_id;\nconst program = body.program;\nconst DAY_INDEX = { monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sunday: 0 };\nconst startDate = new Date(program.start_date + 'T09:00:00Z');\nconst posts = (program.posts || []).map((post, idx) => {\n  const weekOffset = (post.week - 1) * 7;\n  const startDay = startDate.getDay();\n  const targetDay = DAY_INDEX[post.day_of_week?.toLowerCase()] ?? 1;\n  let dayDiff = targetDay - startDay;\n  if (dayDiff < 0) dayDiff += 7;\n  const postDate = new Date(startDate);\n  postDate.setDate(postDate.getDate() + weekOffset + dayDiff);\n  return { title: post.title, week: post.week, theme: post.theme || '', day_of_week: post.day_of_week || 'monday', scheduled_at: postDate.toISOString(), position_in_program: idx + 1 };\n});\nreturn [{ json: { org_id, program, posts_with_dates: posts } }];"
       }
     },
     {
-      "id": "insert-program",
+      "id": "84708611-a230-4523-8ba8-09cdc83fd7ba",
       "name": "Supabase - INSERT program",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [900, 260],
+      "position": [
+        900,
+        260
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/programs",
+        "url": "https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/programs",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation" }
+            {
+              "name": "apikey",
+              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
@@ -70,63 +107,179 @@
       }
     },
     {
-      "id": "insert-posts",
+      "id": "c7100017-13e3-4e25-abc9-3e8c1c41941d",
       "name": "Code - INSERT Posts in Supabase",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 260],
+      "position": [
+        1120,
+        260
+      ],
       "parameters": {
-        "jsCode": "const calcNode = $('Code - Calculate Post Dates').item.json;\nconst programRow = Array.isArray($json) ? $json[0] : $json;\nconst program_id = programRow.id;\nconst org_id = calcNode.org_id;\nconst postsWithDates = calcNode.posts_with_dates;\n\nconst supabaseUrl = $vars.POSTPILOT_SUPABASE_URL;\nconst serviceKey = $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY;\n\nconst createdPosts = [];\nfor (const post of postsWithDates) {\n  const body = JSON.stringify({\n    organization_id: org_id,\n    program_id: program_id,\n    title: post.title,\n    content: '',\n    status: 'waiting',\n    scheduled_at: post.scheduled_at,\n    publication_time: '09:00',\n    position_in_program: post.position_in_program,\n    platform_type: 'linkedin'\n  });\n\n  const res = await $helpers.httpRequest({\n    method: 'POST',\n    url: `${supabaseUrl}/rest/v1/posts`,\n    headers: {\n      'apikey': $vars.POSTPILOT_SUPABASE_ANON_KEY,\n      'Authorization': `Bearer ${serviceKey}`,\n      'Content-Type': 'application/json',\n      'Prefer': 'return=representation'\n    },\n    body,\n    returnFullResponse: false\n  });\n\n  const created = Array.isArray(res) ? res[0] : res;\n  createdPosts.push({ id: created.id, title: post.title, scheduled_at: post.scheduled_at });\n}\n\nreturn [{ json: { program: programRow, posts: createdPosts } }];"
+        "jsCode": "const calcNode = $('Code - Calculate Post Dates').item.json;\nconst programRow = Array.isArray($json) ? $json[0] : $json;\nconst program_id = programRow.id;\nconst org_id = calcNode.org_id;\nconst postsWithDates = calcNode.posts_with_dates;\nconst supabaseUrl = 'https://tplgbskcvimemwtwpxyk.supabase.co';\nconst serviceKey = 'SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER';\nconst createdPosts = [];\nfor (const post of postsWithDates) {\n  const body = JSON.stringify({ organization_id: org_id, program_id: program_id, title: post.title, content: '', status: 'waiting', scheduled_at: post.scheduled_at, publication_time: '09:00', position_in_program: post.position_in_program, platform_type: 'linkedin' });\n  const res = await $helpers.httpRequest({ method: 'POST', url: supabaseUrl + '/rest/v1/posts', headers: { 'apikey': 'sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8', 'Authorization': 'Bearer ' + serviceKey, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body, returnFullResponse: false });\n  const created = Array.isArray(res) ? res[0] : res;\n  createdPosts.push({ id: created.id, title: post.title, scheduled_at: post.scheduled_at });\n}\nreturn [{ json: { program: programRow, posts: createdPosts } }];"
       }
     },
     {
-      "id": "error-response",
+      "id": "c4ee7349-6365-4435-a255-474b8bae902f",
       "name": "Webhook Response - Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [680, 420],
+      "position": [
+        680,
+        420
+      ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"error\": \"organization_id manquant\" }",
-        "options": { "responseCode": 400 }
+        "responseBody": "{ \"error\": \"organization_id manquant\" }",
+        "options": {
+          "responseCode": 400
+        }
       }
     },
     {
-      "id": "success-response",
+      "id": "3211a1d8-9dc9-4790-8333-268b6555418c",
       "name": "Webhook Response - Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1340, 260],
+      "position": [
+        1340,
+        260
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     }
   ],
   "connections": {
     "Webhook - POST create-program": {
-      "main": [[{ "node": "IF - Validate Input", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF - Validate Input": {
       "main": [
-        [{ "node": "Code - Calculate Post Dates", "type": "main", "index": 0 }],
-        [{ "node": "Webhook Response - Error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Code - Calculate Post Dates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Webhook Response - Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Code - Calculate Post Dates": {
-      "main": [[{ "node": "Supabase - INSERT program", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase - INSERT program",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase - INSERT program": {
-      "main": [[{ "node": "Code - INSERT Posts in Supabase", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code - INSERT Posts in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code - INSERT Posts in Supabase": {
-      "main": [[{ "node": "Webhook Response - Success", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Webhook Response - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
-    "callerPolicy": "workflowsFromSameOwner"
-  }
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "37b78a6b-2dfe-4913-9130-395bb6d51460",
+  "activeVersionId": null,
+  "versionCounter": 7,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-24T19:56:25.168Z",
+      "createdAt": "2026-02-24T19:56:25.168Z",
+      "role": "workflow:owner",
+      "workflowId": "WR6gzXQeuSN3EiXH",
+      "projectId": "hIs98lx4RTsIkVz5",
+      "project": {
+        "updatedAt": "2025-02-21T14:51:19.755Z",
+        "createdAt": "2025-02-21T14:51:17.603Z",
+        "id": "hIs98lx4RTsIkVz5",
+        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-02-21T14:51:17.603Z",
+            "createdAt": "2025-02-21T14:51:17.603Z",
+            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+            "projectId": "hIs98lx4RTsIkVz5",
+            "user": {
+              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "createdAt": "2025-02-21T14:51:16.066Z",
+              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
+              "email": "contact@rocket-solution.fr",
+              "firstName": "Christopher",
+              "lastName": "Mesquita",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
+                "userActivatedAt": 1740921407199,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756821561270
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-26",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
 }
