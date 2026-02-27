@@ -26,12 +26,12 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/platforms?platform_type=eq.linkedin&is_active=eq.true&select=id,organization_id,oauth_tokens,token_expires_at",
+        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/platforms?platform_type=eq.linkedin&is_active=eq.true&select=id,organization_id,oauth_tokens,token_expires_at",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -105,12 +105,12 @@
       "position": [1340, 180],
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/platforms?id=eq.{{ $('Code - Filter Expiring & Split').item.json.id }}",
+        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/platforms?id=eq.{{ $('Code - Filter Expiring & Split').item.json.id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
@@ -129,12 +129,12 @@
       "position": [1340, 420],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "x-n8n-api-key", "value": "={{ $env.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]

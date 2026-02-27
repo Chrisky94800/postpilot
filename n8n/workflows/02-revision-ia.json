@@ -29,12 +29,12 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/posts?id=eq.{{ $json.body.post_id }}&select=id,content,organization_id,title",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/posts?id=eq.{{ $json.body.post_id }}&select=id,content,organization_id,title",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -49,12 +49,12 @@
       "position": [680, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $('Supabase - Get Post').item.json[0].organization_id }}&select=tone,keywords,keywords_avoid&limit=1",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/brand_profiles?organization_id=eq.{{ $('Supabase - Get Post').item.json[0].organization_id }}&select=tone,keywords,keywords_avoid&limit=1",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -69,12 +69,12 @@
       "position": [900, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/post_versions?post_id=eq.{{ $('Webhook - revise-post').item.json.body.post_id }}&select=version_number&order=version_number.desc&limit=1",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/rest/v1/post_versions?post_id=eq.{{ $('Webhook - revise-post').item.json.body.post_id }}&select=version_number&order=version_number.desc&limit=1",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Accept", "value": "application/json" }
           ]
         },
@@ -132,12 +132,12 @@
       "position": [1780, 300],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.SUPABASE_URL }}/functions/v1/webhook-from-n8n",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/webhook-from-n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "x-n8n-api-key", "value": "={{ $vars.N8N_API_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]

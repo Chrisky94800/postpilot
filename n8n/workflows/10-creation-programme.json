@@ -53,12 +53,12 @@
       "position": [900, 260],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/programs",
+        "url": "={{ $env.POSTPILOT_SUPABASE_URL }}/rest/v1/programs",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $env.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
@@ -76,7 +76,7 @@
       "typeVersion": 2,
       "position": [1120, 260],
       "parameters": {
-        "jsCode": "const calcNode = $('Code - Calculate Post Dates').item.json;\nconst programRow = Array.isArray($json) ? $json[0] : $json;\nconst program_id = programRow.id;\nconst org_id = calcNode.org_id;\nconst postsWithDates = calcNode.posts_with_dates;\n\nconst supabaseUrl = $env.SUPABASE_URL;\nconst serviceKey = $env.SUPABASE_SERVICE_ROLE_KEY;\n\nconst createdPosts = [];\nfor (const post of postsWithDates) {\n  const body = JSON.stringify({\n    organization_id: org_id,\n    program_id: program_id,\n    title: post.title,\n    content: '',\n    status: 'waiting',\n    scheduled_at: post.scheduled_at,\n    publication_time: '09:00',\n    position_in_program: post.position_in_program,\n    platform_type: 'linkedin'\n  });\n\n  const res = await $helpers.httpRequest({\n    method: 'POST',\n    url: `${supabaseUrl}/rest/v1/posts`,\n    headers: {\n      'apikey': $env.SUPABASE_ANON_KEY,\n      'Authorization': `Bearer ${serviceKey}`,\n      'Content-Type': 'application/json',\n      'Prefer': 'return=representation'\n    },\n    body,\n    returnFullResponse: false\n  });\n\n  const created = Array.isArray(res) ? res[0] : res;\n  createdPosts.push({ id: created.id, title: post.title, scheduled_at: post.scheduled_at });\n}\n\nreturn [{ json: { program: programRow, posts: createdPosts } }];"
+        "jsCode": "const calcNode = $('Code - Calculate Post Dates').item.json;\nconst programRow = Array.isArray($json) ? $json[0] : $json;\nconst program_id = programRow.id;\nconst org_id = calcNode.org_id;\nconst postsWithDates = calcNode.posts_with_dates;\n\nconst supabaseUrl = $env.POSTPILOT_SUPABASE_URL;\nconst serviceKey = $env.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY;\n\nconst createdPosts = [];\nfor (const post of postsWithDates) {\n  const body = JSON.stringify({\n    organization_id: org_id,\n    program_id: program_id,\n    title: post.title,\n    content: '',\n    status: 'waiting',\n    scheduled_at: post.scheduled_at,\n    publication_time: '09:00',\n    position_in_program: post.position_in_program,\n    platform_type: 'linkedin'\n  });\n\n  const res = await $helpers.httpRequest({\n    method: 'POST',\n    url: `${supabaseUrl}/rest/v1/posts`,\n    headers: {\n      'apikey': $env.POSTPILOT_SUPABASE_ANON_KEY,\n      'Authorization': `Bearer ${serviceKey}`,\n      'Content-Type': 'application/json',\n      'Prefer': 'return=representation'\n    },\n    body,\n    returnFullResponse: false\n  });\n\n  const created = Array.isArray(res) ? res[0] : res;\n  createdPosts.push({ id: created.id, title: post.title, scheduled_at: post.scheduled_at });\n}\n\nreturn [{ json: { program: programRow, posts: createdPosts } }];"
       }
     },
     {

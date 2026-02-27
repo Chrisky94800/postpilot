@@ -29,12 +29,12 @@
       "position": [460, 300],
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.SUPABASE_URL }}/functions/v1/scrape-url",
+        "url": "={{ $vars.POSTPILOT_SUPABASE_URL }}/functions/v1/scrape-url",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "={{ $vars.POSTPILOT_SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.POSTPILOT_SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
