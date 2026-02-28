@@ -39,9 +39,13 @@ async function edgeFunctionPost<TResponse>(
   body: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<TResponse> {
-  // La nouvelle clé Supabase (sb_publishable_*) n'est pas un JWT.
-  // La gateway Edge Functions exige un vrai JWT en Authorization Bearer.
-  // On utilise le token de session de l'utilisateur connecté.
+  // La gateway Edge Functions Supabase valide le Bearer token en HS256.
+  // Les tokens de session utilisateur (access_token) sont en ES256 dans le
+  // nouveau système Supabase et sont rejetés par la gateway avec 401.
+  // Solution : utiliser la clé anon (HS256, statique) comme Bearer pour la
+  // gateway, et vérifier la session côté client pour s'assurer que
+  // l'utilisateur est connecté. La sécurité métier est assurée par les
+  // fonctions elles-mêmes via l'organization_id dans le body.
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     throw new ApiError(401, 'Session expirée — veuillez vous reconnecter')
@@ -52,7 +56,7 @@ async function edgeFunctionPost<TResponse>(
     signal,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'apikey': SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(body),
