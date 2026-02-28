@@ -21,15 +21,14 @@ const RequestSchema = z.object({
   organization_id: z.string().uuid('organization_id invalide'),
 })
 
-// Scopes de base : disponibles sans approbation produit en mode développement
-// w_member_social + r_organization_social nécessitent le produit "Share on LinkedIn"
-// approuvé dans la LinkedIn App → les ajouter une fois le produit approuvé.
+// Scopes approuvés pour l'app LinkedIn PostPilot.
+// r_organization_social nécessite le produit "Share on LinkedIn" approuvé
+// → retiré jusqu'à approbation LinkedIn (sinon : unauthorized_scope_error).
 const LINKEDIN_SCOPES = [
   'openid',
   'profile',
   'email',
   'w_member_social',
-  // 'r_organization_social',  // activer après approbation "Share on LinkedIn"
 ].join(' ')
 
 Deno.serve(async (req: Request) => {
