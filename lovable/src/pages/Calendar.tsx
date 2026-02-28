@@ -1,14 +1,16 @@
 // PostPilot — Calendrier éditorial
 // Sprint 2 : vue mois + liste des posts programmés et publiés.
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft,
   ChevronRight,
   PenLine,
   CalendarDays,
+  Maximize2,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +20,7 @@ import { useOrganization } from '@/hooks/useOrganization'
 import { POST_STATUSES } from '@/lib/constants'
 import { formatDateTime } from '@/lib/utils'
 import type { Post } from '@/types/database'
+import PostEditorContent from '@/components/editor/PostEditorContent'
 
 // ─── Helpers dates ────────────────────────────────────────────────────────────
 
@@ -59,11 +62,14 @@ function isSameDay(a: Date, b: Date): boolean {
 
 export default function Calendar() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { organizationId } = useOrganization()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
 
   // Bornes du mois affiché + buffer d'une semaine avant/après
   const startOfMonth = new Date(year, month, 1)
@@ -93,11 +99,21 @@ export default function Calendar() {
     if (month === 0) { setMonth(11); setYear((y) => y - 1) }
     else setMonth((m) => m - 1)
     setSelectedDay(null)
+    setSelectedPostId(null)
   }
   const nextMonth = () => {
     if (month === 11) { setMonth(0); setYear((y) => y + 1) }
     else setMonth((m) => m + 1)
     setSelectedDay(null)
+    setSelectedPostId(null)
+  }
+
+  const handlePostClick = (post: Post, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSelectedDay(new Date(post.scheduled_at!))
+    setSelectedPostId(post.id)
+    // Scroll vers l'éditeur après le prochain rendu
+    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
   const selectedPosts = selectedDay
@@ -173,12 +189,15 @@ export default function Calendar() {
                   </span>
                   <div className="space-y-0.5">
                     {dayPosts.slice(0, 2).map((p) => (
-                      <div
+                      <button
                         key={p.id}
-                        className={`text-[10px] px-1 py-0.5 rounded truncate ${POST_STATUSES[p.status].color}`}
+                        onClick={(e) => handlePostClick(p, e)}
+                        className={`text-[10px] px-1 py-0.5 rounded truncate w-full text-left transition-all ${
+                          POST_STATUSES[p.status].color
+                        } ${selectedPostId === p.id ? 'ring-1 ring-offset-1 ring-blue-500 font-semibold' : 'hover:opacity-80'}`}
                       >
-                        {p.title ?? p.content.slice(0, 20)}
-                      </div>
+                        {p.title ?? p.content?.slice(0, 20)}
+                      </button>
                     ))}
                     {dayPosts.length > 2 && (
                       <div className="text-[10px] text-gray-400">
@@ -196,13 +215,21 @@ export default function Calendar() {
       {/* Détail du jour sélectionné */}
       {selectedDay && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-gray-900">
-            {selectedDay.toLocaleDateString('fr-FR', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">
+              {selectedDay.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              })}
+            </h3>
+            <button
+              onClick={() => { setSelectedDay(null); setSelectedPostId(null) }}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
           {selectedPosts.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-gray-500">
@@ -220,12 +247,16 @@ export default function Calendar() {
             </Card>
           ) : (
             selectedPosts.map((post) => {
-              const canEdit = post.status === 'waiting' || post.status === 'draft'
+              const isActive = selectedPostId === post.id
               return (
                 <Card
                   key={post.id}
-                  className="cursor-pointer hover:shadow-sm transition-shadow"
-                  onClick={() => navigate(`/posts/${post.id}`)}
+                  className={`cursor-pointer transition-all ${
+                    isActive
+                      ? 'ring-2 ring-[#0077B5] shadow-md'
+                      : 'hover:shadow-sm'
+                  }`}
+                  onClick={(e) => handlePostClick(post, e)}
                 >
                   <CardContent className="py-4 flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -240,23 +271,58 @@ export default function Calendar() {
                       <Badge className={POST_STATUSES[post.status].color}>
                         {POST_STATUSES[post.status].label}
                       </Badge>
-                      {canEdit && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-7"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/posts/${post.id}`) }}
-                        >
-                          <PenLine className="h-3 w-3 mr-1" />
-                          Rédiger
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/posts/${post.id}`) }}
+                      >
+                        <Maximize2 className="h-3 w-3 mr-1" />
+                        Plein écran
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               )
             })
           )}
+        </div>
+      )}
+
+      {/* Éditeur de post inline */}
+      {selectedPostId && (
+        <div ref={editorRef} className="border-t pt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Édition du post</h3>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/posts/${selectedPostId}`)}
+              >
+                <Maximize2 className="h-3.5 w-3.5 mr-1.5" />
+                Plein écran
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedPostId(null)}
+              >
+                <X className="h-3.5 w-3.5 mr-1.5" />
+                Fermer
+              </Button>
+            </div>
+          </div>
+          <PostEditorContent
+            postId={selectedPostId}
+            onNewPostCreated={(id) => {
+              setSelectedPostId(id)
+              queryClient.invalidateQueries({ queryKey: ['posts', organizationId, 'calendar', year, month] })
+            }}
+            onSaved={() => {
+              queryClient.invalidateQueries({ queryKey: ['posts', organizationId, 'calendar', year, month] })
+            }}
+          />
         </div>
       )}
     </div>
