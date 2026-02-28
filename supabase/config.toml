@@ -1,7 +1,3 @@
-[project]
-id = "postpilot"
-name = "PostPilot"
-
 [db]
 port = 54322
 shadow_port = 54320
@@ -18,3 +14,18 @@ enabled = true
 client_id = "env(GOOGLE_CLIENT_ID)"
 secret = "env(GOOGLE_CLIENT_SECRET)"
 redirect_uri = "env(SUPABASE_URL)/auth/v1/callback"
+
+# ── Edge Functions — JWT verification ────────────────────────────────────────
+# Ces fonctions reçoivent des requêtes sans JWT utilisateur :
+# - linkedin-oauth-callback : redirect navigateur depuis LinkedIn (pas de header Auth)
+# - webhook-from-n8n        : appelé par n8n avec X-N8N-Api-Key, pas de JWT user
+# - send-notification       : appelé par n8n avec X-N8N-Api-Key, pas de JWT user
+
+[functions.linkedin-oauth-callback]
+verify_jwt = false
+
+[functions.webhook-from-n8n]
+verify_jwt = false
+
+[functions.send-notification]
+verify_jwt = false

@@ -3,6 +3,8 @@
 // Les workflows background (publication, analytics) restent sur n8n.
 // Le frontend ne parle JAMAIS directement à Claude API ni à l'API LinkedIn.
 
+import { supabase } from './supabase'
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 // Supabase Edge Functions (generate, revise, create-program, ai-chat, scrape-url)
@@ -37,12 +39,20 @@ async function edgeFunctionPost<TResponse>(
   body: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<TResponse> {
+  // La nouvelle clé Supabase (sb_publishable_*) n'est pas un JWT.
+  // La gateway Edge Functions exige un vrai JWT en Authorization Bearer.
+  // On utilise le token de session de l'utilisateur connecté.
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    throw new ApiError(401, 'Session expirée — veuillez vous reconnecter')
+  }
+
   const res = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
     method: 'POST',
     signal,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Authorization': `Bearer ${session.access_token}`,
       'apikey': SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(body),
