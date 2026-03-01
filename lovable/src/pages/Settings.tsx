@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase'
 import { connectLinkedIn, syncLinkedInContacts } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
+import Documents from '@/pages/Documents'
 import { useContacts } from '@/hooks/useContacts'
 import { TagInput } from '@/components/onboarding/TagInput'
 import {
@@ -961,7 +962,9 @@ export default function Settings() {
         ? 'plateformes'
         : tabParam === 'compte'
           ? 'compte'
-          : 'brand'
+          : tabParam === 'connaissance'
+            ? 'connaissance'
+            : 'brand'
 
   return (
     <div className="max-w-3xl">
@@ -969,6 +972,7 @@ export default function Settings() {
         <TabsList className="mb-6">
           <TabsTrigger value="brand">Profil de marque</TabsTrigger>
           <TabsTrigger value="plateformes">Plateformes</TabsTrigger>
+          <TabsTrigger value="connaissance">Base de connaissance</TabsTrigger>
           <TabsTrigger value="compte">Compte</TabsTrigger>
         </TabsList>
         <TabsContent value="brand">
@@ -976,6 +980,9 @@ export default function Settings() {
         </TabsContent>
         <TabsContent value="plateformes">
           <PlateformesTab />
+        </TabsContent>
+        <TabsContent value="connaissance">
+          <Documents />
         </TabsContent>
         <TabsContent value="compte">
           <CompteTab />

@@ -5,7 +5,6 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   CalendarDays,
-  FileText,
   BarChart2,
   Settings,
   PenLine,
@@ -45,11 +44,6 @@ const NAV_ITEMS = [
     label: 'Programmes',
     href: '/programmes',
     icon: Layers,
-  },
-  {
-    label: 'Documents',
-    href: '/documents',
-    icon: FileText,
   },
   {
     label: 'Analytics',
