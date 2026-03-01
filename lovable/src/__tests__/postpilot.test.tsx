@@ -1019,32 +1019,13 @@ describe('Composant — SourceFreeWriting', () => {
         <SourceFreeWriting
           content=""
           onChange={vi.fn()}
-          onSubmitToAI={vi.fn()}
-          loading={false}
         />
       </Wrapper>,
     )
     expect(screen.getByRole('textbox')).toBeDefined()
   })
 
-  it('désactive le bouton IA si le contenu est vide', async () => {
-    const SourceFreeWriting = (await import('@/components/editor/SourceFreeWriting')).default
-    const Wrapper = createWrapper()
-    render(
-      <Wrapper>
-        <SourceFreeWriting
-          content=""
-          onChange={vi.fn()}
-          onSubmitToAI={vi.fn()}
-          loading={false}
-        />
-      </Wrapper>,
-    )
-    const button = screen.getByRole('button') as HTMLButtonElement
-    expect(button.disabled).toBe(true)
-  })
-
-  it('active le bouton IA si le contenu est présent', async () => {
+  it('affiche le contenu dans le textarea', async () => {
     const SourceFreeWriting = (await import('@/components/editor/SourceFreeWriting')).default
     const Wrapper = createWrapper()
     render(
@@ -1052,29 +1033,11 @@ describe('Composant — SourceFreeWriting', () => {
         <SourceFreeWriting
           content="Mon idée de post"
           onChange={vi.fn()}
-          onSubmitToAI={vi.fn()}
-          loading={false}
         />
       </Wrapper>,
     )
-    const button = screen.getByRole('button') as HTMLButtonElement
-    expect(button.disabled).toBe(false)
-  })
-
-  it('affiche le texte "Optimisation en cours…" pendant le chargement', async () => {
-    const SourceFreeWriting = (await import('@/components/editor/SourceFreeWriting')).default
-    const Wrapper = createWrapper()
-    render(
-      <Wrapper>
-        <SourceFreeWriting
-          content="Contenu"
-          onChange={vi.fn()}
-          onSubmitToAI={vi.fn()}
-          loading={true}
-        />
-      </Wrapper>,
-    )
-    expect(screen.getByText('Optimisation en cours…')).toBeDefined()
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
+    expect(textarea.value).toBe('Mon idée de post')
   })
 
   it('appelle onChange quand l\'utilisateur tape', async () => {
@@ -1088,8 +1051,6 @@ describe('Composant — SourceFreeWriting', () => {
         <SourceFreeWriting
           content=""
           onChange={handleChange}
-          onSubmitToAI={vi.fn()}
-          loading={false}
         />
       </Wrapper>,
     )

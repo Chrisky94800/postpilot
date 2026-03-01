@@ -26,7 +26,6 @@ const Onboarding     = lazy(() => import('@/pages/Onboarding'))
 const Dashboard      = lazy(() => import('@/pages/Dashboard'))
 const Calendar       = lazy(() => import('@/pages/Calendar'))
 const PostEditor     = lazy(() => import('@/pages/PostEditor'))
-const Documents      = lazy(() => import('@/pages/Documents'))
 const Analytics      = lazy(() => import('@/pages/Analytics'))
 const Settings       = lazy(() => import('@/pages/Settings'))
 const Notifications  = lazy(() => import('@/pages/Notifications'))
@@ -147,7 +146,7 @@ export default function App() {
                 <Route path="/calendar"         element={<Calendar />} />
                 <Route path="/posts/new"        element={<PostEditor />} />
                 <Route path="/posts/:id"        element={<PostEditor />} />
-                <Route path="/documents"        element={<Documents />} />
+                <Route path="/documents"        element={<Navigate to="/settings?tab=connaissance" replace />} />
                 <Route path="/analytics"        element={<Analytics />} />
                 <Route path="/settings"         element={<Settings />} />
                 <Route path="/notifications"    element={<Notifications />} />
