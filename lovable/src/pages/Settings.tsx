@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase'
 import { connectLinkedIn, syncLinkedInContacts, createBillingPortal } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
+import { useSubscription } from '@/hooks/useSubscription'
 import Documents from '@/pages/Documents'
 import { BillingTab } from '@/components/billing/BillingTab'
 import { useContacts } from '@/hooks/useContacts'
@@ -816,6 +817,8 @@ function CompteTab() {
   const navigate = useNavigate()
   const plan = organization?.subscription_plan ?? 'starter'
   const planInfo = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS]
+  const { subscription } = useSubscription(organization?.id ?? null)
+  const hasPaidPlan = !!subscription?.stripe_customer_id
 
   const [orgName, setOrgName] = useState(organization?.name ?? '')
   const [savingOrg, setSavingOrg] = useState(false)
@@ -927,18 +930,20 @@ function CompteTab() {
           <Separator />
 
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={handleManageBilling} disabled={loadingPortal}>
-              {loadingPortal
-                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Chargement…</>
-                : <><CreditCard className="h-4 w-4 mr-2" />Gérer l'abonnement</>
-              }
-            </Button>
+            {hasPaidPlan && (
+              <Button variant="outline" onClick={handleManageBilling} disabled={loadingPortal}>
+                {loadingPortal
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Chargement…</>
+                  : <><CreditCard className="h-4 w-4 mr-2" />Gérer l'abonnement</>
+                }
+              </Button>
+            )}
             {plan !== 'pro' && plan !== 'business' && (
               <Button
                 className="bg-[#0077B5] hover:bg-[#005885]"
                 onClick={() => navigate('/pricing')}
               >
-                Passer au plan supérieur
+                {hasPaidPlan ? 'Changer de plan' : 'Choisir un plan'}
               </Button>
             )}
           </div>
