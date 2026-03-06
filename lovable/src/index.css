@@ -1,36 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Driver.js tour — PostPilot style ──────────────────────────────────────── */
+.postpilot-tour.driver-popover {
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 10px 40px -8px rgba(0,0,0,0.18), 0 2px 10px -2px rgba(0,0,0,0.08);
+  border: 1px solid #F3F4F6;
+  max-width: 300px;
+  font-family: 'Inter', sans-serif;
+}
+.postpilot-tour .driver-popover-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+.postpilot-tour .driver-popover-description {
+  font-size: 13px;
+  color: #6B7280;
+  line-height: 1.55;
+}
+.postpilot-tour .driver-popover-footer {
+  margin-top: 16px;
+}
+.postpilot-tour .driver-popover-next-btn {
+  background: linear-gradient(to right, #0077B5, #005885) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  text-shadow: none !important;
+}
+.postpilot-tour .driver-popover-next-btn:hover {
+  background: linear-gradient(to right, #005885, #004a73) !important;
+}
+.postpilot-tour .driver-popover-prev-btn {
+  background: transparent !important;
+  color: #6B7280 !important;
+  border: 1px solid #E5E7EB !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+}
+.postpilot-tour .driver-popover-prev-btn:hover {
+  background: #F9FAFB !important;
+  color: #374151 !important;
+}
+.postpilot-tour .driver-popover-progress-text {
+  font-size: 11px;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Couleurs principales */
+    --background: 210 20% 98%;       /* #F8FAFC — fond app légèrement bleuté */
+    --foreground: 222 47% 11%;       /* #0F172A — texte principal quasi-noir */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 201 100% 36%;      /* #0077B5 LinkedIn blue */
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary — LinkedIn blue enrichi */
+    --primary: 201 100% 36%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+
+    /* Secondary */
+    --secondary: 215 28% 95%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted */
+    --muted: 215 20% 93%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent */
+    --accent: 215 28% 95%;
+    --accent-foreground: 222 47% 11%;
+
+    /* States */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* UI */
+    --border: 215 20% 91%;
+    --input: 215 20% 91%;
     --ring: 201 100% 36%;
-    --radius: 0.5rem;
+    --radius: 0.625rem;
+
+    /* Custom tokens */
+    --sidebar-bg: 222 47% 9%;        /* #0F172A — dark sidebar */
+    --sidebar-border: 222 40% 14%;
+    --sidebar-text: 215 20% 65%;
+    --sidebar-text-active: 0 0% 100%;
+    --sidebar-accent: 222 40% 16%;
+
+    /* KPI accent colors */
+    --kpi-blue: 217 91% 60%;
+    --kpi-violet: 258 90% 66%;
+    --kpi-emerald: 160 84% 39%;
+    --kpi-amber: 38 92% 50%;
   }
 
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "cv02" 1, "cv03" 1, "cv04" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  /* Gradient texte */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#0077B5] to-[#7C3AED];
+  }
+
+  /* Gradient hero mesh */
+  .hero-gradient {
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 40%, rgba(0, 119, 181, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 60%),
+      #F8FAFC;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  /* Glass card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
   }
 }

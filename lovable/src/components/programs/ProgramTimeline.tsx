@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PenLine, Eye, Wand2, ChevronUp, ExternalLink } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { PenLine, Eye, Wand2, ChevronUp, ExternalLink, Trash2, X } from 'lucide-react'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { POST_STATUSES } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import PostEditorContent from '@/components/editor/PostEditorContent'
 import type { Post } from '@/types/database'
 
@@ -29,6 +31,24 @@ export default function ProgramTimeline({ posts }: ProgramTimelineProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  const deletePost = useMutation({
+    mutationFn: async (postId: string) => {
+      // Utilise une fonction SECURITY DEFINER pour contourner la RLS SELECT policy
+      // (deleted_at IS NULL) qui bloquerait un UPDATE direct mettant deleted_at.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)('soft_delete_post', { post_id: postId })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success('Post supprimé')
+      setConfirmDeleteId(null)
+      queryClient.invalidateQueries({ queryKey: ['posts', 'program'] })
+      queryClient.invalidateQueries({ queryKey: ['posts'] })
+    },
+    onError: (err) => toast.error((err as Error).message ?? 'Erreur lors de la suppression'),
+  })
 
   if (posts.length === 0) {
     return (
@@ -148,6 +168,35 @@ export default function ProgramTimeline({ posts }: ProgramTimelineProps) {
                           ) : (
                             <><PenLine className="h-3.5 w-3.5 mr-1" />Modifier</>
                           )}
+                        </Button>
+                      )}
+
+                      {/* Bouton supprimer */}
+                      {confirmDeleteId === post.id ? (
+                        <div className="flex items-center gap-1 pl-1 border-l border-gray-200">
+                          <button
+                            className="text-xs text-red-600 font-medium hover:text-red-700 px-1"
+                            onClick={() => deletePost.mutate(post.id)}
+                            disabled={deletePost.isPending}
+                          >
+                            Oui
+                          </button>
+                          <button
+                            className="text-gray-400 hover:text-gray-600"
+                            onClick={() => setConfirmDeleteId(null)}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-gray-300 hover:text-red-500 transition-colors"
+                          title="Supprimer ce post"
+                          onClick={() => setConfirmDeleteId(post.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>

@@ -25,7 +25,7 @@ function aggregateByDay(analytics: PostAnalytics[]): DayData[] {
 
   for (const a of analytics) {
     const date = a.collected_at.slice(0, 10)
-    const [y, m, d] = date.split('-')
+    const [, m, d] = date.split('-')
     const label = `${d}/${m}`
 
     if (!map[date]) {

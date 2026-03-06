@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Linkedin, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react'
+import { Zap, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
@@ -120,8 +120,10 @@ export default function Onboarding() {
       // (contournement du bug auth.uid() NULL avec JWT ES256 sur nouveaux projets Supabase)
       setUploadProgress('Création de votre espace…')
 
-      const { data: orgId, error: orgError } = await supabase
-        .rpc('create_my_organization', { p_name: data.company.company_name.trim() })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: orgId, error: orgError } = await (supabase.rpc as any)(
+        'create_my_organization', { p_name: data.company.company_name.trim() }
+      )
 
       if (orgError) throw orgError
       const org = { id: orgId as string }
@@ -236,7 +238,7 @@ export default function Onboarding() {
       {/* Logo */}
       <div className="flex items-center gap-2.5 mb-10">
         <div className="h-9 w-9 bg-[#0077B5] rounded-xl flex items-center justify-center shadow-sm">
-          <Linkedin className="h-4 w-4 text-white" />
+          <Zap className="h-4 w-4 text-white" />
         </div>
         <span className="font-bold text-gray-900 text-xl tracking-tight">PostPilot</span>
       </div>

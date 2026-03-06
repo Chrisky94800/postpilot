@@ -1,5 +1,5 @@
 // PostPilot — Sidebar de navigation
-// Navigation principale de l'application (desktop + mobile via Sheet).
+// Design : dark sidebar moderne (slate-900), nav items avec indicateur actif.
 
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
@@ -10,13 +10,13 @@ import {
   PenLine,
   LogOut,
   Menu,
-  Linkedin,
   Layers,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -25,39 +25,20 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
+import { useIsAdmin } from '@/hooks/useIsAdmin'
 import { SUBSCRIPTION_PLANS } from '@/lib/constants'
 
 // ─── Navigation items ─────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  {
-    label: 'Tableau de bord',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Calendrier',
-    href: '/calendar',
-    icon: CalendarDays,
-  },
-  {
-    label: 'Programmes',
-    href: '/programmes',
-    icon: Layers,
-  },
-  {
-    label: 'Analytics',
-    href: '/analytics',
-    icon: BarChart2,
-  },
+  { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard, tourId: undefined },
+  { label: 'Calendrier',      href: '/calendar',   icon: CalendarDays,    tourId: 'tour-nav-calendar' },
+  { label: 'Programmes',      href: '/programmes',  icon: Layers,          tourId: undefined },
+  { label: 'Analytics',       href: '/analytics',   icon: BarChart2,       tourId: 'tour-nav-analytics' },
 ] as const
 
 const BOTTOM_ITEMS = [
-  {
-    label: 'Paramètres',
-    href: '/settings',
-    icon: Settings,
-  },
+  { label: 'Paramètres', href: '/settings', icon: Settings },
 ] as const
 
 // ─── NavItem composant ────────────────────────────────────────────────────────
@@ -67,33 +48,31 @@ function NavItem({
   icon: Icon,
   label,
   onClick,
+  tourId,
 }: {
   href: string
   icon: React.ElementType
   label: string
   onClick?: () => void
+  tourId?: string
 }) {
   return (
     <NavLink
+      id={tourId}
       to={href}
       onClick={onClick}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+          'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
           isActive
-            ? 'bg-blue-50 text-blue-700'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+            ? 'bg-white/10 text-white'
+            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200',
         )
       }
     >
       {({ isActive }) => (
         <>
-          <Icon
-            className={cn(
-              'h-4 w-4 shrink-0',
-              isActive ? 'text-blue-600' : 'text-gray-500',
-            )}
-          />
+          <Icon className={cn('h-4 w-4 shrink-0 transition-colors', isActive ? 'text-white' : 'text-slate-500')} />
           {label}
         </>
       )}
@@ -106,6 +85,7 @@ function NavItem({
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, signOut } = useAuth()
   const { organization } = useOrganization()
+  const { isAdmin } = useIsAdmin()
   const navigate = useNavigate()
 
   const plan = organization?.subscription_plan ?? 'starter'
@@ -117,23 +97,20 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-slate-900">
+
       {/* Logo */}
-      <div className="px-4 py-5 flex items-center gap-2.5">
-        <div className="h-8 w-8 bg-[#0077B5] rounded-lg flex items-center justify-center">
-          <Linkedin className="h-4 w-4 text-white" />
+      <div className="px-4 pt-5 pb-4 flex items-center gap-2.5">
+        <div className="h-8 w-8 bg-gradient-to-br from-[#0077B5] to-[#7C3AED] rounded-lg flex items-center justify-center shadow-lg">
+          <Zap className="h-4 w-4 text-white" />
         </div>
-        <span className="font-bold text-gray-900 text-lg tracking-tight">
-          PostPilot
-        </span>
+        <span className="font-bold text-white text-lg tracking-tight">PostPilot</span>
       </div>
 
-      <Separator />
-
-      {/* CTA principal — Rédiger un post */}
-      <div className="px-3 py-4">
+      {/* CTA principal */}
+      <div className="px-3 pb-4">
         <Button
-          className="w-full bg-[#0077B5] hover:bg-[#005885] text-white font-medium"
+          className="w-full bg-gradient-to-r from-[#0077B5] to-[#005885] hover:from-[#005885] hover:to-[#004a73] text-white font-semibold shadow-md shadow-blue-900/40 border-0"
           onClick={() => {
             navigate('/posts/new')
             onNavigate?.()
@@ -144,46 +121,65 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </Button>
       </div>
 
+      {/* Séparateur */}
+      <div className="mx-3 h-px bg-white/5 mb-3" />
+
       {/* Navigation principale */}
-      <nav className="flex-1 px-3 space-y-1" onClick={onNavigate}>
+      <nav className="flex-1 px-3 space-y-0.5" onClick={onNavigate}>
         {NAV_ITEMS.map((item) => (
-          <NavItem key={item.href} {...item} />
+          <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} tourId={item.tourId} />
         ))}
       </nav>
 
       {/* Bas de sidebar */}
-      <div className="px-3 py-4 space-y-1 border-t">
-        {/* Plan badge */}
+      <div className="px-3 py-4 space-y-0.5 border-t border-white/5">
+
+        {/* Bloc organisation + plan */}
         {organization && (
-          <div className="px-3 py-2 mb-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500 truncate font-medium">
+          <div className="px-3 py-2.5 mb-2 rounded-lg bg-white/5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-slate-400 truncate font-medium">
                 {organization.name}
               </span>
-              <Badge variant="secondary" className="text-[10px] shrink-0 ml-2">
+              <Badge className="text-[10px] shrink-0 bg-white/10 text-slate-300 border-0 hover:bg-white/10">
                 {planInfo?.label ?? plan}
               </Badge>
             </div>
           </div>
         )}
 
-        {/* Paramètres */}
         {BOTTOM_ITEMS.map((item) => (
           <NavItem key={item.href} {...item} onClick={onNavigate} />
         ))}
 
-        {/* Déconnexion */}
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                isActive
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-500 hover:bg-white/5 hover:text-slate-300',
+              )
+            }
+          >
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            Administration
+          </NavLink>
+        )}
+
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors w-full text-left"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-white/5 hover:text-slate-300 transition-all w-full text-left"
         >
-          <LogOut className="h-4 w-4 shrink-0 text-gray-500" />
+          <LogOut className="h-4 w-4 shrink-0" />
           Déconnexion
         </button>
 
-        {/* Email utilisateur */}
         {user?.email && (
-          <p className="px-3 pt-1 text-xs text-gray-400 truncate">
+          <p className="px-3 pt-1.5 text-xs text-slate-600 truncate">
             {user.email}
           </p>
         )}
@@ -197,12 +193,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 export function Sidebar() {
   return (
     <>
-      {/* Desktop — fixe à gauche */}
-      <aside className="hidden lg:flex flex-col w-60 border-r bg-white h-screen sticky top-0 shrink-0">
+      <aside className="hidden lg:flex flex-col w-60 h-screen sticky top-0 shrink-0">
         <SidebarContent />
       </aside>
-
-      {/* Mobile — Sheet (drawer) */}
       <MobileSidebar />
     </>
   )
@@ -216,16 +209,11 @@ export function MobileSidebar() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          aria-label="Ouvrir le menu"
-        >
+        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Ouvrir le menu">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0 w-64">
+      <SheetContent side="left" className="p-0 w-60 border-0">
         <SidebarContent onNavigate={() => setOpen(false)} />
       </SheetContent>
     </Sheet>

@@ -2,7 +2,8 @@
 // Titre de la page courante + NotificationBell + menu utilisateur.
 
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, User, Settings, LogOut } from 'lucide-react'
+import { ChevronDown, User, Settings, LogOut, HelpCircle } from 'lucide-react'
+import { requestTourStart } from '@/hooks/useOnboardingTour'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -114,21 +115,41 @@ function UserMenu() {
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 
+function HelpButton() {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  const handleClick = () => {
+    requestTourStart()
+    if (pathname !== '/dashboard') {
+      navigate('/dashboard')
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      title="Revoir la visite guidée"
+      className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+    >
+      <HelpCircle className="h-4 w-4" />
+    </button>
+  )
+}
+
 export function Navbar() {
   const title = usePageTitle()
 
   return (
-    <header className="h-14 border-b bg-white flex items-center px-4 gap-4 shrink-0">
-      {/* Menu hamburger mobile (uniquement sur petit écran) */}
+    <header className="h-14 border-b border-gray-100 bg-white/80 backdrop-blur-md flex items-center px-4 gap-4 shrink-0 sticky top-0 z-40">
       <MobileSidebar />
 
-      {/* Titre de la page */}
-      <h1 className="font-semibold text-gray-900 text-base flex-1 truncate">
+      <h1 className="font-semibold text-gray-800 text-[15px] flex-1 truncate tracking-tight">
         {title}
       </h1>
 
-      {/* Actions droite */}
       <div className="flex items-center gap-1">
+        <HelpButton />
         <NotificationBell />
         <UserMenu />
       </div>

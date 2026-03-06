@@ -27,13 +27,13 @@ export function useContacts() {
   const createContact = useMutation({
     mutationFn: async (input: { name: string; linkedin_url?: string; type: ContactType }) => {
       const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('contacts').insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from('contacts').insert({
         organization_id: organizationId!,
         name: input.name.trim(),
         linkedin_url: input.linkedin_url?.trim() || null,
         type: input.type,
         created_by: user?.id ?? null,
-        updated_at: new Date().toISOString(),
       })
       if (error) throw error
     },

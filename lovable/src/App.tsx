@@ -32,6 +32,15 @@ const Notifications  = lazy(() => import('@/pages/Notifications'))
 const Programs       = lazy(() => import('@/pages/Programs'))
 const ProgramDetail  = lazy(() => import('@/pages/ProgramDetail'))
 
+// ─── Admin back-office (lazy) ─────────────────────────────────────────────────
+
+import AdminGuard  from '@/components/admin/AdminGuard'
+import AdminLayout from '@/components/admin/AdminLayout'
+
+const AdminDashboard          = lazy(() => import('@/pages/admin/AdminDashboard'))
+const AdminOrganizations      = lazy(() => import('@/pages/admin/AdminOrganizations'))
+const AdminOrganizationDetail = lazy(() => import('@/pages/admin/AdminOrganizationDetail'))
+
 // ─── QueryClient ──────────────────────────────────────────────────────────────
 
 const queryClient = new QueryClient({
@@ -141,6 +150,7 @@ export default function App() {
 
             {/* ── Routes protégées avec layout ─────────────────────────── */}
             <Route element={<ProtectedRoute />}>
+              {/* App principale */}
               <Route element={<AppLayout />}>
                 <Route path="/dashboard"        element={<Dashboard />} />
                 <Route path="/calendar"         element={<Calendar />} />
@@ -152,6 +162,21 @@ export default function App() {
                 <Route path="/notifications"    element={<Notifications />} />
                 <Route path="/programmes"       element={<Programs />} />
                 <Route path="/programmes/:id"   element={<ProgramDetail />} />
+              </Route>
+
+              {/* Back-office admin — layout séparé, accès restreint */}
+              <Route element={<AdminGuard />}>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={
+                    <Suspense fallback={<PageFallback />}><AdminDashboard /></Suspense>
+                  } />
+                  <Route path="/admin/organizations" element={
+                    <Suspense fallback={<PageFallback />}><AdminOrganizations /></Suspense>
+                  } />
+                  <Route path="/admin/organizations/:id" element={
+                    <Suspense fallback={<PageFallback />}><AdminOrganizationDetail /></Suspense>
+                  } />
+                </Route>
               </Route>
             </Route>
 
