@@ -31,8 +31,10 @@ export default function Pricing() {
     try {
       const { checkout_url } = await createCheckoutSession(organization.id, priceId)
       window.location.href = checkout_url
-    } catch {
-      toast.error('Impossible d\'ouvrir la page de paiement. Réessayez.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[Pricing] createCheckoutSession error:', err)
+      toast.error(`Erreur paiement : ${msg}`)
       setLoading(false)
     }
     void selectedPlanId

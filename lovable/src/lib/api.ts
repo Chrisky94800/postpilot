@@ -339,15 +339,15 @@ export interface BillingPortalResponse {
 
 /**
  * Crée une Stripe Checkout Session et retourne l'URL de paiement.
- * Workflow n8n : create-checkout-session
+ * Edge Function Supabase : create-checkout-session
  */
 export async function createCheckoutSession(
   organizationId: string,
   priceId: string,
   signal?: AbortSignal,
 ): Promise<CheckoutSessionResponse> {
-  return n8nPost<CheckoutSessionResponse>(
-    '/webhook/create-checkout-session',
+  return edgeFunctionPost<CheckoutSessionResponse>(
+    'create-checkout-session',
     {
       organization_id: organizationId,
       price_id: priceId,
@@ -360,14 +360,14 @@ export async function createCheckoutSession(
 
 /**
  * Crée une Stripe Billing Portal Session et retourne l'URL du portail.
- * Workflow n8n : create-billing-portal
+ * Edge Function Supabase : create-billing-portal
  */
 export async function createBillingPortal(
   organizationId: string,
   signal?: AbortSignal,
 ): Promise<BillingPortalResponse> {
-  return n8nPost<BillingPortalResponse>(
-    '/webhook/create-billing-portal',
+  return edgeFunctionPost<BillingPortalResponse>(
+    'create-billing-portal',
     { organization_id: organizationId },
     signal,
   )
