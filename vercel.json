@@ -1,4 +1,6 @@
 {
+  "buildCommand": "cd lovable && npm install && npm run build",
+  "outputDirectory": "lovable/dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
