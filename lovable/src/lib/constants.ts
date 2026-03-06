@@ -162,44 +162,153 @@ export const MEMBER_ROLES: Record<MemberRole, { label: string; description: stri
 
 // ─── Plans d'abonnement ───────────────────────────────────────────────────────
 
+export type PlanId = 'free' | 'solo' | 'pro'
+
 export const SUBSCRIPTION_PLANS: Record<
-  SubscriptionPlan,
-  { label: string; price: string; maxPosts: number; features: string[] }
+  PlanId,
+  {
+    label: string
+    priceMonthly: number    // €/mois
+    priceYearly: number     // €/mois facturé annuellement
+    priceYearlyTotal: number // €/an
+    maxPosts: number
+    maxPrograms: number
+    features: string[]
+    missingFeatures: string[] // features NON incluses (pour afficher les cadenas)
+  }
 > = {
-  starter: {
-    label: 'Starter',
-    price: '29€/mois',
-    maxPosts: 8,
+  free: {
+    label: 'Gratuit',
+    priceMonthly: 0,
+    priceYearly: 0,
+    priceYearlyTotal: 0,
+    maxPosts: 1,
+    maxPrograms: 0,
     features: [
-      '8 posts LinkedIn/mois',
-      'Rédaction IA',
-      '1 compte LinkedIn',
+      '1 post IA / mois',
+      'Assistant conversationnel',
+      'Rédaction libre + optimisation IA',
+      'Publication auto LinkedIn',
+      'Profil de marque complet',
+      'Support email',
+    ],
+    missingFeatures: [
+      'Génération depuis URL',
+      'Génération depuis document',
+      'Programmes de communication',
       'Calendrier éditorial',
+      'Analytics & tendances',
+      'Heures de publication perso',
+    ],
+  },
+  solo: {
+    label: 'Solo',
+    priceMonthly: 9,
+    priceYearly: 7,
+    priceYearlyTotal: 84,
+    maxPosts: 8,
+    maxPrograms: 1,
+    features: [
+      '8 posts IA / mois',
+      'Assistant conversationnel',
+      'Rédaction libre + optimisation IA',
+      'Génération depuis URL',
+      '1 programme de communication',
+      'Calendrier éditorial',
+      'Heures de publication perso',
+      'Publication auto LinkedIn',
+      'Profil de marque + override par post',
+      'Analytics & tendances',
+      'Support email',
+    ],
+    missingFeatures: [
+      'Génération depuis document',
     ],
   },
   pro: {
     label: 'Pro',
-    price: '79€/mois',
-    maxPosts: 20,
+    priceMonthly: 19,
+    priceYearly: 15,
+    priceYearlyTotal: 180,
+    maxPosts: 25,
+    maxPrograms: 3,
     features: [
-      '20 posts LinkedIn/mois',
-      'Rédaction IA avancée',
-      '3 comptes LinkedIn',
-      'Analytics détaillés',
-      'Veille RSS',
-    ],
-  },
-  business: {
-    label: 'Business',
-    price: '199€/mois',
-    maxPosts: 60,
-    features: [
-      '60 posts LinkedIn/mois',
-      'IA personnalisée',
-      'Comptes illimités',
-      'Analytics avancés + insights',
+      '25 posts IA / mois',
+      'Assistant conversationnel',
+      'Rédaction libre + optimisation IA',
+      'Génération depuis URL',
+      'Génération depuis document',
+      '3 programmes de communication',
+      'Calendrier éditorial',
+      'Heures de publication perso',
+      'Publication auto LinkedIn',
+      'Profil de marque + override par post',
+      'Analytics & tendances',
       'Support prioritaire',
+      'Onboarding personnalisé (30 min offert)',
     ],
+    missingFeatures: [],
+  },
+}
+
+// Limites détaillées par plan (utilisé par usePlanLimits)
+export const PLAN_LIMITS = {
+  free: {
+    posts: 1,
+    programs: 0,
+    canUseUrl: false,
+    canUseDocument: false,
+    canUseSkill: false,
+    canCreateProgram: false,
+    canUseCalendar: false,
+    canCustomizeTime: false,
+    canOverrideProfile: false,
+    canViewAnalytics: false,
+    canViewTrends: false,
+    hasPrioritySupport: false,
+    hasOnboarding: false,
+  },
+  solo: {
+    posts: 8,
+    programs: 1,
+    canUseUrl: true,
+    canUseDocument: false,
+    canUseSkill: true,
+    canCreateProgram: true,
+    canUseCalendar: true,
+    canCustomizeTime: true,
+    canOverrideProfile: true,
+    canViewAnalytics: true,
+    canViewTrends: true,
+    hasPrioritySupport: false,
+    hasOnboarding: false,
+  },
+  pro: {
+    posts: 25,
+    programs: 3,
+    canUseUrl: true,
+    canUseDocument: true,
+    canUseSkill: true,
+    canCreateProgram: true,
+    canUseCalendar: true,
+    canCustomizeTime: true,
+    canOverrideProfile: true,
+    canViewAnalytics: true,
+    canViewTrends: true,
+    hasPrioritySupport: true,
+    hasOnboarding: true,
+  },
+} as const
+
+// Price IDs Stripe (valeurs injectées via variables d'environnement Vite)
+export const STRIPE_PRICES = {
+  solo: {
+    monthly: import.meta.env.VITE_STRIPE_PRICE_SOLO_MONTHLY as string,
+    yearly:  import.meta.env.VITE_STRIPE_PRICE_SOLO_YEARLY  as string,
+  },
+  pro: {
+    monthly: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY as string,
+    yearly:  import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY  as string,
   },
 }
 

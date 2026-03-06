@@ -1,0 +1,137 @@
+{
+  "name": "[PostPilot] 12 - Create Checkout Session",
+  "description": "Crée une session Stripe Checkout pour un abonnement. Appelé depuis le frontend via POST /webhook/create-checkout-session.",
+  "active": true,
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook - create-checkout-session",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-checkout-session",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-input",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst organizationId = body.organization_id;\nconst priceId = body.price_id;\n\nif (!organizationId) throw new Error('Missing organization_id');\nif (!priceId) throw new Error('Missing price_id');\n\nreturn [{ json: { organizationId, priceId } }];"
+      }
+    },
+    {
+      "id": "fetch-subscription",
+      "name": "Supabase - Fetch Subscription",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/subscriptions?organization_id=eq.{{ $json.organizationId }}&select=stripe_customer_id,plan_id,status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "build-checkout-params",
+      "name": "Code - Build Checkout Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "jsCode": "const validateOutput = $('Code - Validate Input').first().json;\nconst subscriptions = $input.all();\nconst subscription = subscriptions[0]?.json;\n\nconst organizationId = validateOutput.organizationId;\nconst priceId = validateOutput.priceId;\nconst stripeCustomerId = subscription?.stripe_customer_id ?? null;\n\nconst appUrl = $env.APP_URL ?? 'https://app.postpilot.fr';\nconst successUrl = `${appUrl}/settings?tab=billing&checkout=success`;\nconst cancelUrl = `${appUrl}/pricing`;\n\n// Build form-encoded body for Stripe\nconst params = new URLSearchParams();\nparams.append('mode', 'subscription');\nparams.append('payment_method_types[]', 'card');\nparams.append('line_items[0][price]', priceId);\nparams.append('line_items[0][quantity]', '1');\nparams.append('success_url', successUrl);\nparams.append('cancel_url', cancelUrl);\nparams.append('metadata[organization_id]', organizationId);\nparams.append('client_reference_id', organizationId);\nparams.append('allow_promotion_codes', 'true');\n\n// If customer already exists in Stripe, reuse it\nif (stripeCustomerId) {\n  params.append('customer', stripeCustomerId);\n} else {\n  params.append('customer_creation', 'always');\n}\n\nreturn [{ json: { body: params.toString(), organizationId } }];"
+      }
+    },
+    {
+      "id": "create-stripe-session",
+      "name": "Stripe - Create Checkout Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/checkout/sessions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.STRIPE_SECRET_KEY }}" },
+            { "name": "Content-Type", "value": "application/x-www-form-urlencoded" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "return-checkout-url",
+      "name": "Webhook Response - checkout_url",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ checkout_url: $json.url }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "error-response",
+      "name": "Webhook Response - Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 480],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: $json.message ?? 'Internal error' }) }}",
+        "options": {
+          "responseCode": 500
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - create-checkout-session": {
+      "main": [[{ "node": "Code - Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Code - Validate Input": {
+      "main": [[{ "node": "Supabase - Fetch Subscription", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Fetch Subscription": {
+      "main": [[{ "node": "Code - Build Checkout Params", "type": "main", "index": 0 }]]
+    },
+    "Code - Build Checkout Params": {
+      "main": [[{ "node": "Stripe - Create Checkout Session", "type": "main", "index": 0 }]]
+    },
+    "Stripe - Create Checkout Session": {
+      "main": [[{ "node": "Webhook Response - checkout_url", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["postpilot", "billing", "stripe"]
+}

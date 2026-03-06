@@ -1,0 +1,293 @@
+{
+  "name": "[PostPilot] 14 - Stripe Webhook Handler",
+  "description": "Reçoit les événements Stripe (checkout.session.completed, subscription.updated, subscription.deleted, invoice.payment_failed) et met à jour la table subscriptions dans Supabase.",
+  "active": true,
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook - stripe-events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-events",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "parse-event",
+      "name": "Code - Parse Stripe Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "// Parse the Stripe event from the webhook body\nconst raw = $input.first().json;\nconst event = raw.body ?? raw;\n\nconst eventType = event.type;\nconst data = event.data?.object ?? {};\n\n// Extract relevant fields based on event type\nlet organizationId = null;\nlet stripeCustomerId = null;\nlet stripeSubscriptionId = null;\nlet stripePriceId = null;\nlet status = null;\nlet billingCycle = null;\nlet currentPeriodStart = null;\nlet currentPeriodEnd = null;\nlet planId = null;\n\nif (eventType === 'checkout.session.completed') {\n  organizationId = data.metadata?.organization_id ?? data.client_reference_id;\n  stripeCustomerId = data.customer;\n  stripeSubscriptionId = data.subscription;\n  status = 'active';\n  // Plan will be set after fetching subscription details\n}\n\nif (eventType === 'customer.subscription.updated' || eventType === 'customer.subscription.created') {\n  stripeCustomerId = data.customer;\n  stripeSubscriptionId = data.id;\n  stripePriceId = data.items?.data?.[0]?.price?.id;\n  billingCycle = data.items?.data?.[0]?.plan?.interval === 'year' ? 'yearly' : 'monthly';\n  currentPeriodStart = new Date(data.current_period_start * 1000).toISOString();\n  currentPeriodEnd = new Date(data.current_period_end * 1000).toISOString();\n  \n  // Map Stripe status to our status\n  const stripeStatus = data.status;\n  if (stripeStatus === 'active') status = 'active';\n  else if (stripeStatus === 'trialing') status = 'trialing';\n  else if (stripeStatus === 'past_due') status = 'past_due';\n  else if (stripeStatus === 'canceled') status = 'canceled';\n  else status = 'active';\n\n  // Map price ID to plan_id using env vars\n  const soloPrices = [\n    $env.STRIPE_PRICE_SOLO_MONTHLY,\n    $env.STRIPE_PRICE_SOLO_YEARLY,\n  ].filter(Boolean);\n  const proPrices = [\n    $env.STRIPE_PRICE_PRO_MONTHLY,\n    $env.STRIPE_PRICE_PRO_YEARLY,\n  ].filter(Boolean);\n\n  if (soloPrices.includes(stripePriceId)) planId = 'solo';\n  else if (proPrices.includes(stripePriceId)) planId = 'pro';\n  else planId = 'solo'; // fallback\n}\n\nif (eventType === 'customer.subscription.deleted') {\n  stripeCustomerId = data.customer;\n  stripeSubscriptionId = data.id;\n  status = 'canceled';\n  planId = 'free';\n}\n\nif (eventType === 'invoice.payment_failed') {\n  stripeCustomerId = data.customer;\n  stripeSubscriptionId = data.subscription;\n  status = 'past_due';\n}\n\nreturn [{ json: {\n  eventType,\n  organizationId,\n  stripeCustomerId,\n  stripeSubscriptionId,\n  stripePriceId,\n  status,\n  billingCycle,\n  currentPeriodStart,\n  currentPeriodEnd,\n  planId,\n} }];"
+      }
+    },
+    {
+      "id": "route-event",
+      "name": "Switch - Event Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "rightValue": "checkout.session.completed",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "checkout_completed"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "rightValue": "customer.subscription.updated",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "subscription_updated"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "rightValue": "customer.subscription.deleted",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "subscription_deleted"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "rightValue": "invoice.payment_failed",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "payment_failed"
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      }
+    },
+    {
+      "id": "fetch-org-by-customer",
+      "name": "Supabase - Find Org by Customer ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 420],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/subscriptions?stripe_customer_id=eq.{{ $json.stripeCustomerId }}&select=organization_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "resolve-org-id",
+      "name": "Code - Resolve Organization ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 420],
+      "parameters": {
+        "jsCode": "// Try to get org_id from the event directly (checkout.session.completed)\n// or from the Supabase lookup (subscription events)\nconst eventData = $('Code - Parse Stripe Event').first().json;\nconst supabaseRows = $input.all();\n\nconst organizationId = eventData.organizationId ?? supabaseRows[0]?.json?.organization_id;\n\nif (!organizationId) throw new Error('Could not resolve organization_id for customer: ' + eventData.stripeCustomerId);\n\nreturn [{ json: { ...eventData, organizationId } }];"
+      }
+    },
+    {
+      "id": "fetch-stripe-subscription",
+      "name": "Stripe - Fetch Subscription Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 180],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.stripe.com/v1/subscriptions/{{ $json.stripeSubscriptionId }}?expand[]=items.data.price",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.STRIPE_SECRET_KEY }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      }
+    },
+    {
+      "id": "build-subscription-data-checkout",
+      "name": "Code - Build Subscription Data (Checkout)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 180],
+      "parameters": {
+        "jsCode": "const eventData = $('Code - Resolve Organization ID').first().json;\nconst stripeSubscription = $input.first().json;\n\nconst stripePriceId = stripeSubscription.items?.data?.[0]?.price?.id;\nconst interval = stripeSubscription.items?.data?.[0]?.plan?.interval;\nconst billingCycle = interval === 'year' ? 'yearly' : 'monthly';\nconst currentPeriodStart = new Date(stripeSubscription.current_period_start * 1000).toISOString();\nconst currentPeriodEnd = new Date(stripeSubscription.current_period_end * 1000).toISOString();\n\n// Map price to plan_id\nconst soloPrices = [$env.STRIPE_PRICE_SOLO_MONTHLY, $env.STRIPE_PRICE_SOLO_YEARLY].filter(Boolean);\nconst proPrices = [$env.STRIPE_PRICE_PRO_MONTHLY, $env.STRIPE_PRICE_PRO_YEARLY].filter(Boolean);\n\nlet planId = 'solo';\nif (soloPrices.includes(stripePriceId)) planId = 'solo';\nelse if (proPrices.includes(stripePriceId)) planId = 'pro';\n\nconst updatePayload = {\n  stripe_customer_id: eventData.stripeCustomerId,\n  stripe_subscription_id: eventData.stripeSubscriptionId,\n  stripe_price_id: stripePriceId,\n  plan_id: planId,\n  status: 'active',\n  billing_cycle: billingCycle,\n  current_period_start: currentPeriodStart,\n  current_period_end: currentPeriodEnd,\n  trial_ends_at: null,\n};\n\nreturn [{ json: { organizationId: eventData.organizationId, updatePayload } }];"
+      }
+    },
+    {
+      "id": "build-subscription-data-update",
+      "name": "Code - Build Subscription Data (Update)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 420],
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst updatePayload = {\n  stripe_subscription_id: data.stripeSubscriptionId,\n  stripe_price_id: data.stripePriceId,\n  plan_id: data.planId,\n  status: data.status,\n  billing_cycle: data.billingCycle,\n  current_period_start: data.currentPeriodStart,\n  current_period_end: data.currentPeriodEnd,\n};\n\n// Remove null values\nObject.keys(updatePayload).forEach(k => {\n  if (updatePayload[k] === null || updatePayload[k] === undefined) delete updatePayload[k];\n});\n\nreturn [{ json: { organizationId: data.organizationId, updatePayload } }];"
+      }
+    },
+    {
+      "id": "update-subscription",
+      "name": "Supabase - Update Subscription",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/subscriptions?organization_id=eq.{{ $json.organizationId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json.updatePayload) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "sync-org-plan",
+      "name": "Supabase - Sync organizations.subscription_plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/organizations?id=eq.{{ $json.organizationId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ subscription_plan: $json.updatePayload?.plan_id ?? 'free' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "return-200",
+      "name": "Webhook Response - 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2220, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"received\": true }",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "return-200-ignored",
+      "name": "Webhook Response - 200 Ignored",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 540],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"received\": true, \"handled\": false }",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - stripe-events": {
+      "main": [[{ "node": "Code - Parse Stripe Event", "type": "main", "index": 0 }]]
+    },
+    "Code - Parse Stripe Event": {
+      "main": [[{ "node": "Switch - Event Type", "type": "main", "index": 0 }]]
+    },
+    "Switch - Event Type": {
+      "main": [
+        [{ "node": "Supabase - Find Org by Customer ID", "type": "main", "index": 0 }],
+        [{ "node": "Supabase - Find Org by Customer ID", "type": "main", "index": 0 }],
+        [{ "node": "Supabase - Find Org by Customer ID", "type": "main", "index": 0 }],
+        [{ "node": "Supabase - Find Org by Customer ID", "type": "main", "index": 0 }],
+        [{ "node": "Webhook Response - 200 Ignored", "type": "main", "index": 0 }]
+      ]
+    },
+    "Supabase - Find Org by Customer ID": {
+      "main": [[{ "node": "Code - Resolve Organization ID", "type": "main", "index": 0 }]]
+    },
+    "Code - Resolve Organization ID": {
+      "main": [[
+        { "node": "Stripe - Fetch Subscription Details", "type": "main", "index": 0 },
+        { "node": "Code - Build Subscription Data (Update)", "type": "main", "index": 0 }
+      ]]
+    },
+    "Stripe - Fetch Subscription Details": {
+      "main": [[{ "node": "Code - Build Subscription Data (Checkout)", "type": "main", "index": 0 }]]
+    },
+    "Code - Build Subscription Data (Checkout)": {
+      "main": [[{ "node": "Supabase - Update Subscription", "type": "main", "index": 0 }]]
+    },
+    "Code - Build Subscription Data (Update)": {
+      "main": [[{ "node": "Supabase - Update Subscription", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Update Subscription": {
+      "main": [[{ "node": "Supabase - Sync organizations.subscription_plan", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Sync organizations.subscription_plan": {
+      "main": [[{ "node": "Webhook Response - 200 OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["postpilot", "billing", "stripe"]
+}

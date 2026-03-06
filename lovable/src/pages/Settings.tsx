@@ -22,6 +22,7 @@ import { connectLinkedIn, syncLinkedInContacts } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
 import Documents from '@/pages/Documents'
+import { BillingTab } from '@/components/billing/BillingTab'
 import { useContacts } from '@/hooks/useContacts'
 import { TagInput } from '@/components/onboarding/TagInput'
 import {
@@ -964,7 +965,9 @@ export default function Settings() {
           ? 'compte'
           : tabParam === 'connaissance'
             ? 'connaissance'
-            : 'brand'
+            : tabParam === 'billing'
+              ? 'billing'
+              : 'brand'
 
   return (
     <div className="max-w-3xl">
@@ -973,6 +976,7 @@ export default function Settings() {
           <TabsTrigger value="brand">Profil de marque</TabsTrigger>
           <TabsTrigger value="plateformes">Plateformes</TabsTrigger>
           <TabsTrigger value="connaissance">Base de connaissance</TabsTrigger>
+          <TabsTrigger value="billing">Facturation</TabsTrigger>
           <TabsTrigger value="compte">Compte</TabsTrigger>
         </TabsList>
         <TabsContent value="brand">
@@ -983,6 +987,9 @@ export default function Settings() {
         </TabsContent>
         <TabsContent value="connaissance">
           <Documents />
+        </TabsContent>
+        <TabsContent value="billing">
+          <BillingTab />
         </TabsContent>
         <TabsContent value="compte">
           <CompteTab />

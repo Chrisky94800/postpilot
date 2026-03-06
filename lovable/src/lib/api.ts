@@ -327,6 +327,52 @@ export async function aiChat(
   return edgeFunctionPost<AiChatResponse>('ai-chat', payload as unknown as Record<string, unknown>, signal)
 }
 
+// ─── Stripe Billing ───────────────────────────────────────────────────────────
+
+export interface CheckoutSessionResponse {
+  checkout_url: string
+}
+
+export interface BillingPortalResponse {
+  portal_url: string
+}
+
+/**
+ * Crée une Stripe Checkout Session et retourne l'URL de paiement.
+ * Workflow n8n : create-checkout-session
+ */
+export async function createCheckoutSession(
+  organizationId: string,
+  priceId: string,
+  signal?: AbortSignal,
+): Promise<CheckoutSessionResponse> {
+  return n8nPost<CheckoutSessionResponse>(
+    '/webhook/create-checkout-session',
+    {
+      organization_id: organizationId,
+      price_id: priceId,
+      success_url: `${window.location.origin}/settings?tab=billing&success=1`,
+      cancel_url:  `${window.location.origin}/pricing`,
+    },
+    signal,
+  )
+}
+
+/**
+ * Crée une Stripe Billing Portal Session et retourne l'URL du portail.
+ * Workflow n8n : create-billing-portal
+ */
+export async function createBillingPortal(
+  organizationId: string,
+  signal?: AbortSignal,
+): Promise<BillingPortalResponse> {
+  return n8nPost<BillingPortalResponse>(
+    '/webhook/create-billing-portal',
+    { organization_id: organizationId },
+    signal,
+  )
+}
+
 // ─── Export de l'erreur typée ─────────────────────────────────────────────────
 
 export { ApiError }

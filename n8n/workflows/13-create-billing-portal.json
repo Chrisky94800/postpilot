@@ -1,0 +1,123 @@
+{
+  "name": "[PostPilot] 13 - Create Billing Portal",
+  "description": "Crée une session Stripe Customer Portal pour gérer l'abonnement (CB, annulation, upgrade). Appelé depuis le frontend via POST /webhook/create-billing-portal.",
+  "active": true,
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook - create-billing-portal",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-billing-portal",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-input",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst organizationId = body.organization_id;\n\nif (!organizationId) throw new Error('Missing organization_id');\n\nreturn [{ json: { organizationId } }];"
+      }
+    },
+    {
+      "id": "fetch-stripe-customer",
+      "name": "Supabase - Fetch Stripe Customer ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/subscriptions?organization_id=eq.{{ $json.organizationId }}&select=stripe_customer_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "build-portal-params",
+      "name": "Code - Build Portal Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "jsCode": "const subscriptions = $input.all();\nconst stripeCustomerId = subscriptions[0]?.json?.stripe_customer_id;\n\nif (!stripeCustomerId) throw new Error('No Stripe customer found for this organization. Please upgrade first.');\n\nconst appUrl = $env.APP_URL ?? 'https://app.postpilot.fr';\nconst returnUrl = `${appUrl}/settings?tab=billing`;\n\nconst params = new URLSearchParams();\nparams.append('customer', stripeCustomerId);\nparams.append('return_url', returnUrl);\n\nreturn [{ json: { body: params.toString() } }];"
+      }
+    },
+    {
+      "id": "create-portal-session",
+      "name": "Stripe - Create Portal Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/billing_portal/sessions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.STRIPE_SECRET_KEY }}" },
+            { "name": "Content-Type", "value": "application/x-www-form-urlencoded" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "return-portal-url",
+      "name": "Webhook Response - portal_url",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ portal_url: $json.url }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - create-billing-portal": {
+      "main": [[{ "node": "Code - Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Code - Validate Input": {
+      "main": [[{ "node": "Supabase - Fetch Stripe Customer ID", "type": "main", "index": 0 }]]
+    },
+    "Supabase - Fetch Stripe Customer ID": {
+      "main": [[{ "node": "Code - Build Portal Params", "type": "main", "index": 0 }]]
+    },
+    "Code - Build Portal Params": {
+      "main": [[{ "node": "Stripe - Create Portal Session", "type": "main", "index": 0 }]]
+    },
+    "Stripe - Create Portal Session": {
+      "main": [[{ "node": "Webhook Response - portal_url", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["postpilot", "billing", "stripe"]
+}
