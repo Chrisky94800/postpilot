@@ -3,7 +3,7 @@
 // Props : currentPlanId (pour badge "Plan actuel"), onSelectPlan callback.
 
 import { useState } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SUBSCRIPTION_PLANS, STRIPE_PRICES } from '@/lib/constants'
 import type { PlanId } from '@/lib/constants'
@@ -12,6 +12,9 @@ interface PricingCardsProps {
   currentPlanId?: PlanId | null
   isTrial?: boolean
   onSelectPlan?: (priceId: string, planId: PlanId, cycle: 'monthly' | 'yearly') => void
+  hasPaidPlan?: boolean
+  onCancel?: () => void
+  cancelLoading?: boolean
   /** Mode landing : CTA "Essayer gratuitement" → /signup */
   landingMode?: boolean
   onSignup?: () => void
@@ -21,6 +24,9 @@ export function PricingCards({
   currentPlanId,
   isTrial = false,
   onSelectPlan,
+  hasPaidPlan = false,
+  onCancel,
+  cancelLoading = false,
   landingMode = false,
   onSignup,
 }: PricingCardsProps) {
@@ -124,9 +130,22 @@ export function PricingCards({
                   {isTrialPlan ? 'Trial en cours' : 'Plan actuel'}
                 </div>
               ) : planId === 'free' && !landingMode ? (
-                <div className="mb-6 text-center text-xs text-gray-400 italic">
-                  Accessible après annulation
-                </div>
+                hasPaidPlan ? (
+                  <button
+                    onClick={onCancel}
+                    disabled={cancelLoading}
+                    className="mb-6 w-full rounded-lg py-2.5 text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {cancelLoading
+                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Chargement…</>
+                      : 'Résilier et passer au Gratuit'
+                    }
+                  </button>
+                ) : (
+                  <div className="mb-6 text-center text-xs text-gray-400 italic">
+                    Accessible après annulation
+                  </div>
+                )
               ) : (
                 <button
                   onClick={() => handleSelect(planId)}

@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { PricingCards } from '@/components/billing/PricingCards'
 import { useOrganization } from '@/hooks/useOrganization'
 import { useSubscription } from '@/hooks/useSubscription'
-import { createCheckoutSession } from '@/lib/api'
+import { createCheckoutSession, createBillingPortal } from '@/lib/api'
 import type { PlanId } from '@/lib/constants'
 import { useState } from 'react'
 
@@ -16,6 +16,8 @@ export default function Pricing() {
   const { organization } = useOrganization()
   const { subscription, isTrial, planId } = useSubscription(organization?.id ?? null)
   const [loading, setLoading] = useState(false)
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const hasPaidPlan = !!subscription?.stripe_customer_id
 
   async function handleSelectPlan(
     priceId: string,
@@ -38,6 +40,18 @@ export default function Pricing() {
       setLoading(false)
     }
     void selectedPlanId
+  }
+
+  async function handleCancel() {
+    if (!organization?.id) return
+    setCancelLoading(true)
+    try {
+      const { portal_url } = await createBillingPortal(organization.id)
+      window.location.href = portal_url
+    } catch (err) {
+      toast.error(`Impossible d'ouvrir le portail : ${(err as Error).message}`)
+      setCancelLoading(false)
+    }
   }
 
   const currentPlan = isTrial ? 'solo' : planId
@@ -77,6 +91,9 @@ export default function Pricing() {
         currentPlanId={currentPlan}
         isTrial={isTrial}
         onSelectPlan={handleSelectPlan}
+        hasPaidPlan={hasPaidPlan}
+        onCancel={handleCancel}
+        cancelLoading={cancelLoading}
       />
     </div>
   )
