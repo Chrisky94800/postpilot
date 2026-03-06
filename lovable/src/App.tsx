@@ -141,6 +141,9 @@ export default function App() {
               }
             />
 
+            {/* ── Pricing — public ─────────────────────────────────────── */}
+            <Route path="/pricing" element={<Pricing />} />
+
             {/* ── Onboarding — protégé mais sans layout ────────────────── */}
             <Route
               path="/onboarding"
@@ -165,7 +168,6 @@ export default function App() {
                 <Route path="/notifications"    element={<Notifications />} />
                 <Route path="/programmes"       element={<Programs />} />
                 <Route path="/programmes/:id"   element={<ProgramDetail />} />
-                <Route path="/pricing"          element={<Pricing />} />
               </Route>
 
               {/* Back-office admin — layout séparé, accès restreint */}
