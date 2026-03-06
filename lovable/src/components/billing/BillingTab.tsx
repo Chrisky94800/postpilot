@@ -36,8 +36,8 @@ export function BillingTab() {
     try {
       const { portal_url } = await createBillingPortal(organization.id)
       window.open(portal_url, '_blank')
-    } catch {
-      toast.error('Impossible d\'ouvrir le portail de facturation.')
+    } catch (err) {
+      toast.error(`Portail inaccessible : ${(err as Error).message}`)
     } finally {
       setPortalLoading(false)
     }
