@@ -7,7 +7,6 @@ import type {
   SourceType,
   PlatformType,
   MemberRole,
-  SubscriptionPlan,
   FeedbackScope,
   NotificationType,
 } from '@/types/database'

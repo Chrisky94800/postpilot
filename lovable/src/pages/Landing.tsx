@@ -217,7 +217,7 @@ export default function Landing() {
                 {plan.label}
               </h3>
               <p className={`text-4xl font-extrabold mt-3 mb-6 tracking-tight ${key === 'pro' ? 'text-white' : 'text-gray-900'}`}>
-                {plan.price}
+                {plan.priceMonthly === 0 ? 'Gratuit' : `${plan.priceMonthly}€/mois`}
               </p>
 
               <ul className="space-y-3 mb-8">

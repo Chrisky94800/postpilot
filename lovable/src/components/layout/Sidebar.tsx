@@ -88,7 +88,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, signOut } = useAuth()
   const { organization } = useOrganization()
   const { isAdmin } = useIsAdmin()
-  const { subscription, usage, isTrial, planId, isLoading: subLoading } = useSubscription(organization?.id ?? null)
+  const { usage, isTrial, planId, isLoading: subLoading } = useSubscription(organization?.id ?? null)
   const navigate = useNavigate()
 
   const plan = planId ?? (organization?.subscription_plan as keyof typeof SUBSCRIPTION_PLANS) ?? 'free'

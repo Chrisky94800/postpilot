@@ -6,7 +6,7 @@ import { PLAN_LIMITS } from '@/lib/constants'
 import type { PlanId } from '@/lib/constants'
 import type { SubscriptionStatus } from './useSubscription'
 
-type PlanLimits = typeof PLAN_LIMITS['free']
+type PlanLimits = typeof PLAN_LIMITS[keyof typeof PLAN_LIMITS]
 
 export function usePlanLimits(
   planId: PlanId,

@@ -886,7 +886,7 @@ function CompteTab() {
         <CardHeader>
           <CardTitle className="text-base">Abonnement</CardTitle>
           <CardDescription>
-            Plan actuel : <strong>{planInfo?.label ?? plan}</strong> · {planInfo?.price}
+            Plan actuel : <strong>{planInfo?.label ?? plan}</strong> · {planInfo?.priceMonthly === 0 ? 'Gratuit' : planInfo?.priceMonthly ? `${planInfo.priceMonthly}€/mois` : ''}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -61,13 +61,21 @@ export function useSubscription(organizationId: string | null): UseSubscriptionR
   const { data: sub, isLoading: subLoading } = useQuery({
     queryKey: ['subscription', organizationId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from('subscriptions')
         .select('*')
         .eq('organization_id', organizationId!)
         .single()
       if (error) return null
-      return data
+      return data as {
+        plan_id: string
+        status: string
+        billing_cycle: string | null
+        trial_ends_at: string | null
+        current_period_end: string | null
+        stripe_customer_id: string | null
+      } | null
     },
     enabled: !!organizationId,
     staleTime: 2 * 60 * 1000,
@@ -99,7 +107,7 @@ export function useSubscription(organizationId: string | null): UseSubscriptionR
     ? {
         plan_id: sub.plan_id as PlanId,
         status: sub.status as SubscriptionStatus,
-        billing_cycle: sub.billing_cycle,
+        billing_cycle: sub.billing_cycle as 'monthly' | 'yearly' | null,
         trial_ends_at: sub.trial_ends_at,
         trial_days_remaining: trialDaysRemaining,
         current_period_end: sub.current_period_end,
