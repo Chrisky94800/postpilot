@@ -2,7 +2,7 @@
 // Onglets : Profil de marque · Plateformes · Compte
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Linkedin, Check, AlertCircle, Loader2, Trash2, CreditCard, Save,
@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
-import { connectLinkedIn, syncLinkedInContacts } from '@/lib/api'
+import { connectLinkedIn, syncLinkedInContacts, createBillingPortal } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
 import Documents from '@/pages/Documents'
@@ -813,11 +813,25 @@ function CompteTab() {
   const { user } = useAuth()
   const { organization, organizationId } = useOrganization()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const plan = organization?.subscription_plan ?? 'starter'
   const planInfo = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS]
 
   const [orgName, setOrgName] = useState(organization?.name ?? '')
   const [savingOrg, setSavingOrg] = useState(false)
+  const [loadingPortal, setLoadingPortal] = useState(false)
+
+  const handleManageBilling = async () => {
+    if (!organizationId) return
+    setLoadingPortal(true)
+    try {
+      const { portal_url } = await createBillingPortal(organizationId)
+      window.location.href = portal_url
+    } catch (err) {
+      toast.error(`Impossible d'ouvrir le portail : ${(err as Error).message}`)
+      setLoadingPortal(false)
+    }
+  }
 
   // Sync quand l'org charge
   useEffect(() => {
@@ -913,19 +927,21 @@ function CompteTab() {
           <Separator />
 
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Gérer l'abonnement
+            <Button variant="outline" onClick={handleManageBilling} disabled={loadingPortal}>
+              {loadingPortal
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Chargement…</>
+                : <><CreditCard className="h-4 w-4 mr-2" />Gérer l'abonnement</>
+              }
             </Button>
-            {plan !== 'business' && (
-              <Button className="bg-[#0077B5] hover:bg-[#005885]">
+            {plan !== 'pro' && plan !== 'business' && (
+              <Button
+                className="bg-[#0077B5] hover:bg-[#005885]"
+                onClick={() => navigate('/pricing')}
+              >
                 Passer au plan supérieur
               </Button>
             )}
           </div>
-          <p className="text-xs text-gray-400">
-            La gestion de l'abonnement via Stripe sera disponible au Sprint 5.
-          </p>
         </CardContent>
       </Card>
 
