@@ -159,6 +159,8 @@ export type Post = {
   position_in_program: number | null
   publication_time: string | null      // format "HH:MM"
   ai_conversation_id: string | null
+  media_urls: string[] | null       // URLs Supabase Storage des médias joints
+  media_type: 'image' | 'video' | 'none' | null
   created_by: string | null
   created_at: string
   updated_at: string
