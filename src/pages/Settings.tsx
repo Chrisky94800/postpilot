@@ -2,7 +2,7 @@
 // Onglets : Profil de marque · Plateformes · Compte
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Linkedin, Check, AlertCircle, Loader2, Trash2, CreditCard, Save,
@@ -18,10 +18,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
-import { connectLinkedIn, syncLinkedInContacts } from '@/lib/api'
+import { connectLinkedIn, syncLinkedInContacts, createBillingPortal } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
+import { useSubscription } from '@/hooks/useSubscription'
 import Documents from '@/pages/Documents'
+import { BillingTab } from '@/components/billing/BillingTab'
 import { useContacts } from '@/hooks/useContacts'
 import { TagInput } from '@/components/onboarding/TagInput'
 import {
@@ -812,11 +814,27 @@ function CompteTab() {
   const { user } = useAuth()
   const { organization, organizationId } = useOrganization()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const plan = organization?.subscription_plan ?? 'starter'
   const planInfo = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS]
+  const { subscription } = useSubscription(organization?.id ?? null)
+  const hasPaidPlan = !!subscription?.stripe_customer_id
 
   const [orgName, setOrgName] = useState(organization?.name ?? '')
   const [savingOrg, setSavingOrg] = useState(false)
+  const [loadingPortal, setLoadingPortal] = useState(false)
+
+  const handleManageBilling = async () => {
+    if (!organizationId) return
+    setLoadingPortal(true)
+    try {
+      const { portal_url } = await createBillingPortal(organizationId)
+      window.location.href = portal_url
+    } catch (err) {
+      toast.error(`Impossible d'ouvrir le portail : ${(err as Error).message}`)
+      setLoadingPortal(false)
+    }
+  }
 
   // Sync quand l'org charge
   useEffect(() => {
@@ -885,7 +903,7 @@ function CompteTab() {
         <CardHeader>
           <CardTitle className="text-base">Abonnement</CardTitle>
           <CardDescription>
-            Plan actuel : <strong>{planInfo?.label ?? plan}</strong> · {planInfo?.price}
+            Plan actuel : <strong>{planInfo?.label ?? plan}</strong> · {planInfo?.priceMonthly === 0 ? 'Gratuit' : planInfo?.priceMonthly ? `${planInfo.priceMonthly}€/mois` : ''}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -912,19 +930,23 @@ function CompteTab() {
           <Separator />
 
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Gérer l'abonnement
-            </Button>
-            {plan !== 'business' && (
-              <Button className="bg-[#0077B5] hover:bg-[#005885]">
-                Passer au plan supérieur
+            {hasPaidPlan && (
+              <Button variant="outline" onClick={handleManageBilling} disabled={loadingPortal}>
+                {loadingPortal
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Chargement…</>
+                  : <><CreditCard className="h-4 w-4 mr-2" />Gérer l'abonnement</>
+                }
+              </Button>
+            )}
+            {plan !== 'pro' && plan !== 'business' && (
+              <Button
+                className="bg-[#0077B5] hover:bg-[#005885]"
+                onClick={() => navigate('/pricing')}
+              >
+                {hasPaidPlan ? 'Changer de plan' : 'Choisir un plan'}
               </Button>
             )}
           </div>
-          <p className="text-xs text-gray-400">
-            La gestion de l'abonnement via Stripe sera disponible au Sprint 5.
-          </p>
         </CardContent>
       </Card>
 
@@ -964,7 +986,9 @@ export default function Settings() {
           ? 'compte'
           : tabParam === 'connaissance'
             ? 'connaissance'
-            : 'brand'
+            : tabParam === 'billing'
+              ? 'billing'
+              : 'brand'
 
   return (
     <div className="max-w-3xl">
@@ -973,6 +997,7 @@ export default function Settings() {
           <TabsTrigger value="brand">Profil de marque</TabsTrigger>
           <TabsTrigger value="plateformes">Plateformes</TabsTrigger>
           <TabsTrigger value="connaissance">Base de connaissance</TabsTrigger>
+          <TabsTrigger value="billing">Facturation</TabsTrigger>
           <TabsTrigger value="compte">Compte</TabsTrigger>
         </TabsList>
         <TabsContent value="brand">
@@ -983,6 +1008,9 @@ export default function Settings() {
         </TabsContent>
         <TabsContent value="connaissance">
           <Documents />
+        </TabsContent>
+        <TabsContent value="billing">
+          <BillingTab />
         </TabsContent>
         <TabsContent value="compte">
           <CompteTab />

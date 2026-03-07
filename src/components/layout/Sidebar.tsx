@@ -26,6 +26,8 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
 import { useIsAdmin } from '@/hooks/useIsAdmin'
+import { useSubscription } from '@/hooks/useSubscription'
+import { UsageCounter } from '@/components/billing/UsageCounter'
 import { SUBSCRIPTION_PLANS } from '@/lib/constants'
 
 // ─── Navigation items ─────────────────────────────────────────────────────────
@@ -86,10 +88,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, signOut } = useAuth()
   const { organization } = useOrganization()
   const { isAdmin } = useIsAdmin()
+  const { usage, isTrial, planId, isLoading: subLoading } = useSubscription(organization?.id ?? null)
   const navigate = useNavigate()
 
-  const plan = organization?.subscription_plan ?? 'starter'
+  const plan = planId ?? (organization?.subscription_plan as keyof typeof SUBSCRIPTION_PLANS) ?? 'free'
   const planInfo = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS]
+  const planLabel = isTrial ? `${planInfo?.label ?? plan} (trial)` : (planInfo?.label ?? plan)
 
   const handleSignOut = async () => {
     await signOut()
@@ -134,17 +138,21 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       {/* Bas de sidebar */}
       <div className="px-3 py-4 space-y-0.5 border-t border-white/5">
 
-        {/* Bloc organisation + plan */}
+        {/* Bloc organisation + plan + usage */}
         {organization && (
-          <div className="px-3 py-2.5 mb-2 rounded-lg bg-white/5">
-            <div className="flex items-center justify-between gap-2">
+          <div className="mb-2 rounded-lg bg-white/5 overflow-hidden">
+            <div className="px-3 py-2.5 flex items-center justify-between gap-2">
               <span className="text-xs text-slate-400 truncate font-medium">
                 {organization.name}
               </span>
-              <Badge className="text-[10px] shrink-0 bg-white/10 text-slate-300 border-0 hover:bg-white/10">
-                {planInfo?.label ?? plan}
+              <Badge
+                className="text-[10px] shrink-0 bg-white/10 text-slate-300 border-0 hover:bg-white/10 cursor-pointer"
+                onClick={() => navigate('/pricing')}
+              >
+                {planLabel}
               </Badge>
             </div>
+            <UsageCounter usage={usage} isLoading={subLoading} />
           </div>
         )}
 
