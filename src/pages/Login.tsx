@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Linkedin, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -96,8 +96,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="h-10 w-10 bg-[#0077B5] rounded-xl flex items-center justify-center">
-            <Linkedin className="h-5 w-5 text-white" />
+          <div className="h-10 w-10 bg-[#0077B5] rounded-xl flex items-center justify-center overflow-hidden">
+            <img src="/favicon.svg" alt="PostPilot" className="h-8 w-8" />
           </div>
           <span className="font-bold text-gray-900 text-2xl">PostPilot</span>
         </div>
