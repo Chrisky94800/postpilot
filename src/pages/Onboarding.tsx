@@ -128,7 +128,16 @@ export default function Onboarding() {
       if (orgError) throw orgError
       const org = { id: orgId as string }
 
-      // 2. Insérer le profil de marque ───────────────────────────────────────
+      // 2. Initialiser le trial Solo 30 jours ───────────────────────────────
+      // Non bloquant : si ça échoue, l'onboarding continue quand même
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.rpc as any)('init_trial_subscription', { org_id: org.id })
+      } catch (trialErr) {
+        console.error('[onboarding] init_trial_subscription error', trialErr)
+      }
+
+      // 4. Insérer le profil de marque ───────────────────────────────────────
       setUploadProgress('Enregistrement de votre profil…')
       const examplePosts = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
 
@@ -155,7 +164,7 @@ export default function Onboarding() {
 
       if (profileError) throw profileError
 
-      // 3. Upload des documents + génération d'embeddings ────────────────────
+      // 5. Upload des documents + génération d'embeddings ────────────────────
       const files = data.examples.files
       if (files.length > 0) {
         for (let i = 0; i < files.length; i++) {
@@ -211,7 +220,7 @@ export default function Onboarding() {
         }
       }
 
-      // 4. Invalider le cache → ProtectedRoute se met à jour ────────────────
+      // 6. Invalider le cache → ProtectedRoute se met à jour ────────────────
       await queryClient.invalidateQueries({ queryKey: ['membership', user.id] })
 
       toast.success('Votre profil de marque est configuré ! 🎉')

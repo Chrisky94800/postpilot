@@ -10,8 +10,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Loader2, Save, CheckCircle2, Linkedin,
-  PenLine, Link, FileText, Sparkles,
+  Loader2, Save, CheckCircle2,
+  PenLine, Link, FileText, Sparkles, Bold,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,8 @@ import SourceDocument from '@/components/editor/SourceDocument'
 import AIExchangePanel, { type ExchangeMessage } from '@/components/editor/AIExchangePanel'
 import BrandProfileSidebar from '@/components/editor/BrandProfileSidebar'
 import MentionPicker from '@/components/editor/MentionPicker'
+import InlineMentionTextarea from '@/components/editor/InlineMentionTextarea'
+import MediaUploader from '@/components/editor/MediaUploader'
 import type { Post, PostStatus, SourceType, PostVersion } from '@/types/database'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -73,43 +75,88 @@ function toSourceMode(s: SourceType | null | undefined): SourceMode {
 
 // ─── Preview LinkedIn (exporté pour réutilisation) ───────────────────────────
 
-function renderContentWithMentions(content: string): React.ReactNode {
+// Rend les mentions @[Nom] et le gras **texte** dans la prévisualisation
+function renderContent(content: string): React.ReactNode {
   if (!content) return <span className="text-gray-400 italic">Votre post apparaîtra ici…</span>
-  const parts = content.split(/(@\[[^\]]+\])/g)
+  // Tokenise : @[Nom] et **gras**
+  const parts = content.split(/(@\[[^\]]+\]|\*\*[^*]+\*\*)/g)
   return parts.map((part, i) => {
-    const match = part.match(/^@\[([^\]]+)\]$/)
-    if (match) {
+    const mention = part.match(/^@\[([^\]]+)\]$/)
+    if (mention) {
       return (
         <span key={i} className="text-[#0077B5] font-medium cursor-pointer hover:underline">
-          @{match[1]}
+          @{mention[1]}
         </span>
       )
+    }
+    const bold = part.match(/^\*\*([^*]+)\*\*$/)
+    if (bold) {
+      return <strong key={i}>{bold[1]}</strong>
     }
     return <span key={i}>{part}</span>
   })
 }
 
-export function LinkedInPreview({ content, userName }: { content: string; userName: string }) {
+export function LinkedInPreview({
+  content,
+  userName,
+  mediaUrls = [],
+  mediaType = 'none',
+}: {
+  content: string
+  userName: string
+  mediaUrls?: string[]
+  mediaType?: 'image' | 'video' | 'none'
+}) {
   return (
-    <div className="border rounded-xl p-4 bg-white shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="h-10 w-10 rounded-full bg-[#0077B5] flex items-center justify-center">
-          <span className="text-white text-sm font-semibold">
-            {userName.slice(0, 2).toUpperCase()}
-          </span>
+    <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-10 w-10 rounded-full bg-[#0077B5] flex items-center justify-center">
+            <span className="text-white text-sm font-semibold">
+              {userName.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">{userName}</p>
+            <p className="text-xs text-gray-500">maintenant · 🌐</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-900">{userName}</p>
-          <p className="text-xs text-gray-500">maintenant · 🌐</p>
-        </div>
+        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+          {renderContent(content)}
+        </p>
       </div>
-      <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-        {renderContentWithMentions(content)}
-      </p>
-      <Separator className="my-3" />
-      <div className="flex gap-4 text-xs text-gray-500">
-        <span>👍 J'aime</span><span>💬 Commenter</span>
-        <span>🔁 Republier</span><span>📤 Envoyer</span>
+
+      {/* Médias joints */}
+      {mediaUrls.length > 0 && (
+        <div className={cn(
+          'grid gap-0.5',
+          mediaType === 'image' && mediaUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2',
+        )}>
+          {mediaType === 'video' ? (
+            <video src={mediaUrls[0]} className="w-full aspect-video object-cover" controls />
+          ) : (
+            mediaUrls.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt={`Image ${i + 1}`}
+                className={cn(
+                  'w-full object-cover',
+                  mediaUrls.length === 1 ? 'aspect-video' : 'aspect-square',
+                )}
+              />
+            ))
+          )}
+        </div>
+      )}
+
+      <div className="px-4 py-2">
+        <Separator className="mb-2" />
+        <div className="flex gap-4 text-xs text-gray-500">
+          <span>👍 J'aime</span><span>💬 Commenter</span>
+          <span>🔁 Republier</span><span>📤 Envoyer</span>
+        </div>
       </div>
     </div>
   )
@@ -143,6 +190,8 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
   const [publicationTime, setPublicationTime] = useState('09:00')
   const [aiMessages, setAiMessages]         = useState<ExchangeMessage[]>([])
   const [aiLoading, setAiLoading]           = useState(false)
+  const [mediaUrls, setMediaUrls]           = useState<string[]>([])
+  const [mediaType, setMediaType]           = useState<'image' | 'video' | 'none'>('none')
 
   const sourceModeExplicit = useRef(false)
   const contentFromAI      = useRef(false)
@@ -184,6 +233,8 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
     if ((post as Post & { source_url?: string }).source_url) {
       setUrl((post as Post & { source_url?: string }).source_url ?? '')
     }
+    if (post.media_urls) setMediaUrls(post.media_urls)
+    if (post.media_type && post.media_type !== 'none') setMediaType(post.media_type)
   }, [post])
 
   // ── Sauvegarde ──────────────────────────────────────────────────────────────
@@ -201,6 +252,8 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
         source_type: modeToSourceType[sourceMode],
         organization_id: organizationId!,
         platform_type: 'linkedin' as const,
+        media_urls: mediaUrls.length > 0 ? mediaUrls : null,
+        media_type: mediaUrls.length > 0 ? mediaType : 'none',
         ...(status ? { status } : {}),
         ...(scheduledAt ? {
           scheduled_at: new Date(`${scheduledAt}T${publicationTime}:00`).toISOString(),
@@ -483,7 +536,7 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
                 </Label>
                 <Textarea
                   value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAiPrompt(e.target.value)}
                   placeholder="Angle, ton, format… Ex : 'Commence par une question percutante, adopte un ton expert mais accessible, 3 paragraphes max.'"
                   rows={2}
                   className="resize-none text-sm"
@@ -511,37 +564,65 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
             <Card className="border-2 border-blue-100">
               <CardContent className="pt-5 space-y-4">
 
-                {/* Header : label + mention + compteur */}
+                {/* Header : label + compteur */}
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-[#0077B5]" />
                     Post rédigé
                   </p>
-                  <div className="flex items-center gap-3">
-                    <MentionPicker
-                      textareaRef={contentTextareaRef}
-                      onInsert={(mention) => {
-                        const pos = contentTextareaRef.current?.selectionStart ?? content.length
-                        const before = content.slice(0, pos)
-                        const after = content.slice(pos)
-                        const sep = before && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : ''
-                        setContent(before + sep + mention + ' ' + after)
-                      }}
-                    />
-                    <span className={cn(
-                      'text-xs tabular-nums',
-                      isOverLimit ? 'text-red-500 font-medium' : 'text-gray-400',
-                    )}>
-                      {charCount} / {LINKEDIN_POST_MAX_LENGTH}
-                    </span>
-                  </div>
+                  <span className={cn(
+                    'text-xs tabular-nums',
+                    isOverLimit ? 'text-red-500 font-medium' : 'text-gray-400',
+                  )}>
+                    {charCount} / {LINKEDIN_POST_MAX_LENGTH}
+                  </span>
                 </div>
 
-                {/* Textarea éditable */}
-                <textarea
-                  ref={contentTextareaRef}
+                {/* Barre d'outils : gras + mention */}
+                <div className="flex items-center gap-1 pb-1 border-b border-gray-100">
+                  {/* Bouton Gras */}
+                  <button
+                    type="button"
+                    title="Gras — sélectionnez du texte puis cliquez"
+                    onClick={() => {
+                      const ta = contentTextareaRef.current
+                      if (!ta) return
+                      const start = ta.selectionStart
+                      const end = ta.selectionEnd
+                      if (start === end) return
+                      const selected = content.slice(start, end)
+                      const newContent = content.slice(0, start) + `**${selected}**` + content.slice(end)
+                      setContent(newContent)
+                      requestAnimationFrame(() => {
+                        ta.focus()
+                        ta.setSelectionRange(start + 2, end + 2)
+                      })
+                    }}
+                    className="h-7 w-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <Bold className="h-3.5 w-3.5" />
+                  </button>
+                  {/* Séparateur */}
+                  <div className="w-px h-4 bg-gray-200 mx-1" />
+                  {/* MentionPicker (dropdown) */}
+                  <MentionPicker
+                    textareaRef={contentTextareaRef}
+                    onInsert={(mention) => {
+                      const pos = contentTextareaRef.current?.selectionStart ?? content.length
+                      const before = content.slice(0, pos)
+                      const after = content.slice(pos)
+                      const sep = before && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : ''
+                      setContent(before + sep + mention + ' ' + after)
+                    }}
+                  />
+                  <span className="text-xs text-gray-400 ml-1">ou tapez @</span>
+                </div>
+
+                {/* Textarea avec @mention inline */}
+                <InlineMentionTextarea
+                  textareaRef={contentTextareaRef}
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={setContent}
                   placeholder={aiLoading ? '' : 'Votre post LinkedIn apparaîtra ici après génération…'}
                   rows={10}
                   className={cn(
@@ -550,6 +631,14 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     isOverLimit && 'border-red-300',
                   )}
+                />
+
+                {/* Upload médias */}
+                <MediaUploader
+                  postId={postId}
+                  mediaUrls={mediaUrls}
+                  mediaType={mediaType}
+                  onMediaChange={(urls, type) => { setMediaUrls(urls); setMediaType(type) }}
                 />
 
                 {/* Zone de révision IA */}
@@ -605,10 +694,12 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
           {content.trim() && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Linkedin className="h-4 w-4 text-[#0077B5]" />
+                <div className="h-4 w-4 rounded-sm bg-[#0077B5] flex items-center justify-center">
+                  <span className="text-white font-bold text-[9px]">in</span>
+                </div>
                 <Label className="text-sm font-medium text-gray-700">Aperçu LinkedIn</Label>
               </div>
-              <LinkedInPreview content={content} userName="Votre nom" />
+              <LinkedInPreview content={content} userName="Votre nom" mediaUrls={mediaUrls} mediaType={mediaType} />
             </div>
           )}
 

@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react'
 
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Navbar } from '@/components/layout/Navbar'
+import { TrialBanner } from '@/components/billing/TrialBanner'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
 
@@ -31,6 +32,9 @@ const Settings       = lazy(() => import('@/pages/Settings'))
 const Notifications  = lazy(() => import('@/pages/Notifications'))
 const Programs       = lazy(() => import('@/pages/Programs'))
 const ProgramDetail  = lazy(() => import('@/pages/ProgramDetail'))
+const Pricing        = lazy(() => import('@/pages/Pricing'))
+const CGU            = lazy(() => import('@/pages/CGU'))
+const Confidentialite = lazy(() => import('@/pages/Confidentialite'))
 
 // ─── Admin back-office (lazy) ─────────────────────────────────────────────────
 
@@ -99,6 +103,7 @@ function AppLayout() {
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Navbar />
+        <TrialBanner />
         <main className="flex-1 overflow-auto p-4 sm:p-6">
           <Suspense fallback={<PageFallback />}>
             <Outlet />
@@ -128,6 +133,8 @@ export default function App() {
           <Routes>
             {/* ── Routes publiques ─────────────────────────────────────── */}
             <Route path="/" element={<Landing />} />
+            <Route path="/cgu" element={<CGU />} />
+            <Route path="/confidentialite" element={<Confidentialite />} />
 
             <Route
               path="/login"
@@ -162,6 +169,7 @@ export default function App() {
                 <Route path="/notifications"    element={<Notifications />} />
                 <Route path="/programmes"       element={<Programs />} />
                 <Route path="/programmes/:id"   element={<ProgramDetail />} />
+                <Route path="/pricing"          element={<Pricing />} />
               </Route>
 
               {/* Back-office admin — layout séparé, accès restreint */}
