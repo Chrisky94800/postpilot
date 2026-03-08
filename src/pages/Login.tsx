@@ -247,7 +247,7 @@ export default function Login() {
             CGU
           </Link>{' '}
           et notre{' '}
-          <Link to="/privacy" className="underline">
+          <Link to="/confidentialite" className="underline">
             politique de confidentialité
           </Link>
           .
