@@ -205,30 +205,34 @@ export default function LinkedInCSVImport({
                     rel="noopener noreferrer"
                     className="font-semibold underline underline-offset-2 inline-flex items-center gap-1"
                   >
-                    LinkedIn → Télécharger vos données
+                    LinkedIn → Télécharger mes données
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </span>
               </li>
               <li className="flex gap-2">
                 <span className="font-bold shrink-0">2.</span>
-                <span>Sélectionnez <strong>"Connexions"</strong> uniquement (décochez le reste)</span>
+                <span>Sélectionnez la <strong>première option</strong> : "Téléchargez des archives de données plus importantes, comprenant les relations…"</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-bold shrink-0">3.</span>
-                <span>Cliquez <strong>"Demander l'archive"</strong> — LinkedIn vous envoie un email sous quelques minutes</span>
+                <span>Cliquez <strong>"Demander les archives"</strong></span>
               </li>
               <li className="flex gap-2">
                 <span className="font-bold shrink-0">4.</span>
-                <span>Téléchargez l'archive, décompressez-la et récupérez le fichier <strong>Connections.csv</strong></span>
+                <span>LinkedIn vous envoie un email dans <strong>environ 24h</strong> avec un lien de téléchargement</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-bold shrink-0">5.</span>
+                <span>Téléchargez l'archive ZIP, décompressez-la et récupérez le fichier <strong>Connections.csv</strong></span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-bold shrink-0">6.</span>
                 <span>Glissez-déposez ce fichier ci-dessous</span>
               </li>
             </ol>
             <p className="text-xs text-blue-600">
-              LinkedIn prend 2 à 10 minutes pour générer l'export. L'email de confirmation arrive rapidement.
+              Faites la demande maintenant — revenez ici dans 24h avec votre fichier. Vous n'aurez à le faire qu'une seule fois.
             </p>
           </div>
         )}
