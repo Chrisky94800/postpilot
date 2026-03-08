@@ -33,6 +33,8 @@ const Notifications  = lazy(() => import('@/pages/Notifications'))
 const Programs       = lazy(() => import('@/pages/Programs'))
 const ProgramDetail  = lazy(() => import('@/pages/ProgramDetail'))
 const Pricing        = lazy(() => import('@/pages/Pricing'))
+const CGU            = lazy(() => import('@/pages/CGU'))
+const Confidentialite = lazy(() => import('@/pages/Confidentialite'))
 
 // ─── Admin back-office (lazy) ─────────────────────────────────────────────────
 
@@ -131,6 +133,8 @@ export default function App() {
           <Routes>
             {/* ── Routes publiques ─────────────────────────────────────── */}
             <Route path="/" element={<Landing />} />
+            <Route path="/cgu" element={<CGU />} />
+            <Route path="/confidentialite" element={<Confidentialite />} />
 
             <Route
               path="/login"
