@@ -42,7 +42,7 @@ export default function CGU() {
           <section>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Article 2 — Objet et acceptation</h2>
             <p className="text-gray-700 leading-relaxed">
-              Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») régissent l'accès et l'utilisation du service PostPilot, une plateforme SaaS d'assistance à la rédaction et à la publication de contenus professionnels sur LinkedIn, accessible sur <strong>postpilot.app</strong>.
+              Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») régissent l'accès et l'utilisation du service PostPilot, une plateforme SaaS d'assistance à la rédaction et à la publication de contenus professionnels sur LinkedIn, accessible sur <strong>postpilot.rocket-solution.fr</strong>.
             </p>
             <p className="text-gray-700 leading-relaxed mt-3">
               L'utilisation du service implique l'acceptation pleine et entière des présentes CGU. En cas de désaccord, l'utilisateur est invité à ne pas utiliser le service.
