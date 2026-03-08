@@ -6,8 +6,10 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Linkedin, Check, AlertCircle, Loader2, Trash2, CreditCard, Save,
-  User, Building2, RefreshCw,
+  User, Building2, RefreshCw, FileUp,
 } from 'lucide-react'
+import LinkedInCSVImport from '@/components/contacts/LinkedInCSVImport'
+import type { ParsedContact } from '@/components/contacts/LinkedInCSVImport'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -501,6 +503,39 @@ function BrandProfileTab() {
   )
 }
 
+// ─── Card Import CSV LinkedIn ─────────────────────────────────────────────────
+
+function LinkedInCSVImportCard() {
+  const { existingNameSet, bulkImportContacts } = useContacts()
+
+  const handleImport = async (contacts: ParsedContact[]) => {
+    const result = await bulkImportContacts.mutateAsync(contacts)
+    toast.success(`${result.imported} contact${result.imported > 1 ? 's' : ''} importé${result.imported > 1 ? 's' : ''} avec succès !`)
+    return result
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileUp className="h-5 w-5 text-[#0077B5]" />
+          Importer vos connexions LinkedIn
+        </CardTitle>
+        <CardDescription>
+          Importez toutes vos connexions LinkedIn en une fois pour les utiliser comme mentions dans vos posts.
+          Vos contacts sont mis à jour à chaque nouvel import — aucun doublon créé.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <LinkedInCSVImport
+          existingNames={existingNameSet}
+          onImport={handleImport}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
 // ─── Onglet Plateformes ───────────────────────────────────────────────────────
 
 function PlateformesTab() {
@@ -783,6 +818,9 @@ function PlateformesTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* Import CSV LinkedIn */}
+      <LinkedInCSVImportCard />
 
       {/* Plateformes à venir */}
       <Card className="border-dashed opacity-60">

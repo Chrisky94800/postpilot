@@ -1,22 +1,24 @@
-// PostPilot — Page Onboarding (wizard 4 étapes) — Sprint 1
-// StepCompany → StepStyle → StepKeywords → StepExamples → Dashboard
+// PostPilot — Page Onboarding (wizard 5 étapes) — Sprint 1
+// StepCompany → StepStyle → StepKeywords → StepExamples → StepContacts → Dashboard
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Zap, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react'
+import { Zap, ChevronRight, ChevronLeft, Check, Loader2, SkipForward } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { StepCompany }  from '@/components/onboarding/StepCompany'
-import { StepStyle }    from '@/components/onboarding/StepStyle'
-import { StepKeywords } from '@/components/onboarding/StepKeywords'
-import { StepExamples } from '@/components/onboarding/StepExamples'
+import { StepCompany }   from '@/components/onboarding/StepCompany'
+import { StepStyle }     from '@/components/onboarding/StepStyle'
+import { StepKeywords }  from '@/components/onboarding/StepKeywords'
+import { StepExamples }  from '@/components/onboarding/StepExamples'
+import { StepContacts }  from '@/components/onboarding/StepContacts'
 import type { StepCompanyData }   from '@/components/onboarding/StepCompany'
 import type { StepStyleData }     from '@/components/onboarding/StepStyle'
 import type { StepKeywordsData }  from '@/components/onboarding/StepKeywords'
 import type { StepExamplesData }  from '@/components/onboarding/StepExamples'
+import type { ParsedContact }     from '@/components/contacts/LinkedInCSVImport'
 
 // ─── Wizard state ─────────────────────────────────────────────────────────────
 
@@ -60,6 +62,7 @@ const STEPS = [
   { title: 'Votre style',          subtitle: 'Comment vous exprimez-vous ?' },
   { title: 'Mots-clés & hashtags', subtitle: 'Guidez l\'IA' },
   { title: 'Exemples & documents', subtitle: 'Affinez votre style' },
+  { title: 'Vos connexions',       subtitle: 'Importez vos contacts LinkedIn (optionnel)' },
 ]
 
 // ─── Validation par étape ─────────────────────────────────────────────────────
@@ -97,6 +100,8 @@ export default function Onboarding() {
   const [data,           setData]           = useState<WizardData>(INITIAL)
   const [saving,         setSaving]         = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
+  // Contacts CSV pré-importés à l'étape 5 (stockés en mémoire, insérés dans handleFinish)
+  const [pendingContacts, setPendingContacts] = useState<ParsedContact[]>([])
 
   const { user }     = useAuth()
   const navigate     = useNavigate()
@@ -220,7 +225,29 @@ export default function Onboarding() {
         }
       }
 
-      // 6. Invalider le cache → ProtectedRoute se met à jour ────────────────
+      // 6. Importer les contacts CSV si l'utilisateur en a ajouté ────────────
+      if (pendingContacts.length > 0) {
+        setUploadProgress(`Import de ${pendingContacts.length} contacts…`)
+        try {
+          const rows = pendingContacts.map((c) => ({
+            organization_id: org.id,
+            name: c.name.trim(),
+            type: 'person',
+            linkedin_url: null,
+            linkedin_urn: null,
+            created_by: user.id,
+          }))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any)
+            .from('contacts')
+            .upsert(rows, { onConflict: 'organization_id,name', ignoreDuplicates: true })
+        } catch (contactErr) {
+          console.error('[onboarding] contacts import error', contactErr)
+          // Non bloquant — l'utilisateur peut réimporter depuis les Settings
+        }
+      }
+
+      // 7. Invalider le cache → ProtectedRoute se met à jour ────────────────
       await queryClient.invalidateQueries({ queryKey: ['membership', user.id] })
 
       toast.success('Votre profil de marque est configuré ! 🎉')
@@ -291,6 +318,15 @@ export default function Onboarding() {
         {step === 2 && <StepStyle    data={data.style}    onChange={patchStyle}    />}
         {step === 3 && <StepKeywords data={data.keywords} onChange={patchKeywords} />}
         {step === 4 && <StepExamples data={data.examples} onChange={patchExamples} />}
+        {step === 5 && (
+          <StepContacts
+            organizationId={null}
+            onImport={async (contacts) => {
+              setPendingContacts(contacts)
+              return { imported: contacts.length, skipped: 0, total: contacts.length }
+            }}
+          />
+        )}
 
         {/* Navigation */}
         <div className="flex items-center justify-between mt-8 pt-6 border-t">
@@ -312,6 +348,38 @@ export default function Onboarding() {
               Suivant
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
+          ) : step === STEPS.length ? (
+            /* Étape 5 (contacts) : bouton Passer + bouton Terminer */
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleFinish}
+                disabled={saving}
+                className="text-gray-500"
+              >
+                <SkipForward className="h-4 w-4 mr-1" />
+                Passer cette étape
+              </Button>
+              <Button
+                onClick={handleFinish}
+                disabled={saving}
+                className="bg-[#0077B5] hover:bg-[#005885] min-w-[180px]"
+              >
+                {saving ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                    {uploadProgress || 'Enregistrement…'}
+                  </span>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    {pendingContacts.length > 0
+                      ? `Importer et terminer`
+                      : 'Terminer'}
+                  </>
+                )}
+              </Button>
+            </div>
           ) : (
             <Button
               onClick={handleFinish}

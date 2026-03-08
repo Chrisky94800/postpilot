@@ -1,10 +1,11 @@
 // PostPilot — Hook useContacts
-// CRUD pour les contacts fréquents (mentions LinkedIn)
+// CRUD + import CSV en masse pour les contacts fréquents (mentions LinkedIn)
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from './useOrganization'
 import type { Contact, ContactType } from '@/types/database'
+import type { ParsedContact } from '@/components/contacts/LinkedInCSVImport'
 
 export function useContacts() {
   const { organizationId } = useOrganization()
@@ -48,5 +49,38 @@ export function useContacts() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] }),
   })
 
-  return { contacts, isLoading, createContact, deleteContact }
+  // Import en masse depuis CSV LinkedIn — upsert sur (organization_id, name)
+  const bulkImportContacts = useMutation({
+    mutationFn: async (parsed: ParsedContact[]) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!organizationId) throw new Error('Organisation introuvable')
+
+      const existingNames = new Set(contacts.map((c) => c.name.toLowerCase()))
+      const skipped = parsed.filter((c) => existingNames.has(c.name.toLowerCase())).length
+
+      const rows = parsed.map((c) => ({
+        organization_id: organizationId,
+        name: c.name.trim(),
+        type: 'person' as ContactType,
+        linkedin_url: null,
+        linkedin_urn: null,
+        created_by: user?.id ?? null,
+      }))
+
+      // Upsert : ignore les doublons sur (organization_id, name)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('contacts')
+        .upsert(rows, { onConflict: 'organization_id,name', ignoreDuplicates: true })
+      if (error) throw error
+
+      return { imported: parsed.length, skipped, total: parsed.length }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] }),
+  })
+
+  // Set des noms en minuscules pour la détection rapide de doublons côté UI
+  const existingNameSet = new Set(contacts.map((c) => c.name.toLowerCase()))
+
+  return { contacts, isLoading, createContact, deleteContact, bulkImportContacts, existingNameSet }
 }
