@@ -236,6 +236,9 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    // ── 8. Incrémenter le compteur d'usage ────────────────────────────────────
+    await supabase.rpc('increment_ai_post_usage', { org_id: organization_id })
+
     console.log(`[generate-post] OK version=${versionNumber}`)
 
     return jsonResponse({ content, version_id: version?.id ?? '' })
