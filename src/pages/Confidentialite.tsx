@@ -231,11 +231,11 @@ export default function Confidentialite() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { droit: 'Droit d'accès', desc: 'Obtenir une copie de vos données' },
+                { droit: "Droit d'accès", desc: 'Obtenir une copie de vos données' },
                 { droit: 'Droit de rectification', desc: 'Corriger vos données inexactes' },
-                { droit: 'Droit à l'effacement', desc: 'Supprimer votre compte et données' },
+                { droit: "Droit à l'effacement", desc: 'Supprimer votre compte et données' },
                 { droit: 'Droit à la portabilité', desc: 'Exporter vos données (format JSON/CSV)' },
-                { droit: 'Droit d'opposition', desc: 'S'opposer au traitement pour prospection' },
+                { droit: "Droit d'opposition", desc: "S'opposer au traitement pour prospection" },
                 { droit: 'Droit de limitation', desc: 'Suspendre temporairement un traitement' },
               ].map(({ droit, desc }) => (
                 <div key={droit} className="bg-white border border-gray-200 rounded-lg p-4">
