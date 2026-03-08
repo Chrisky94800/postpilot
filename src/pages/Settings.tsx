@@ -6,7 +6,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Linkedin, Check, AlertCircle, Loader2, Trash2, CreditCard, Save,
-  User, Building2, RefreshCw, FileUp,
+  FileUp,
 } from 'lucide-react'
 import LinkedInCSVImport from '@/components/contacts/LinkedInCSVImport'
 import type { ParsedContact } from '@/components/contacts/LinkedInCSVImport'
@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
-import { connectLinkedIn, syncLinkedInContacts, createBillingPortal } from '@/lib/api'
+import { connectLinkedIn, createBillingPortal } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { useOrganization } from '@/hooks/useOrganization'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -542,9 +542,6 @@ function PlateformesTab() {
   const { organizationId } = useOrganization()
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const { contacts, deleteContact } = useContacts()
-  const linkedinContacts = contacts.filter((c) => c.linkedin_urn !== null)
 
   // Détection du callback OAuth dans l'URL
   const [searchParams] = useSearchParams()
@@ -553,40 +550,9 @@ function PlateformesTab() {
   useEffect(() => {
     if (linkedinStatus === 'connected') {
       toast.success('LinkedIn connecté avec succès !')
-      // Sync automatique des pages entreprise après connexion
-      if (organizationId) {
-        syncLinkedInContacts(organizationId)
-          .then((res) => {
-            if (res.synced > 0) {
-              queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] })
-              toast.success(`${res.synced} page(s) entreprise LinkedIn synchronisée(s)`)
-            }
-          })
-          .catch(() => {
-            // Silencieux — l'utilisateur peut resynchroniser manuellement
-          })
-      }
     }
     if (linkedinStatus === 'error') toast.error('Erreur lors de la connexion LinkedIn. Réessayez.')
-  }, [linkedinStatus, organizationId, queryClient])
-
-  const handleSyncContacts = async () => {
-    if (!organizationId) return
-    setSyncing(true)
-    try {
-      const res = await syncLinkedInContacts(organizationId)
-      queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] })
-      if (res.synced > 0) {
-        toast.success(`${res.synced} page(s) entreprise synchronisée(s)`)
-      } else {
-        toast.info(res.message ?? 'Aucune page entreprise LinkedIn trouvée.')
-      }
-    } catch (err) {
-      toast.error((err as Error).message)
-    } finally {
-      setSyncing(false)
-    }
-  }
+  }, [linkedinStatus])
 
   const { data: platform, isLoading } = useQuery({
     queryKey: ['platform', organizationId, 'linkedin'],
@@ -717,107 +683,6 @@ function PlateformesTab() {
           )}
         </CardContent>
       </Card>
-
-      {/* Contacts LinkedIn (pages entreprise) */}
-      {isConnected && !isExpired && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Linkedin className="h-4 w-4 text-[#0077B5]" />
-                  Contacts LinkedIn
-                </CardTitle>
-                <CardDescription className="mt-1">
-                  Pages entreprise que vous gérez sur LinkedIn. Disponibles pour les mentions
-                  dans vos posts via le bouton <code>@Mentionner</code>.
-                </CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSyncContacts}
-                disabled={syncing}
-                className="shrink-0"
-              >
-                {syncing
-                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  : <RefreshCw className="h-4 w-4 mr-2" />
-                }
-                Resynchroniser
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {linkedinContacts.length === 0 ? (
-              <div className="text-center py-6 space-y-2">
-                <p className="text-sm text-gray-500">
-                  Aucune page entreprise LinkedIn synchronisée.
-                </p>
-                <p className="text-xs text-gray-400 max-w-md mx-auto">
-                  PostPilot peut synchroniser les pages entreprise que vous administrez sur LinkedIn.
-                  Cliquez sur "Resynchroniser" pour les importer.
-                </p>
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-left">
-                  <p className="text-xs text-amber-700">
-                    <strong>Note :</strong> L'API LinkedIn ne permet pas de récupérer vos connexions personnelles.
-                    Pour mentionner des personnes, ajoutez-les directement depuis le bouton{' '}
-                    <code>@ Mentionner</code> dans l'éditeur de post.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  {linkedinContacts.map((contact) => (
-                    <div
-                      key={contact.id}
-                      className="flex items-center gap-3 p-2.5 rounded-lg border bg-white hover:border-gray-300 transition-colors"
-                    >
-                      <div className="h-7 w-7 rounded-full bg-[#0077B5] flex items-center justify-center shrink-0">
-                        {contact.type === 'company'
-                          ? <Building2 className="h-3.5 w-3.5 text-white" />
-                          : <User className="h-3.5 w-3.5 text-white" />
-                        }
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{contact.name}</p>
-                        {contact.linkedin_url && (
-                          <a
-                            href={contact.linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-[#0077B5] hover:underline truncate block"
-                          >
-                            {contact.linkedin_url}
-                          </a>
-                        )}
-                      </div>
-                      <code className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded shrink-0 hidden sm:block">
-                        @[{contact.name}]
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => deleteContact.mutate(contact.id)}
-                        disabled={deleteContact.isPending}
-                        className="text-gray-300 hover:text-red-500 transition-colors"
-                        title="Supprimer ce contact"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-400 pt-1">
-                  Pour mentionner des personnes (non récupérables via l'API LinkedIn), utilisez
-                  le bouton <code>@ Mentionner</code> dans l'éditeur — vous pourrez y ajouter
-                  des contacts manuellement.
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Import CSV LinkedIn */}
       <LinkedInCSVImportCard />
