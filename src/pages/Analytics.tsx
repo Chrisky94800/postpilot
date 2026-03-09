@@ -1,12 +1,16 @@
 // PostPilot — Analytics LinkedIn
 // Sprint 4 : graphiques engagement (recharts), top posts, insights IA.
 
-import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, ThumbsUp, MessageSquare, Eye, Share2, Lightbulb } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { TrendingUp, ThumbsUp, MessageSquare, Eye, Share2, Lightbulb, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/hooks/useOrganization'
 import { formatDate } from '@/lib/utils'
+import { collectAnalytics } from '@/lib/api'
+import { toast } from 'sonner'
 import EngagementChart from '@/components/analytics/EngagementChart'
 import type { PostAnalytics, Post } from '@/types/database'
 
@@ -48,6 +52,28 @@ function MetricCard({
 
 export default function Analytics() {
   const { organizationId } = useOrganization()
+  const queryClient = useQueryClient()
+  const [syncing, setSyncing] = useState(false)
+
+  const handleSync = async () => {
+    if (!organizationId) return
+    setSyncing(true)
+    try {
+      const res = await collectAnalytics(organizationId)
+      if (res.collected > 0) {
+        toast.success(`${res.collected} post${res.collected > 1 ? 's' : ''} synchronisé${res.collected > 1 ? 's' : ''}`)
+        queryClient.invalidateQueries({ queryKey: ['analytics', organizationId] })
+      } else if (res.errors > 0) {
+        toast.error('Erreur lors de la synchronisation. Vérifiez que votre LinkedIn est connecté.')
+      } else {
+        toast.info('Aucun nouveau post à synchroniser.')
+      }
+    } catch {
+      toast.error('Impossible de contacter LinkedIn. Réessayez dans quelques instants.')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   // Analytics agrégées des 30 derniers jours
   const { data: analytics = [], isLoading: analyticsLoading } = useQuery({
@@ -125,9 +151,22 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
+      {/* Header avec bouton sync */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">30 derniers jours</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSync}
+          disabled={syncing}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Synchronisation…' : 'Synchroniser LinkedIn'}
+        </Button>
+      </div>
+
       {/* KPI — 30 derniers jours */}
       <div>
-        <p className="text-sm text-gray-500 mb-4">30 derniers jours</p>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <MetricCard
             label="Impressions"

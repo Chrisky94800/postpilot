@@ -373,6 +373,21 @@ export async function createBillingPortal(
   )
 }
 
+/**
+ * Déclenche la collecte des métriques LinkedIn pour les posts publiés.
+ * Edge Function Supabase : collect-analytics
+ */
+export async function collectAnalytics(
+  organizationId: string,
+  signal?: AbortSignal,
+): Promise<{ collected: number; errors: number; total: number }> {
+  return edgeFunctionPost<{ collected: number; errors: number; total: number }>(
+    'collect-analytics',
+    { organization_id: organizationId },
+    signal,
+  )
+}
+
 // ─── Export de l'erreur typée ─────────────────────────────────────────────────
 
 export { ApiError }
