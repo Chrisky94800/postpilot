@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Maximize2,
   X,
+  Layers,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -136,13 +137,22 @@ export default function Calendar() {
             {MONTHS_FR[month]} <span className="text-gray-400 font-normal">{year}</span>
           </h2>
         </div>
-        <Button
-          className="bg-gradient-to-r from-[#0077B5] to-[#005885] hover:from-[#005885] hover:to-[#004a73] text-white shadow-sm"
-          onClick={() => navigate('/posts/new')}
-        >
-          <PenLine className="h-4 w-4 mr-2" />
-          Nouveau post
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/dashboard')}
+          >
+            <Layers className="h-4 w-4 mr-2" />
+            Nouveau programme
+          </Button>
+          <Button
+            className="bg-gradient-to-r from-[#0077B5] to-[#005885] hover:from-[#005885] hover:to-[#004a73] text-white shadow-sm"
+            onClick={() => navigate('/posts/new')}
+          >
+            <PenLine className="h-4 w-4 mr-2" />
+            Nouveau post
+          </Button>
+        </div>
       </div>
 
       {/* Grille calendrier */}
