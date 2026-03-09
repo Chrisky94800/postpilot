@@ -46,9 +46,19 @@ function UserMenu() {
   const { organization } = useOrganization()
   const navigate = useNavigate()
 
-  const initials = user?.email
-    ? user.email.slice(0, 2).toUpperCase()
-    : 'PP'
+  const initials = (() => {
+    const fullName = user?.user_metadata?.full_name as string | undefined
+    if (fullName) {
+      const parts = fullName.trim().split(/\s+/)
+      if (parts.length >= 2) {
+        // 1ère lettre du prénom + 2 premières lettres du nom
+        return (parts[0][0] + parts[parts.length - 1].slice(0, 2)).toUpperCase()
+      }
+      return fullName.slice(0, 3).toUpperCase()
+    }
+    // Fallback sur l'email
+    return user?.email ? user.email.slice(0, 2).toUpperCase() : 'PP'
+  })()
 
   const handleSignOut = async () => {
     await signOut()
@@ -68,9 +78,6 @@ function UserMenu() {
               {initials}
             </AvatarFallback>
           </Avatar>
-          <span className="hidden sm:block text-sm text-gray-700 max-w-32 truncate">
-            {user?.email}
-          </span>
           <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
