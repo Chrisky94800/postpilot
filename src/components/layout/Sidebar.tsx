@@ -12,7 +12,6 @@ import {
   Menu,
   Layers,
   ShieldCheck,
-  Zap,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -105,9 +104,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Logo */}
       <div className="px-4 pt-5 pb-4 flex items-center gap-2.5">
-        <div className="h-8 w-8 bg-gradient-to-br from-[#0077B5] to-[#7C3AED] rounded-lg flex items-center justify-center shadow-lg">
-          <Zap className="h-4 w-4 text-white" />
-        </div>
+        <img src="/logo.png" alt="PostPilot" className="h-8 w-8 rounded-lg shadow-lg" />
         <span className="font-bold text-white text-lg tracking-tight">PostPilot</span>
       </div>
 
