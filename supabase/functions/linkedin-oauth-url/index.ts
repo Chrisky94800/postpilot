@@ -19,6 +19,7 @@ const CORS_HEADERS = {
 
 const RequestSchema = z.object({
   organization_id: z.string().uuid('organization_id invalide'),
+  app_origin: z.string().url().optional(),
 })
 
 // Scopes approuvés pour l'app LinkedIn PostPilot.
@@ -63,15 +64,22 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { organization_id } = parsed.data
+    const { organization_id, app_origin } = parsed.data
 
     // ── Construction de l'URL OAuth LinkedIn ─────────────────────────────────
+    // On encode {org, origin} en base64 dans le state pour que le callback
+    // puisse rediriger vers l'URL exacte de l'app qui a initié le flow.
+    const statePayload = btoa(JSON.stringify({
+      org: organization_id,
+      origin: app_origin ?? '',
+    }))
+
     const params = new URLSearchParams({
       response_type: 'code',
       client_id:     clientId,
       redirect_uri:  redirectUri,
       scope:         LINKEDIN_SCOPES,
-      state:         organization_id,   // retourné dans le callback pour identifier l'org
+      state:         statePayload,
     })
 
     const oauth_url = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`

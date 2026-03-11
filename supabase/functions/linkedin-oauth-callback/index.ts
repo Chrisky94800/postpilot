@@ -29,8 +29,8 @@ const LINKEDIN_USERINFO_URL = 'https://api.linkedin.com/v2/userinfo'
 const CallbackParamsSchema = z.object({
   /** Code d'autorisation retourné par LinkedIn */
   code: z.string().min(1, 'code manquant'),
-  /** organization_id de l'organisation PostPilot qui a initié le flow OAuth */
-  state: z.string().uuid('state invalide (doit être un organization_id UUID)'),
+  /** base64 JSON {org, origin} ou UUID brut (rétrocompat) */
+  state: z.string().min(1, 'state manquant'),
 })
 
 // ─── Types des réponses LinkedIn ──────────────────────────────────────────────
@@ -52,6 +52,12 @@ interface LinkedInUserInfo {
   picture?: string
   email?: string
   locale?: string | { language: string; country: string }
+}
+
+interface LinkedInPage {
+  urn: string   // ex: "urn:li:organization:12345"
+  id: string    // ex: "12345"
+  name: string  // ex: "Rocket Solution"
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -123,6 +129,81 @@ async function fetchLinkedInUserInfo(
   return res.json() as Promise<LinkedInUserInfo>
 }
 
+// ─── Récupération des pages entreprise LinkedIn ───────────────────────────────
+
+async function fetchLinkedInPages(accessToken: string): Promise<LinkedInPage[]> {
+  try {
+    // 1. Récupérer les organisations dont l'user est ADMINISTRATOR
+    const aclRes = await fetch(
+      'https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&state=APPROVED&role=ADMINISTRATOR&count=50',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      },
+    )
+
+    if (!aclRes.ok) {
+      console.warn(`[linkedin-oauth-callback] organizationalEntityAcls failed (${aclRes.status})`)
+      return []
+    }
+
+    const aclData = await aclRes.json() as {
+      elements?: { organizationalTarget: string }[]
+    }
+
+    if (!aclData.elements?.length) return []
+
+    // 2. Extraire les IDs numériques depuis les URNs "urn:li:organization:XXXX"
+    const orgEntries = aclData.elements
+      .map((el) => {
+        const match = el.organizationalTarget.match(/urn:li:organization:(\d+)/)
+        return match ? { urn: el.organizationalTarget, id: match[1] } : null
+      })
+      .filter(Boolean) as { urn: string; id: string }[]
+
+    if (!orgEntries.length) return []
+
+    // 3. Récupérer les noms des organisations (batch via ids=List(...))
+    const idList = orgEntries.map((e) => e.id).join(',')
+    const orgsRes = await fetch(
+      `https://api.linkedin.com/v2/organizations?ids=List(${idList})&fields=id,localizedName`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      },
+    )
+
+    if (!orgsRes.ok) {
+      console.warn(`[linkedin-oauth-callback] organizations batch failed (${orgsRes.status})`)
+      // Fallback : retourner les URNs sans nom
+      return orgEntries.map((e) => ({ ...e, name: `Organisation ${e.id}` }))
+    }
+
+    const orgsData = await orgsRes.json() as {
+      results?: Record<string, { id: number; localizedName?: string }>
+    }
+
+    const pages: LinkedInPage[] = orgEntries.map((entry) => {
+      const orgInfo = orgsData.results?.[entry.id]
+      return {
+        urn: entry.urn,
+        id: entry.id,
+        name: orgInfo?.localizedName ?? `Organisation ${entry.id}`,
+      }
+    })
+
+    console.log(`[linkedin-oauth-callback] Found ${pages.length} company page(s): ${pages.map((p) => p.name).join(', ')}`)
+    return pages
+  } catch (e) {
+    console.error('[linkedin-oauth-callback] fetchLinkedInPages error', e)
+    return []
+  }
+}
+
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -170,10 +251,37 @@ Deno.serve(async (req: Request) => {
       return errorRedirect(appUrl, 'invalid_params')
     }
 
-    const { code, state: organizationId } = parseResult.data
+    const { code, state: rawState } = parseResult.data
+
+    // ── Décodage du state (base64 JSON ou UUID brut pour rétrocompat) ─────────
+    let organizationId: string
+    try {
+      const stateData = JSON.parse(atob(rawState))
+      organizationId = stateData.org
+      if (stateData.origin) {
+        // Utiliser l'origine de l'app qui a initié le flow (self-configuring)
+        Object.defineProperty(globalThis, '_appUrlOverride', {
+          value: stateData.origin,
+          configurable: true,
+        })
+      }
+    } catch {
+      // Rétrocompat : state = UUID brut
+      organizationId = rawState
+    }
+
+    // Résoudre l'URL de l'app : priorité à l'origine encodée dans le state
+    const resolvedAppUrl = (() => {
+      try {
+        const stateData = JSON.parse(atob(rawState))
+        return stateData.origin || appUrl
+      } catch {
+        return appUrl
+      }
+    })()
 
     console.log(
-      `[linkedin-oauth-callback] code received for org=${organizationId}`,
+      `[linkedin-oauth-callback] code received for org=${organizationId}, redirect to ${resolvedAppUrl}`,
     )
 
     // ── Vérification que l'organisation existe ────────────────────────────────
@@ -193,7 +301,7 @@ Deno.serve(async (req: Request) => {
       console.error(
         `[linkedin-oauth-callback] Organization not found: ${organizationId}`,
       )
-      return errorRedirect(appUrl, 'invalid_organization')
+      return errorRedirect(resolvedAppUrl, 'invalid_organization')
     }
 
     // ── Échange du code contre les tokens LinkedIn ────────────────────────────
@@ -223,6 +331,9 @@ Deno.serve(async (req: Request) => {
     console.log(
       `[linkedin-oauth-callback] Profile fetched: ${displayName} (${linkedinUrn})`,
     )
+
+    // ── Récupération des pages entreprise LinkedIn ────────────────────────────
+    const linkedinPages = await fetchLinkedInPages(tokens.access_token)
 
     // ── Calcul de la date d'expiration du token ───────────────────────────────
     const tokenExpiresAt = new Date(
@@ -257,6 +368,7 @@ Deno.serve(async (req: Request) => {
           token_expires_at: tokenExpiresAt,
           platform_user_id: linkedinUrn,
           platform_user_name: displayName,
+          linkedin_pages: linkedinPages,
           platform_metadata: {
             scope: tokens.scope,
             locale:
@@ -279,7 +391,7 @@ Deno.serve(async (req: Request) => {
         '[linkedin-oauth-callback] Upsert error',
         upsertError,
       )
-      return errorRedirect(appUrl, 'database_error')
+      return errorRedirect(resolvedAppUrl, 'database_error')
     }
 
     console.log(
@@ -312,7 +424,7 @@ Deno.serve(async (req: Request) => {
 
     // ── Redirection vers l'app ────────────────────────────────────────────────
     return redirectTo(
-      `${appUrl}/settings?linkedin=connected&name=${encodeURIComponent(displayName)}`,
+      `${resolvedAppUrl}/settings?linkedin=connected&name=${encodeURIComponent(displayName)}`,
     )
   } catch (err) {
     console.error('[linkedin-oauth-callback] ERROR', err)
