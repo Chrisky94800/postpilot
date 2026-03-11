@@ -543,16 +543,85 @@ function PlateformesTab() {
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
 
-  // Détection du callback OAuth dans l'URL
+  // Détection du callback OAuth dans l'URL (fallback redirect classique ou popup)
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const linkedinStatus = searchParams.get('linkedin')
 
   useEffect(() => {
+    if (!linkedinStatus) return
+
+    // Nettoyer l'URL immédiatement pour éviter les re-déclenchements
+    navigate('/settings?tab=plateformes', { replace: true })
+
     if (linkedinStatus === 'connected') {
-      toast.success('LinkedIn connecté avec succès !')
+      const name = searchParams.get('name') ?? ''
+
+      // Cas popup : notifier la fenêtre parente et se fermer
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.postMessage({ type: 'linkedin_connected', name }, '*')
+        } catch (_) { /* ignore cross-origin errors */ }
+        setTimeout(() => window.close(), 300)
+        return
+      }
+
+      // Cas redirection classique (popup bloqué)
+      toast.success(`LinkedIn connecté — ${name} ✅`)
+      queryClient.invalidateQueries({ queryKey: ['platform', organizationId] })
+      queryClient.invalidateQueries({ queryKey: ['platform_linkedin', organizationId] })
     }
-    if (linkedinStatus === 'error') toast.error('Erreur lors de la connexion LinkedIn. Réessayez.')
+
+    if (linkedinStatus === 'error') {
+      const reason = searchParams.get('reason') ?? ''
+
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.postMessage({ type: 'linkedin_error', reason }, '*')
+        } catch (_) { /* ignore */ }
+        setTimeout(() => window.close(), 300)
+        return
+      }
+
+      toast.error('Erreur lors de la connexion LinkedIn. Réessayez.')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedinStatus])
+
+  // Écouter les messages du popup OAuth LinkedIn (cas fenêtre parente)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'linkedin_connected') {
+        toast.success(`LinkedIn connecté — ${event.data.name ?? ''} ✅`)
+        queryClient.invalidateQueries({ queryKey: ['platform', organizationId] })
+        queryClient.invalidateQueries({ queryKey: ['platform_linkedin', organizationId] })
+        setConnecting(false)
+      } else if (event.data?.type === 'linkedin_error') {
+        toast.error(`Erreur LinkedIn : ${event.data.reason ?? 'inconnu'}`)
+        setConnecting(false)
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [organizationId, queryClient])
+
+  const handleSyncContacts = async () => {
+    if (!organizationId) return
+    setSyncing(true)
+    try {
+      const res = await syncLinkedInContacts(organizationId)
+      queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] })
+      if (res.synced > 0) {
+        toast.success(`${res.synced} page(s) entreprise synchronisée(s)`)
+      } else {
+        toast.info(res.message ?? 'Aucune page entreprise LinkedIn trouvée.')
+      }
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const { data: platform, isLoading } = useQuery({
     queryKey: ['platform', organizationId, 'linkedin'],
@@ -571,10 +640,38 @@ function PlateformesTab() {
   const handleConnect = async () => {
     if (!organizationId) return
     setConnecting(true)
+
+    // Ouvrir le popup AVANT l'await pour éviter le blocage par le navigateur
+    // (Chrome bloque window.open après un appel async)
+    const popup = window.open(
+      'about:blank',
+      'linkedin_oauth',
+      'width=600,height=700,scrollbars=yes,resizable=yes',
+    )
+
     try {
       const { oauth_url } = await connectLinkedIn(organizationId)
-      window.location.href = oauth_url
+
+      if (!popup || popup.closed) {
+        // Popup bloqué → fallback redirection classique
+        window.location.href = oauth_url
+        return
+      }
+
+      // Naviguer le popup vers LinkedIn
+      popup.location.href = oauth_url
+
+      // Surveiller la fermeture du popup
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed)
+          setConnecting(false)
+          queryClient.invalidateQueries({ queryKey: ['platform', organizationId] })
+          queryClient.invalidateQueries({ queryKey: ['platform_linkedin', organizationId] })
+        }
+      }, 500)
     } catch (err) {
+      popup?.close()
       toast.error((err as Error).message)
       setConnecting(false)
     }

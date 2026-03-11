@@ -120,6 +120,18 @@ export type Document = {
   deleted_at: string | null
 }
 
+export type LinkedInPage = {
+  urn: string    // ex: "urn:li:organization:12345"
+  id: string     // ex: "12345"
+  name: string   // ex: "Rocket Solution"
+}
+
+export type PostingAs = {
+  type: 'person' | 'organization'
+  urn: string    // ex: "urn:li:person:XXXX" ou "urn:li:organization:12345"
+  name: string
+}
+
 export type Platform = {
   id: string
   organization_id: string
@@ -136,6 +148,7 @@ export type Platform = {
   platform_user_id: string | null
   platform_user_name: string | null
   platform_metadata: Json | null
+  linkedin_pages: LinkedInPage[]
   created_at: string
   updated_at: string
 }
@@ -161,6 +174,7 @@ export type Post = {
   ai_conversation_id: string | null
   media_urls: string[] | null       // URLs Supabase Storage des médias joints
   media_type: 'image' | 'video' | 'none' | null
+  posting_as: PostingAs | null      // Compte LinkedIn depuis lequel poster (null = personnel)
   created_by: string | null
   created_at: string
   updated_at: string
@@ -405,6 +419,7 @@ export interface Database {
           platform_user_id?: string | null
           platform_user_name?: string | null
           platform_metadata?: Json | null
+          linkedin_pages?: LinkedInPage[]
           created_at?: string
           updated_at?: string
         }

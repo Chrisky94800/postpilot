@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Loader2, Save, CheckCircle2,
-  PenLine, Link, FileText, Sparkles, Bold,
+  PenLine, Link, FileText, Sparkles, AtSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -31,10 +31,8 @@ import SourceURL from '@/components/editor/SourceURL'
 import SourceDocument from '@/components/editor/SourceDocument'
 import AIExchangePanel, { type ExchangeMessage } from '@/components/editor/AIExchangePanel'
 import BrandProfileSidebar from '@/components/editor/BrandProfileSidebar'
-import MentionPicker from '@/components/editor/MentionPicker'
-import InlineMentionTextarea from '@/components/editor/InlineMentionTextarea'
 import MediaUploader from '@/components/editor/MediaUploader'
-import type { Post, PostStatus, SourceType, PostVersion } from '@/types/database'
+import type { Post, PostStatus, SourceType, PostVersion, PostingAs } from '@/types/database'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -192,6 +190,7 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
   const [aiLoading, setAiLoading]           = useState(false)
   const [mediaUrls, setMediaUrls]           = useState<string[]>([])
   const [mediaType, setMediaType]           = useState<'image' | 'video' | 'none'>('none')
+  const [postingAs, setPostingAs]           = useState<PostingAs | null>(null)
 
   const sourceModeExplicit = useRef(false)
   const contentFromAI      = useRef(false)
@@ -235,6 +234,7 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
     }
     if (post.media_urls) setMediaUrls(post.media_urls)
     if (post.media_type && post.media_type !== 'none') setMediaType(post.media_type)
+    if (post.posting_as) setPostingAs(post.posting_as)
   }, [post])
 
   // ── Sauvegarde ──────────────────────────────────────────────────────────────
@@ -254,6 +254,7 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
         platform_type: 'linkedin' as const,
         media_urls: mediaUrls.length > 0 ? mediaUrls : null,
         media_type: mediaUrls.length > 0 ? mediaType : 'none',
+        posting_as: postingAs ?? null,
         ...(status ? { status } : {}),
         ...(scheduledAt ? {
           scheduled_at: new Date(`${scheduledAt}T${publicationTime}:00`).toISOString(),
@@ -578,60 +579,27 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
                   </span>
                 </div>
 
-                {/* Barre d'outils : gras + mention */}
-                <div className="flex items-center gap-1 pb-1 border-b border-gray-100">
-                  {/* Bouton Gras */}
-                  <button
-                    type="button"
-                    title="Gras — sélectionnez du texte puis cliquez"
-                    onClick={() => {
-                      const ta = contentTextareaRef.current
-                      if (!ta) return
-                      const start = ta.selectionStart
-                      const end = ta.selectionEnd
-                      if (start === end) return
-                      const selected = content.slice(start, end)
-                      const newContent = content.slice(0, start) + `**${selected}**` + content.slice(end)
-                      setContent(newContent)
-                      requestAnimationFrame(() => {
-                        ta.focus()
-                        ta.setSelectionRange(start + 2, end + 2)
-                      })
-                    }}
-                    className="h-7 w-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    <Bold className="h-3.5 w-3.5" />
-                  </button>
-                  {/* Séparateur */}
-                  <div className="w-px h-4 bg-gray-200 mx-1" />
-                  {/* MentionPicker (dropdown) */}
-                  <MentionPicker
-                    textareaRef={contentTextareaRef}
-                    onInsert={(mention) => {
-                      const pos = contentTextareaRef.current?.selectionStart ?? content.length
-                      const before = content.slice(0, pos)
-                      const after = content.slice(pos)
-                      const sep = before && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : ''
-                      setContent(before + sep + mention + ' ' + after)
-                    }}
-                  />
-                  <span className="text-xs text-gray-400 ml-1">ou tapez @</span>
-                </div>
-
-                {/* Textarea avec @mention inline */}
-                <InlineMentionTextarea
-                  textareaRef={contentTextareaRef}
+                {/* Textarea */}
+                <Textarea
+                  ref={contentTextareaRef}
                   value={content}
-                  onChange={setContent}
+                  onChange={(e) => setContent(e.target.value)}
                   placeholder={aiLoading ? '' : 'Votre post LinkedIn apparaîtra ici après génération…'}
                   rows={10}
                   className={cn(
-                    'w-full rounded-md border border-input bg-background px-3 py-2',
-                    'text-sm resize-none placeholder:text-muted-foreground font-mono',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'resize-none text-sm font-mono',
                     isOverLimit && 'border-red-300',
                   )}
                 />
+
+                {/* Note mentions */}
+                <div className="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  <AtSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    Les mentions <strong>@Nom Prénom</strong> apparaissent en texte brut sur LinkedIn.
+                    Pour créer une vraie mention liée à un profil, ajoutez-la directement sur LinkedIn après publication.
+                  </span>
+                </div>
 
                 {/* Upload médias */}
                 <MediaUploader
@@ -748,6 +716,8 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
                   publicationTime={publicationTime}
                   onScheduledAtChange={setScheduledAt}
                   onPublicationTimeChange={setPublicationTime}
+                  postingAs={postingAs}
+                  onPostingAsChange={setPostingAs}
                 />
               )}
             </CardContent>

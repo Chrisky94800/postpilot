@@ -1,4 +1,4 @@
-// PostPilot — Graphique d'engagement dans le temps
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // PostPilot — Graphique d'engagement dans le temps
 // Sprint 4 : recharts AreaChart, agrégé par jour
 
 import {
