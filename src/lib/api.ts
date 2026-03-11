@@ -270,7 +270,10 @@ export async function connectLinkedIn(
 ): Promise<ConnectLinkedInResponse> {
   return edgeFunctionPost<ConnectLinkedInResponse>(
     'linkedin-oauth-url',
-    { organization_id: organizationId },
+    {
+      organization_id: organizationId,
+      app_origin: window.location.origin,
+    },
     signal,
   )
 }
