@@ -236,8 +236,8 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // ── 8. Incrémenter le compteur d'usage ────────────────────────────────────
-    await supabase.rpc('increment_ai_post_usage', { org_id: organization_id })
+    // Le quota est maintenant compté sur les posts publiés (posts.status = 'published')
+    // via check_ai_post_limit — pas besoin d'incrémenter manuellement ici.
 
     console.log(`[generate-post] OK version=${versionNumber}`)
 
