@@ -66,12 +66,25 @@ Deno.serve(async (req: Request) => {
 
     const { organization_id, app_origin } = parsed.data
 
+    // ── Résolution de l'origine de l'app ─────────────────────────────────────
+    // Priorité : body.app_origin → Origin header → Referer → APP_URL env var
+    const originFromHeader = (() => {
+      const origin = req.headers.get('Origin') ?? ''
+      if (origin && origin !== 'null') return origin
+      const referer = req.headers.get('Referer') ?? ''
+      try { return new URL(referer).origin } catch { return '' }
+    })()
+
+    const resolvedOrigin = app_origin || originFromHeader || Deno.env.get('APP_URL') || ''
+
+    console.log(`[linkedin-oauth-url] app_origin=${app_origin}, header_origin=${originFromHeader}, resolved=${resolvedOrigin}`)
+
     // ── Construction de l'URL OAuth LinkedIn ─────────────────────────────────
     // On encode {org, origin} en base64 dans le state pour que le callback
     // puisse rediriger vers l'URL exacte de l'app qui a initié le flow.
     const statePayload = btoa(JSON.stringify({
       org: organization_id,
-      origin: app_origin ?? '',
+      origin: resolvedOrigin,
     }))
 
     const params = new URLSearchParams({
