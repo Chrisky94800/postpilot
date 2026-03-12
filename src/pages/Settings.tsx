@@ -542,14 +542,12 @@ function PlateformesTab() {
   const { organizationId } = useOrganization()
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
-  const [syncing, setSyncing] = useState(false)
 
-  // Détection du callback OAuth dans l'URL (fallback redirect classique ou popup)
+  // Détection du callback OAuth dans l'URL (redirection dans la fenêtre principale)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const linkedinStatus = searchParams.get('linkedin')
 
-  // Détection du retour OAuth LinkedIn (redirection dans la fenêtre principale)
   useEffect(() => {
     if (!linkedinStatus) return
 
@@ -569,24 +567,6 @@ function PlateformesTab() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedinStatus])
-
-  const handleSyncContacts = async () => {
-    if (!organizationId) return
-    setSyncing(true)
-    try {
-      const res = await syncLinkedInContacts(organizationId)
-      queryClient.invalidateQueries({ queryKey: ['contacts', organizationId] })
-      if (res.synced > 0) {
-        toast.success(`${res.synced} page(s) entreprise synchronisée(s)`)
-      } else {
-        toast.info(res.message ?? 'Aucune page entreprise LinkedIn trouvée.')
-      }
-    } catch (err) {
-      toast.error((err as Error).message)
-    } finally {
-      setSyncing(false)
-    }
-  }
 
   const { data: platform, isLoading } = useQuery({
     queryKey: ['platform', organizationId, 'linkedin'],
