@@ -116,10 +116,10 @@ export default function QuickActions({ organizationId, onOpenChat }: QuickAction
           />
         ) : (
           <ActionButton
-            icon="📈"
-            label="Voir mes analytics"
-            desc="Performances de vos posts LinkedIn"
-            onClick={() => navigate('/analytics')}
+            icon="📅"
+            label="Voir le calendrier"
+            desc="Planifier et organiser vos posts"
+            onClick={() => navigate('/calendar')}
             iconBg="bg-emerald-50"
           />
         )}

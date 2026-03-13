@@ -1,29 +1,9 @@
 // PostPilot — 4 KPI Cards du Dashboard
 // Design moderne : icône colorée par métrique, valeur large, trend badge.
 
-import { FileText, PenLine, Eye, TrendingUp } from 'lucide-react'
+import { FileText, PenLine, Clock, Sparkles } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DashboardKPIs } from '@/hooks/useDashboardKPIs'
-
-function formatNumber(n: number): string {
-  return n.toLocaleString('fr-FR')
-}
-
-function TrendBadge({ trend }: { trend: number }) {
-  if (trend > 0) return (
-    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-      ↑ +{trend}%
-    </span>
-  )
-  if (trend < 0) return (
-    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">
-      ↓ {trend}%
-    </span>
-  )
-  return (
-    <span className="text-[11px] font-medium text-gray-400">→ stable</span>
-  )
-}
 
 function KPICard({
   label,
@@ -110,29 +90,24 @@ export default function KPICards({ kpis }: KPICardsProps) {
         iconColor="text-violet-600"
       />
       <KPICard
-        label="Vues LinkedIn"
-        value={kpis.viewsThisMonth !== null ? formatNumber(kpis.viewsThisMonth) : '—'}
-        sub="aucune donnée encore"
-        trend={kpis.viewsThisMonth !== null ? kpis.viewsTrend : undefined}
+        label="En attente"
+        value={String(kpis.pendingReview)}
+        sub={kpis.pendingReview === 0 ? 'rien à valider' : 'à valider'}
         loading={isLoading}
-        icon={Eye}
-        iconBg="bg-emerald-50"
-        iconColor="text-emerald-600"
-      />
-      <KPICard
-        label="Engagement"
-        value={kpis.engagementRate !== null ? `${kpis.engagementRate}%` : '—'}
-        sub="aucune donnée encore"
-        trend={kpis.engagementRate !== null ? kpis.engagementTrend : undefined}
-        loading={isLoading}
-        icon={TrendingUp}
+        icon={Clock}
         iconBg="bg-amber-50"
         iconColor="text-amber-600"
-        valueColor={
-          kpis.engagementRate !== null && kpis.engagementRate > 3
-            ? 'text-emerald-600'
-            : 'text-gray-900'
-        }
+        valueColor={kpis.pendingReview > 0 ? 'text-amber-600' : 'text-gray-900'}
+      />
+      <KPICard
+        label="Quota restant"
+        value={String(kpis.quotaLeft)}
+        sub={kpis.maxPostsPerMonth > 0 ? `posts dispo. ce mois` : ''}
+        loading={isLoading}
+        icon={Sparkles}
+        iconBg="bg-emerald-50"
+        iconColor="text-emerald-600"
+        valueColor={kpis.quotaLeft === 0 ? 'text-red-500' : 'text-emerald-600'}
       />
     </div>
   )
