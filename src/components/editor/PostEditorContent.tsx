@@ -349,6 +349,7 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved }:
         await supabase.from('posts').update({
           source_content: sourceContent,
           source_type: modeToSourceType[sourceMode],
+          ...(sourceMode === 'url' ? { source_url: url.trim() } : {}),
           updated_at: new Date().toISOString(),
         }).eq('id', id)
       }
