@@ -1,11 +1,12 @@
 // PostPilot — Boîte à idées
-// Liste des idées de posts sauvegardées depuis le chat IA.
+// Liste des idées de posts sauvegardées depuis le chat IA ou créées manuellement.
 
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/hooks/useOrganization'
-import { Lightbulb, PenLine, Trash2 } from 'lucide-react'
+import { Lightbulb, PenLine, Trash2, Plus, X, Check } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 
@@ -26,8 +27,18 @@ export default function Ideas() {
   const { organizationId } = useOrganization()
   const queryClient = useQueryClient()
 
+  const [showForm, setShowForm] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+  const [saving, setSaving] = useState(false)
+  const titleRef = useRef<HTMLInputElement>(null)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
+
+  useEffect(() => {
+    if (showForm) titleRef.current?.focus()
+  }, [showForm])
 
   const { data: ideas = [], isLoading } = useQuery({
     queryKey: ['ideas', organizationId],
@@ -43,6 +54,38 @@ export default function Ideas() {
     },
     enabled: !!organizationId,
   })
+
+  const handleCreate = async () => {
+    if (!newTitle.trim()) {
+      titleRef.current?.focus()
+      return
+    }
+    setSaving(true)
+    const { error } = await db
+      .from('ideas')
+      .insert({
+        organization_id: organizationId,
+        title: newTitle.trim(),
+        description: newDescription.trim() || null,
+        source: 'manual',
+      })
+    setSaving(false)
+    if (error) {
+      toast.error('Erreur lors de la création')
+    } else {
+      toast.success('Idée ajoutée !')
+      setNewTitle('')
+      setNewDescription('')
+      setShowForm(false)
+      queryClient.invalidateQueries({ queryKey: ['ideas', organizationId] })
+    }
+  }
+
+  const handleCancelForm = () => {
+    setShowForm(false)
+    setNewTitle('')
+    setNewDescription('')
+  }
 
   const handleDelete = async (id: string) => {
     const { error } = await db
@@ -66,12 +109,67 @@ export default function Ideas() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-[20px] font-bold text-gray-900">Boîte à idées</h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">
-          Idées de posts générées par votre assistant IA
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[20px] font-bold text-gray-900">Boîte à idées</h1>
+          <p className="text-[13px] text-gray-400 mt-0.5">
+            Idées de posts générées par l'IA ou ajoutées manuellement
+          </p>
+        </div>
+        {!showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2563EB] text-white text-[13px] font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Nouvelle idée
+          </button>
+        )}
       </div>
+
+      {/* Formulaire de création inline */}
+      {showForm && (
+        <div className="bg-white border border-blue-200 rounded-2xl px-5 py-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[13px] font-semibold text-gray-900">Nouvelle idée</p>
+            <button onClick={handleCancelForm} className="text-gray-400 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <input
+            ref={titleRef}
+            type="text"
+            placeholder="Titre de l'idée *"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400"
+          />
+          <textarea
+            placeholder="Description / angle éditorial (optionnel)"
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            rows={2}
+            className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400 resize-none"
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={handleCancelForm}
+              className="px-4 py-2 rounded-lg text-[12px] font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={saving || !newTitle.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold bg-[#2563EB] text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              <Check className="h-3.5 w-3.5" />
+              {saving ? 'Enregistrement…' : 'Sauvegarder'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Liste */}
       {isLoading ? (
@@ -87,14 +185,23 @@ export default function Ideas() {
           </div>
           <p className="text-[15px] font-semibold text-gray-900 mb-1">Aucune idée pour l'instant</p>
           <p className="text-[13px] text-gray-400 mb-4">
-            Demandez des idées à votre assistant depuis le tableau de bord.
+            Ajoutez une idée manuellement ou demandez à votre assistant depuis le tableau de bord.
           </p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-[13px] text-[#2563EB] font-semibold hover:underline"
-          >
-            Aller au tableau de bord →
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setShowForm(true)}
+              className="text-[13px] text-[#2563EB] font-semibold hover:underline"
+            >
+              + Ajouter une idée
+            </button>
+            <span className="text-gray-300">|</span>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-[13px] text-[#2563EB] font-semibold hover:underline"
+            >
+              Aller au tableau de bord →
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
