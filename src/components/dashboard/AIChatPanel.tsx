@@ -69,7 +69,10 @@ export default function AIChatPanel({ organizationId }: AIChatPanelProps) {
       }
 
       if (res.extracted_items?.length > 0) {
-        setExtractedItems(res.extracted_items.map(item => ({ ...item, validated: false })))
+        const programItems = res.extracted_items.filter(item => item.type === 'program')
+        if (programItems.length > 0) {
+          setExtractedItems(programItems.map(item => ({ ...item, validated: false })) as ExtractedItem[])
+        }
       }
     } catch {
       const errMsg: AiMessage = {

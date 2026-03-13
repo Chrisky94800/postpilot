@@ -350,7 +350,8 @@ export async function saveIdea(
   title: string,
   description: string,
 ): Promise<{ id: string }> {
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
     .from('ideas')
     .insert({ organization_id: organizationId, title, description, source: 'ai_chat' })
     .select('id')

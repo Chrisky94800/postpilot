@@ -26,10 +26,13 @@ export default function Ideas() {
   const { organizationId } = useOrganization()
   const queryClient = useQueryClient()
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
   const { data: ideas = [], isLoading } = useQuery({
     queryKey: ['ideas', organizationId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('ideas')
         .select('id, title, description, created_at, status')
         .eq('organization_id', organizationId!)
@@ -42,7 +45,7 @@ export default function Ideas() {
   })
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
+    const { error } = await db
       .from('ideas')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
