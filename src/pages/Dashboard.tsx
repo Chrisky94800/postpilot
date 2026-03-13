@@ -39,6 +39,8 @@ export default function Dashboard() {
     user?.email?.split('@')[0] ??
     undefined
 
+  const firstName = userName?.split(' ')[0]
+
   return (
     <>
       <div className="space-y-5 min-h-full bg-[#F8F9FB] -m-6 p-6">
@@ -46,13 +48,13 @@ export default function Dashboard() {
         {/* ── Tour guidé (1ère visite) ──────────────────────────────────────── */}
         {showTour && <OnboardingTour onDone={markTourSeen} />}
 
-        {/* ── Nom entreprise ───────────────────────────────────────────────── */}
+        {/* ── Greeting ─────────────────────────────────────────────────────── */}
         <div>
           <p className="text-[18px] font-bold text-gray-900">
-            {organization?.name ?? '—'}
+            {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
           </p>
           <p className="text-[13px] text-gray-400 mt-px">
-            Assistant de communication LinkedIn
+            Ton assistant PostPilot est disponible pour ton prochain post LinkedIn
           </p>
         </div>
 
