@@ -32,11 +32,11 @@ import { SUBSCRIPTION_PLANS } from '@/lib/constants'
 // ─── Navigation items ─────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard, tourId: undefined },
-  { label: 'Calendrier',      href: '/calendar',   icon: CalendarDays,    tourId: 'tour-nav-calendar' },
-  { label: 'Programmes',      href: '/programmes',  icon: Layers,          tourId: undefined },
-  { label: 'Analytics',       href: '/analytics',   icon: BarChart2,       tourId: 'tour-nav-analytics' },
-] as const
+  { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard, tourId: undefined,               disabled: false },
+  { label: 'Calendrier',      href: '/calendar',   icon: CalendarDays,    tourId: 'tour-nav-calendar',    disabled: false },
+  { label: 'Programmes',      href: '/programmes',  icon: Layers,          tourId: undefined,               disabled: false },
+  { label: 'Analytics',       href: '/analytics',   icon: BarChart2,       tourId: 'tour-nav-analytics',   disabled: true  },
+]
 
 const BOTTOM_ITEMS = [
   { label: 'Paramètres', href: '/settings', icon: Settings },
@@ -50,13 +50,31 @@ function NavItem({
   label,
   onClick,
   tourId,
+  disabled,
 }: {
   href: string
   icon: React.ElementType
   label: string
   onClick?: () => void
   tourId?: string
+  disabled?: boolean
 }) {
+  if (disabled) {
+    return (
+      <div
+        id={tourId}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed select-none"
+        title="Bientôt disponible"
+      >
+        <Icon className="h-4 w-4 shrink-0 text-slate-700" />
+        <span>{label}</span>
+        <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide text-slate-600 border border-slate-700 rounded px-1 py-0.5 leading-tight">
+          bientôt
+        </span>
+      </div>
+    )
+  }
+
   return (
     <NavLink
       id={tourId}
@@ -128,7 +146,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       {/* Navigation principale */}
       <nav className="flex-1 px-3 space-y-0.5" onClick={onNavigate}>
         {NAV_ITEMS.map((item) => (
-          <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} tourId={item.tourId} />
+          <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} tourId={item.tourId} disabled={item.disabled} />
         ))}
       </nav>
 
