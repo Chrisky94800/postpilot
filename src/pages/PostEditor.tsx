@@ -1,6 +1,6 @@
 // PostPilot — Page éditeur de post (wrapper autour de PostEditorContent)
 
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,9 @@ export { LinkedInPreview } from '@/components/editor/PostEditorContent'
 export default function PostEditor() {
   const { id } = useParams<{ id?: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const ideaTitle = (location.state as { ideaTitle?: string } | null)?.ideaTitle
+  const ideaDescription = (location.state as { ideaDescription?: string } | null)?.ideaDescription
 
   // Charger le post pour détecter s'il appartient à un programme
   const { data: post } = useQuery({
@@ -80,6 +83,8 @@ export default function PostEditor() {
       <PostEditorContent
         postId={id}
         onNewPostCreated={(newId) => navigate(`/posts/${newId}`, { replace: true })}
+        initialTitle={ideaTitle}
+        initialIdea={ideaDescription}
       />
     </div>
   )

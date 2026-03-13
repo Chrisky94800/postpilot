@@ -166,20 +166,24 @@ interface PostEditorContentProps {
   postId?: string
   onNewPostCreated?: (id: string) => void
   onSaved?: () => void
+  /** Titre pré-rempli depuis une idée de la boîte à idées */
+  initialTitle?: string
+  /** Description de l'idée → pré-remplit le champ rédaction libre */
+  initialIdea?: string
 }
 
 // ─── Composant ────────────────────────────────────────────────────────────────
 
-export default function PostEditorContent({ postId, onNewPostCreated, onSaved }: PostEditorContentProps) {
+export default function PostEditorContent({ postId, onNewPostCreated, onSaved, initialTitle, initialIdea }: PostEditorContentProps) {
   const queryClient = useQueryClient()
   const { organizationId } = useOrganization()
 
   // ── État de l'éditeur ───────────────────────────────────────────────────────
 
-  const [title, setTitle]                   = useState('')
+  const [title, setTitle]                   = useState(initialTitle ?? '')
   const [content, setContent]               = useState('')        // post final (éditable)
   const [sourceMode, setSourceMode]         = useState<SourceMode>('free_writing')
-  const [freeWritingInput, setFreeWritingInput] = useState('')    // idées brutes (rédaction libre)
+  const [freeWritingInput, setFreeWritingInput] = useState(initialIdea ?? '')    // idées brutes (rédaction libre)
   const [url, setUrl]                       = useState('')
   const [file, setFile]                     = useState<File | null>(null)
   const [docMode, setDocMode]               = useState<DocMode>('synthesis')
