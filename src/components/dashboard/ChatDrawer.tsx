@@ -8,13 +8,14 @@ import { toast } from 'sonner'
 import AIChatMessage from './AIChatMessage'
 import AIChatInput from './AIChatInput'
 import ProgramExtractCard from './ProgramExtractCard'
+import IdeaExtractCard from './IdeaExtractCard'
 import { aiChat, createProgram } from '@/lib/api'
 import type { AiMessage, ExtractedItem } from '@/types/database'
 
 const SUGGESTIONS = [
   'Créer un programme de 4 semaines',
-  'Une idée de post pour demain',
-  'Analyser mes performances',
+  'Donne-moi des idées de posts',
+  'Programme de 2 semaines',
 ]
 
 interface ChatDrawerProps {
@@ -60,6 +61,7 @@ export default function ChatDrawer({
     { role: 'user' | 'assistant'; content: string }[]
   >([])
   const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([])
+  const [ideaItems, setIdeaItems] = useState<{ title: string; description: string }[]>([])
   const [loading, setLoading] = useState(false)
 
   // Suggestions visibles uniquement au premier message (tant qu'aucun message user n'a été envoyé)
@@ -112,9 +114,16 @@ export default function ChatDrawer({
       }
 
       if (res.extracted_items?.length > 0) {
-        setExtractedItems(
-          res.extracted_items.map((item) => ({ ...item, validated: false })),
-        )
+        const programItems = res.extracted_items.filter(item => item.type === 'program')
+        const ideaItems = res.extracted_items.filter(item => item.type === 'idea')
+        if (programItems.length > 0) {
+          setExtractedItems(
+            programItems.map((item) => ({ ...item, validated: false })),
+          )
+        }
+        if (ideaItems.length > 0) {
+          setIdeaItems(ideaItems.map(item => item.data as { title: string; description: string }))
+        }
       }
     } catch {
       setMessages((prev) => [
@@ -136,6 +145,7 @@ export default function ChatDrawer({
 
   const handleProgramValidated = () => {
     setExtractedItems([])
+    setIdeaItems([])
     setConversationHistory([])
     setConversationId(null)
     toast.success('Programme créé ! Les posts sont visibles dans la page Programmes.')
@@ -208,6 +218,15 @@ export default function ChatDrawer({
               organizationId={organizationId}
               onValidated={handleProgramValidated}
               onCreateProgram={createProgram}
+            />
+          ))}
+
+          {/* Idées proposées par l'IA */}
+          {ideaItems.map((idea, i) => (
+            <IdeaExtractCard
+              key={i}
+              idea={idea}
+              organizationId={organizationId}
             />
           ))}
 

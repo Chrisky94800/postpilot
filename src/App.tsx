@@ -35,6 +35,7 @@ const ProgramDetail  = lazy(() => import('@/pages/ProgramDetail'))
 const Pricing        = lazy(() => import('@/pages/Pricing'))
 const CGU            = lazy(() => import('@/pages/CGU'))
 const Confidentialite = lazy(() => import('@/pages/Confidentialite'))
+const Ideas          = lazy(() => import('@/pages/Ideas'))
 
 // ─── Admin back-office (lazy) ─────────────────────────────────────────────────
 
@@ -169,6 +170,7 @@ export default function App() {
                 <Route path="/notifications"    element={<Notifications />} />
                 <Route path="/programmes"       element={<Programs />} />
                 <Route path="/programmes/:id"   element={<ProgramDetail />} />
+                <Route path="/ideas"            element={<Ideas />} />
                 <Route path="/pricing"          element={<Pricing />} />
               </Route>
 

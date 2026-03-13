@@ -12,6 +12,7 @@ import {
   Menu,
   Layers,
   ShieldCheck,
+  Lightbulb,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,7 @@ const NAV_ITEMS = [
   { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard, tourId: undefined,               disabled: false },
   { label: 'Calendrier',      href: '/calendar',   icon: CalendarDays,    tourId: 'tour-nav-calendar',    disabled: false },
   { label: 'Programmes',      href: '/programmes',  icon: Layers,          tourId: undefined,               disabled: false },
+  { label: 'Boîte à idées',  href: '/ideas',       icon: Lightbulb,       tourId: undefined,               disabled: false },
   { label: 'Analytics',       href: '/analytics',   icon: BarChart2,       tourId: 'tour-nav-analytics',   disabled: true  },
 ]
 

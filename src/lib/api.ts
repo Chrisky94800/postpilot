@@ -183,18 +183,29 @@ export interface AiChatPayload {
   conversation_history?: { role: 'user' | 'assistant'; content: string }[]
 }
 
+export interface IdeaData {
+  title: string
+  description: string
+}
+
 export interface AiChatResponse {
   reply: string
   conversation_id: string
-  extracted_items: {
-    type: 'program'
-    data: {
-      title: string
-      duration_weeks: number
-      posts_per_week: number
-      posts: ProgramPost[]
-    }
-  }[]
+  extracted_items: (
+    | {
+        type: 'program'
+        data: {
+          title: string
+          duration_weeks: number
+          posts_per_week: number
+          posts: ProgramPost[]
+        }
+      }
+    | {
+        type: 'idea'
+        data: IdeaData
+      }
+  )[]
   conversation_history: { role: 'user' | 'assistant'; content: string }[]
 }
 
@@ -328,6 +339,24 @@ export async function aiChat(
   signal?: AbortSignal,
 ): Promise<AiChatResponse> {
   return edgeFunctionPost<AiChatResponse>('ai-chat', payload as unknown as Record<string, unknown>, signal)
+}
+
+/**
+ * Sauvegarde une idée de post dans la boîte à idées.
+ * Appel direct Supabase (pas d'Edge Function nécessaire).
+ */
+export async function saveIdea(
+  organizationId: string,
+  title: string,
+  description: string,
+): Promise<{ id: string }> {
+  const { data, error } = await supabase
+    .from('ideas')
+    .insert({ organization_id: organizationId, title, description, source: 'ai_chat' })
+    .select('id')
+    .single()
+  if (error) throw new Error(error.message)
+  return data as { id: string }
 }
 
 // ─── Stripe Billing ───────────────────────────────────────────────────────────

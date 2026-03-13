@@ -1,0 +1,134 @@
+// PostPilot — Boîte à idées
+// Liste des idées de posts sauvegardées depuis le chat IA.
+
+import { useNavigate } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useOrganization } from '@/hooks/useOrganization'
+import { Lightbulb, PenLine, Trash2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
+
+type Idea = {
+  id: string
+  title: string
+  description: string | null
+  created_at: string
+  status: string
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+}
+
+export default function Ideas() {
+  const navigate = useNavigate()
+  const { organizationId } = useOrganization()
+  const queryClient = useQueryClient()
+
+  const { data: ideas = [], isLoading } = useQuery({
+    queryKey: ['ideas', organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ideas')
+        .select('id, title, description, created_at, status')
+        .eq('organization_id', organizationId!)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data as Idea[]
+    },
+    enabled: !!organizationId,
+  })
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from('ideas')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) {
+      toast.error('Erreur lors de la suppression')
+    } else {
+      toast.success('Idée supprimée')
+      queryClient.invalidateQueries({ queryKey: ['ideas', organizationId] })
+    }
+  }
+
+  const handleWrite = (idea: Idea) => {
+    navigate('/posts/new', {
+      state: { ideaTitle: idea.title, ideaDescription: idea.description },
+    })
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div>
+        <h1 className="text-[20px] font-bold text-gray-900">Boîte à idées</h1>
+        <p className="text-[13px] text-gray-400 mt-0.5">
+          Idées de posts générées par votre assistant IA
+        </p>
+      </div>
+
+      {/* Liste */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+          ))}
+        </div>
+      ) : ideas.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-2xl px-6 py-12 text-center shadow-sm">
+          <div className="h-12 w-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Lightbulb className="h-6 w-6 text-amber-500" />
+          </div>
+          <p className="text-[15px] font-semibold text-gray-900 mb-1">Aucune idée pour l'instant</p>
+          <p className="text-[13px] text-gray-400 mb-4">
+            Demandez des idées à votre assistant depuis le tableau de bord.
+          </p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-[13px] text-[#2563EB] font-semibold hover:underline"
+          >
+            Aller au tableau de bord →
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {ideas.map((idea) => (
+            <div
+              key={idea.id}
+              className="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm flex items-start gap-4"
+            >
+              <div className="h-9 w-9 bg-amber-50 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-gray-900 leading-snug">{idea.title}</p>
+                {idea.description && (
+                  <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{idea.description}</p>
+                )}
+                <p className="text-[11px] text-gray-400 mt-1.5">{formatDate(idea.created_at)}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleWrite(idea)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0077B5] text-white text-[12px] font-semibold hover:bg-[#005885] transition-colors"
+                >
+                  <PenLine className="h-3.5 w-3.5" />
+                  Rédiger
+                </button>
+                <button
+                  onClick={() => handleDelete(idea.id)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
