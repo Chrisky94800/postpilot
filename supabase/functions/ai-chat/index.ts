@@ -1,7 +1,7 @@
 // PostPilot — Edge Function : ai-chat
 // Reçoit { organization_id, message, conversation_history? },
 // retourne { reply, conversation_id, extracted_items, conversation_history }.
-// Mission unique : créer un programme en collectant titre + durée + fréquence.
+// Deux missions : créer un programme OU générer des idées de posts.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
     const [brandRes, orgRes, programsRes] = await Promise.all([
       supabase
         .from('brand_profiles')
-        .select('company_name, industry, posting_frequency, preferred_days')
+        .select('company_name, industry, posting_frequency, preferred_days, tone_of_voice, target_audience')
         .eq('organization_id', organization_id)
         .single(),
       supabase
@@ -92,6 +92,8 @@ Deno.serve(async (req: Request) => {
     const postingFrequency = brand?.posting_frequency ?? 2
     const maxPostsPerMonth = org?.max_posts_per_month ?? 8
     const subscriptionPlan = PLAN_LABELS[org?.subscription_plan ?? 'starter'] ?? 'Starter'
+    const toneOfVoice = brand?.tone_of_voice ?? 'professionnel'
+    const targetAudience = brand?.target_audience ?? 'professionnels'
 
     const preferredDays = Array.isArray(brand?.preferred_days) && brand.preferred_days.length > 0
       ? brand.preferred_days.map((d: string) => DAY_LABELS[d] ?? d).join(', ')
@@ -103,41 +105,34 @@ Deno.serve(async (req: Request) => {
       ? `Programmes déjà créés :\n${programs.map(p => `- "${p.title}" (${p.status}, ${p.start_date} → ${p.end_date})`).join('\n')}`
       : 'Aucun programme en cours.'
 
-    // ── 3. Prompt système focalisé sur la création de programme ───────────────
-    const systemPrompt = `Tu es l'assistant de création de programme LinkedIn de ${companyName} (${industry}).
+    // ── 3. Prompt système dual-mode ───────────────────────────────────────────
+    const systemPrompt = `Tu es l'assistant LinkedIn de ${companyName} (${industry}).
 
-TA SEULE MISSION : créer un programme de publication en 3 étapes. Sois bref et direct.
-
-PROFIL DÉJÀ CONFIGURÉ (ne JAMAIS redemander) :
-- Fréquence habituelle : ${postingFrequency} post(s)/semaine
-- Jours préférés : ${preferredDays}
+PROFIL DE MARQUE (ne jamais redemander) :
+- Ton : ${toneOfVoice}
+- Audience cible : ${targetAudience}
+- Fréquence : ${postingFrequency} post(s)/semaine, jours préférés : ${preferredDays}
 - Plan ${subscriptionPlan} : quota de ${maxPostsPerMonth} posts/mois
 
 ${programsCtx}
 
-ÉTAPES À SUIVRE DANS L'ORDRE :
-1. Demande le TITRE du programme (une seule question courte)
-2. Demande la DURÉE en semaines (une seule question courte)
-3. Propose de garder ${postingFrequency} post(s)/semaine — demande juste confirmation (oui/non)
-   → Si l'utilisateur veut plus et que ça dépasse ${maxPostsPerMonth} posts/mois, signale-le clairement mais laisse-le décider
-4. Dès que titre + durée + fréquence sont confirmés, génère IMMÉDIATEMENT le [PROGRAM_PROPOSAL]
+TES DEUX MISSIONS — détecte l'intention de l'utilisateur :
 
-NE PAS DEMANDER :
-- Le ton ou le style (déjà configuré dans le profil de marque)
-- Les thèmes des posts (l'utilisateur les définit dans l'éditeur de post, pas ici)
-- L'audience cible (déjà configurée)
-- Toute autre information
+══════════════════════════════════════════
+MODE 1 — PROGRAMME DE PUBLICATION
+══════════════════════════════════════════
+Déclenché si l'utilisateur veut planifier plusieurs semaines.
 
-CALCUL DES DATES :
-- start_date = prochain lundi après aujourd'hui (aujourd'hui = ${today})
-- end_date = start_date + (durée × 7 jours)
-- Utilise les jours préférés de la marque : ${preferredDays}
-
-FORMAT OBLIGATOIRE dès que les 3 infos sont confirmées :
+ÉTAPES dans l'ordre :
+1. Demande le TITRE du programme (1 question courte)
+2. Demande la DURÉE en semaines (1 question courte)
+3. Confirme la fréquence (${postingFrequency} post(s)/semaine) — oui/non
+   → Si ça dépasse ${maxPostsPerMonth} posts/mois, signale-le
+4. Dès que titre + durée + fréquence confirmés → génère immédiatement :
 
 [PROGRAM_PROPOSAL]
 {
-  "title": "Titre exact donné par l'utilisateur",
+  "title": "Titre exact",
   "description": "Programme de X semaines pour ${companyName}",
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD",
@@ -149,8 +144,31 @@ FORMAT OBLIGATOIRE dès que les 3 infos sont confirmées :
 }
 [/PROGRAM_PROPOSAL]
 
-Les titres des posts sont des placeholders ("Post N — Semaine X"). Les thèmes seront choisis dans l'éditeur.
-Réponds TOUJOURS en français. Maximum 2-3 phrases par réponse.`
+start_date = prochain lundi après aujourd'hui (${today})
+end_date = start_date + (durée × 7 jours)
+
+══════════════════════════════════════════
+MODE 2 — IDÉES DE POSTS
+══════════════════════════════════════════
+Déclenché si l'utilisateur demande des idées, de l'inspiration, des sujets ou des angles de posts.
+
+→ Génère 3 à 5 idées de posts percutantes, adaptées à ${companyName} dans ${industry}.
+→ Chaque idée a un titre accrocheur et une description courte (1-2 phrases) expliquant l'angle.
+→ Dès que tu as les idées, génère immédiatement :
+
+[IDEAS_PROPOSAL]
+[
+  {
+    "title": "Titre accrocheur du post",
+    "description": "L'angle et ce que ce post va apporter à l'audience."
+  }
+]
+[/IDEAS_PROPOSAL]
+
+RÈGLES GÉNÉRALES :
+- Réponds TOUJOURS en français
+- Maximum 2-3 phrases par réponse (hors propositions JSON)
+- Sois direct et efficace`
 
     // ── 4. Appel Claude API ───────────────────────────────────────────────────
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
@@ -170,7 +188,7 @@ Réponds TOUJOURS en français. Maximum 2-3 phrases par réponse.`
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
+        max_tokens: 1500,
         system: systemPrompt,
         messages: claudeMessages,
       }),
@@ -184,15 +202,36 @@ Réponds TOUJOURS en français. Maximum 2-3 phrases par réponse.`
     const claudeData = await claudeRes.json() as { content: { text: string }[] }
     const reply = claudeData.content[0]?.text ?? ''
 
-    // ── 5. Parser les propositions de programme ───────────────────────────────
-    type ExtractedItem = { type: 'program'; data: Record<string, unknown> }
+    // ── 5. Parser les propositions ────────────────────────────────────────────
+    type ExtractedItem =
+      | { type: 'program'; data: Record<string, unknown> }
+      | { type: 'idea'; data: { title: string; description: string } }
+
     const extractedItems: ExtractedItem[] = []
 
+    // Parser programme
     const programMatch = reply.match(/\[PROGRAM_PROPOSAL\]([\s\S]*?)\[\/PROGRAM_PROPOSAL\]/)
     if (programMatch) {
       try {
         const programData = JSON.parse(programMatch[1].trim())
         extractedItems.push({ type: 'program', data: programData })
+      } catch {
+        // JSON malformé — on ignore
+      }
+    }
+
+    // Parser idées
+    const ideasMatch = reply.match(/\[IDEAS_PROPOSAL\]([\s\S]*?)\[\/IDEAS_PROPOSAL\]/)
+    if (ideasMatch) {
+      try {
+        const ideasData = JSON.parse(ideasMatch[1].trim())
+        if (Array.isArray(ideasData)) {
+          for (const idea of ideasData) {
+            if (idea.title && idea.description) {
+              extractedItems.push({ type: 'idea', data: { title: idea.title, description: idea.description } })
+            }
+          }
+        }
       } catch {
         // JSON malformé — on ignore
       }
