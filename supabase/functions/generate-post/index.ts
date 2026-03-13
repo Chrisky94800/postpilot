@@ -83,8 +83,8 @@ STANDARDS DE QUALITÉ :
   // ── User prompt selon la source ────────────────────────────────────────────
   let sourceInstruction = ''
 
-  if (sourceType === 'url' && sourceUrl) {
-    sourceInstruction = `SOURCE : article extrait de ${sourceUrl}
+  if (sourceType === 'url') {
+    sourceInstruction = `SOURCE : article ${sourceUrl ? `extrait de ${sourceUrl}` : 'fourni'}
 CONTENU EXTRAIT : ${sourceContent}
 
 MISSION : rédige un post LinkedIn original sur CE sujet précis — pas un résumé, une prise de position ou un insight concret.
