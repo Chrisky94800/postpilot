@@ -1,7 +1,6 @@
 // PostPilot — Edge Function : publish-scheduled-posts
 // Publie sur LinkedIn tous les posts avec status='approved' et scheduled_at <= NOW().
 // Appelée par le cron n8n (workflow 03, toutes les 5 min) ou manuellement.
-// Remplace la logique complexe n8n qui échouait à cause du placeholder service role key.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
@@ -32,21 +31,154 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
+// Supprime le markdown non supporté par LinkedIn avant publication.
+// LinkedIn affiche le texte tel quel — les ** et @[Name] apparaissent littéralement.
+function cleanContentForLinkedIn(content: string): string {
+  return content
+    // **gras** → texte brut (sans les astérisques)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    // *italique* → texte brut
+    .replace(/\*([^*]+)\*/g, '$1')
+    // _italique_ → texte brut
+    .replace(/_([^_]+)_/g, '$1')
+    // @[Nom Prénom] → @Nom Prénom (LinkedIn ne supporte pas les crochets)
+    .replace(/@\[([^\]]+)\]/g, '@$1')
+    // Nettoyer les espaces multiples et espaces en fin de ligne
+    .replace(/ +$/gm, '')
+    .trim()
+}
+
+// ─── Upload d'image vers LinkedIn ─────────────────────────────────────────────
+
+async function uploadImageToLinkedIn(
+  imageUrl: string,
+  personId: string,
+  accessToken: string,
+): Promise<string | null> {
+  try {
+    // Étape 1 : Enregistrer l'upload
+    const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        registerUploadRequest: {
+          owner: `urn:li:person:${personId}`,
+          recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+          serviceRelationships: [{
+            identifier: 'urn:li:userGeneratedContent',
+            relationshipType: 'OWNER',
+          }],
+        },
+      }),
+    })
+
+    if (!registerRes.ok) {
+      console.warn(`[publish] registerUpload failed ${registerRes.status}: ${await registerRes.text()}`)
+      return null
+    }
+
+    const registerData = await registerRes.json() as {
+      value: {
+        asset: string
+        uploadMechanism: {
+          'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest': {
+            uploadUrl: string
+          }
+        }
+      }
+    }
+
+    const assetUrn = registerData.value.asset
+    const uploadUrl = registerData.value.uploadMechanism[
+      'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
+    ]?.uploadUrl
+
+    if (!assetUrn || !uploadUrl) {
+      console.warn('[publish] Missing asset URN or uploadUrl in register response')
+      return null
+    }
+
+    // Étape 2 : Télécharger l'image depuis Supabase Storage et l'envoyer à LinkedIn
+    const imgRes = await fetch(imageUrl)
+    if (!imgRes.ok) {
+      console.warn(`[publish] Failed to fetch image ${imageUrl}: ${imgRes.status}`)
+      return null
+    }
+
+    const imgBytes = await imgRes.arrayBuffer()
+    const contentType = imgRes.headers.get('content-type') ?? 'image/jpeg'
+
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': contentType,
+      },
+      body: imgBytes,
+    })
+
+    if (!uploadRes.ok) {
+      console.warn(`[publish] Image upload failed ${uploadRes.status}: ${await uploadRes.text()}`)
+      return null
+    }
+
+    console.log(`[publish] Image uploaded → asset ${assetUrn}`)
+    return assetUrn
+  } catch (e) {
+    console.error('[publish] uploadImageToLinkedIn error', e)
+    return null
+  }
+}
+
 // ─── Publication LinkedIn ──────────────────────────────────────────────────────
 
 async function publishToLinkedIn(
   content: string,
-  personId: string,
+  authorUrn: string,    // ex: "urn:li:person:XXXX" ou "urn:li:organization:12345"
   accessToken: string,
+  mediaUrls: string[],
+  mediaType: string,
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
+
+  const cleanContent = cleanContentForLinkedIn(content)
+
+  // Pour l'upload image, on a besoin du personId (l'owner des assets est toujours la personne)
+  const personIdMatch = authorUrn.match(/urn:li:person:(.+)/)
+  const personId = personIdMatch?.[1] ?? authorUrn
+
+  // Uploader les images si présentes
+  const mediaAssets: string[] = []
+  if (mediaType === 'image' && mediaUrls.length > 0) {
+    for (const url of mediaUrls) {
+      const assetUrn = await uploadImageToLinkedIn(url, personId, accessToken)
+      if (assetUrn) mediaAssets.push(assetUrn)
+    }
+  }
+
+  // Construire le payload ugcPost
+  const shareContent: Record<string, unknown> = {
+    shareCommentary: { text: cleanContent },
+    shareMediaCategory: mediaAssets.length > 0 ? 'IMAGE' : 'NONE',
+  }
+
+  if (mediaAssets.length > 0) {
+    shareContent.media = mediaAssets.map((assetUrn) => ({
+      status: 'READY',
+      description: { text: '' },
+      media: assetUrn,
+      title: { text: '' },
+    }))
+  }
+
   const body = {
-    author: `urn:li:person:${personId}`,
+    author: authorUrn,
     lifecycleState: 'PUBLISHED',
     specificContent: {
-      'com.linkedin.ugc.ShareContent': {
-        shareCommentary: { text: content },
-        shareMediaCategory: 'NONE',
-      },
+      'com.linkedin.ugc.ShareContent': shareContent,
     },
     visibility: {
       'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
@@ -90,7 +222,7 @@ Deno.serve(async (req: Request) => {
     // ── 1. Posts approuvés dont l'heure est passée ─────────────────────────────
     const { data: posts, error: postsError } = await supabase
       .from('posts')
-      .select('id, content, organization_id, created_by, platform_type')
+      .select('id, content, organization_id, created_by, platform_type, media_urls, media_type, posting_as')
       .eq('status', 'approved')
       .lte('scheduled_at', new Date().toISOString())
       .is('deleted_at', null)
@@ -151,10 +283,21 @@ Deno.serve(async (req: Request) => {
         }
 
         // ── 4. Publication LinkedIn ───────────────────────────────────────────────
+        const mediaUrls = Array.isArray(post.media_urls) ? post.media_urls as string[] : []
+        const mediaType = (post.media_type as string) ?? 'none'
+
+        // Déterminer l'auteur : posting_as (page entreprise) ou compte personnel
+        const postingAs = post.posting_as as { type?: string; urn?: string } | null
+        const authorUrn = (postingAs?.type === 'organization' && postingAs?.urn)
+          ? postingAs.urn
+          : `urn:li:person:${tokens.linkedin_person_id}`
+
         const result = await publishToLinkedIn(
           post.content as string,
-          tokens.linkedin_person_id,
+          authorUrn,
           tokens.access_token,
+          mediaUrls,
+          mediaType,
         )
 
         if (result.success) {

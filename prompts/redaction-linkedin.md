@@ -95,5 +95,11 @@ Rédige un post LinkedIn accrocheur basé sur cet élément.
 6. Ne fais JAMAIS de plagiat — reformule et apporte une perspective unique
 7. Longueur : {post_length_preference} (~{target_char_count} caractères)
 8. Langue : {language}
+9. **INTERDIT** : N'utilise JAMAIS de markdown. LinkedIn ne supporte pas le markdown.
+   - Interdit : **gras**, _italique_, `code`, # titres, [liens](), etc.
+   - Pour mettre en valeur un mot, utilise les majuscules ou la structure de la phrase.
+   - Les sauts de ligne doivent être de vrais retours à la ligne (pas de syntaxe markdown).
+10. **MENTIONS** : Pour mentionner quelqu'un, écris simplement @Prénom Nom (sans crochets).
+    Les crochets @[Nom] ne fonctionnent pas sur LinkedIn.
 
 Génère le post LinkedIn.

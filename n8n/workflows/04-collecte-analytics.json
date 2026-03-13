@@ -1,418 +1,51 @@
 {
-  "updatedAt": "2026-02-27T20:08:18.399Z",
-  "createdAt": "2026-02-23T16:45:04.102Z",
   "id": "K7Sq7E6JX4RETDjW",
   "name": "[PostPilot] 04 - Collecte Analytics",
-  "description": null,
   "active": true,
-  "isArchived": false,
   "nodes": [
     {
       "id": "schedule-trigger",
       "name": "Schedule - Daily 6h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [
-        240,
-        300
-      ],
+      "position": [240, 300],
       "parameters": {
         "rule": {
-          "interval": [
-            {
-              "field": "cronExpression",
-              "expression": "0 6 * * *"
-            }
-          ]
+          "interval": [{"field": "cronExpression", "expression": "0 6 * * *"}]
         }
       }
     },
     {
-      "id": "http-collect-analytics",
+      "id": "http-collect",
       "name": "Edge Function - Collect Analytics",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [
-        480,
-        300
-      ],
+      "position": [480, 300],
       "parameters": {
         "method": "POST",
         "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/collect-analytics",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            {"name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"},
+            {"name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"},
+            {"name": "Content-Type", "value": "application/json"}
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "options": {"response": {"response": {"neverError": true}}}
       }
     }
   ],
   "connections": {
     "Schedule - Daily 6h": {
-      "main": [
-        [
-          {
-            "node": "Edge Function - Collect Analytics",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Edge Function - Collect Analytics", "type": "main", "index": 0}]]
     }
   },
   "settings": {
     "executionOrder": "v1",
-    "timezone": "Europe/Paris",
-    "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": false
-  },
-  "staticData": {
-    "node:Schedule - Daily 6h": {
-      "recurrenceRules": []
-    }
-  },
-  "meta": null,
-  "pinData": null,
-  "versionId": "ff4d69ac-1517-4552-be1d-8752a7585316",
-  "activeVersionId": "ff4d69ac-1517-4552-be1d-8752a7585316",
-  "versionCounter": 7,
-  "triggerCount": 1,
-  "shared": [
-    {
-      "updatedAt": "2026-02-23T16:45:04.103Z",
-      "createdAt": "2026-02-23T16:45:04.103Z",
-      "role": "workflow:owner",
-      "workflowId": "K7Sq7E6JX4RETDjW",
-      "projectId": "hIs98lx4RTsIkVz5",
-      "project": {
-        "updatedAt": "2025-02-21T14:51:19.755Z",
-        "createdAt": "2025-02-21T14:51:17.603Z",
-        "id": "hIs98lx4RTsIkVz5",
-        "name": "Christopher Mesquita <contact@rocket-solution.fr>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-02-21T14:51:17.603Z",
-            "createdAt": "2025-02-21T14:51:17.603Z",
-            "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
-            "projectId": "hIs98lx4RTsIkVz5",
-            "user": {
-              "updatedAt": "2026-02-27T13:22:10.000Z",
-              "createdAt": "2025-02-21T14:51:16.066Z",
-              "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
-              "email": "contact@rocket-solution.fr",
-              "firstName": "Christopher",
-              "lastName": "Mesquita",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "Z5vlg5acAcxP2JUB",
-                "userActivatedAt": 1740921407199,
-                "npsSurvey": {
-                  "responded": true,
-                  "lastShownAt": 1756821561270
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-26",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": [],
-  "activeVersion": {
-    "updatedAt": "2026-02-27T20:08:18.400Z",
-    "createdAt": "2026-02-27T20:08:18.400Z",
-    "versionId": "ff4d69ac-1517-4552-be1d-8752a7585316",
-    "workflowId": "K7Sq7E6JX4RETDjW",
-    "nodes": [
-      {
-        "id": "schedule-trigger",
-        "name": "Schedule - Daily 6h",
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1,
-        "position": [
-          240,
-          300
-        ],
-        "parameters": {
-          "rule": {
-            "interval": [
-              {
-                "field": "cronExpression",
-                "expression": "0 6 * * *"
-              }
-            ]
-          }
-        }
-      },
-      {
-        "id": "get-published-posts",
-        "name": "Supabase - Get Published Posts",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4,
-        "position": [
-          460,
-          300
-        ],
-        "parameters": {
-          "method": "GET",
-          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/posts?status=eq.published&platform_post_id=not.is.null&deleted_at=is.null&select=id,organization_id,platform_post_id,platform_type&limit=50",
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
-              },
-              {
-                "name": "Authorization",
-                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
-              },
-              {
-                "name": "Accept",
-                "value": "application/json"
-              }
-            ]
-          },
-          "options": {}
-        }
-      },
-      {
-        "id": "split-posts",
-        "name": "Code - Split Posts",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          680,
-          300
-        ],
-        "parameters": {
-          "jsCode": "const posts = Array.isArray($json) ? $json : [];\nif (posts.length === 0) return [];\nreturn posts.map(post => ({ json: post }));"
-        }
-      },
-      {
-        "id": "get-token",
-        "name": "Supabase - Get LinkedIn Token",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4,
-        "position": [
-          900,
-          300
-        ],
-        "parameters": {
-          "method": "GET",
-          "url": "=https://tplgbskcvimemwtwpxyk.supabase.co/rest/v1/platforms?organization_id=eq.{{ $json.organization_id }}&platform_type=eq.linkedin&is_active=eq.true&select=oauth_tokens",
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
-              },
-              {
-                "name": "Authorization",
-                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
-              },
-              {
-                "name": "Accept",
-                "value": "application/json"
-              }
-            ]
-          },
-          "options": {}
-        }
-      },
-      {
-        "id": "get-linkedin-stats",
-        "name": "LinkedIn API - Get Post Stats",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4,
-        "position": [
-          1120,
-          300
-        ],
-        "parameters": {
-          "method": "GET",
-          "url": "=https://api.linkedin.com/v2/socialActions/{{ encodeURIComponent($('Code - Split Posts').item.json.platform_post_id) }}",
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "Authorization",
-                "value": "=Bearer {{ Array.isArray($json) && $json.length > 0 ? $json[0].oauth_tokens.access_token : '' }}"
-              },
-              {
-                "name": "X-Restli-Protocol-Version",
-                "value": "2.0.0"
-              },
-              {
-                "name": "LinkedIn-Version",
-                "value": "202402"
-              }
-            ]
-          },
-          "options": {
-            "response": {
-              "response": {
-                "neverError": true
-              }
-            }
-          }
-        }
-      },
-      {
-        "id": "extract-metrics",
-        "name": "Code - Extract Metrics",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          1340,
-          300
-        ],
-        "parameters": {
-          "jsCode": "const post = $('Code - Split Posts').item.json;\nconst stats = $json;\n\n// Extract counts from LinkedIn socialActions response\nconst likesCount = stats.likes?.paging?.total || stats.likes?.totalElements || 0;\nconst commentsCount = stats.comments?.paging?.total || stats.comments?.totalElements || 0;\nconst sharesCount = stats.shares?.paging?.total || stats.shares?.totalElements || 0;\n\nreturn [{ json: {\n  post_id: post.id,\n  organization_id: post.organization_id,\n  platform_type: post.platform_type || 'linkedin',\n  likes_count: likesCount,\n  comments_count: commentsCount,\n  shares_count: sharesCount,\n  impressions_count: 0,\n  clicks_count: 0\n} }];"
-        }
-      },
-      {
-        "id": "save-analytics",
-        "name": "webhook-from-n8n - analytics_collected",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4,
-        "position": [
-          1560,
-          300
-        ],
-        "parameters": {
-          "method": "POST",
-          "url": "https://tplgbskcvimemwtwpxyk.supabase.co/functions/v1/webhook-from-n8n",
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
-              },
-              {
-                "name": "Authorization",
-                "value": "Bearer SUPABASE_SERVICE_ROLE_KEY_PLACEHOLDER"
-              },
-              {
-                "name": "x-n8n-api-key",
-                "value": "postpilot_secret_2025"
-              },
-              {
-                "name": "Content-Type",
-                "value": "application/json"
-              }
-            ]
-          },
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ action: 'analytics_collected', post_id: $json.post_id, organization_id: $json.organization_id, platform_type: $json.platform_type, metrics: { likes_count: $json.likes_count, comments_count: $json.comments_count, shares_count: $json.shares_count, impressions_count: $json.impressions_count, clicks_count: $json.clicks_count } }) }}",
-          "options": {}
-        }
-      }
-    ],
-    "connections": {
-      "Schedule - Daily 6h": {
-        "main": [
-          [
-            {
-              "node": "Supabase - Get Published Posts",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Supabase - Get Published Posts": {
-        "main": [
-          [
-            {
-              "node": "Code - Split Posts",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Code - Split Posts": {
-        "main": [
-          [
-            {
-              "node": "Supabase - Get LinkedIn Token",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Supabase - Get LinkedIn Token": {
-        "main": [
-          [
-            {
-              "node": "LinkedIn API - Get Post Stats",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "LinkedIn API - Get Post Stats": {
-        "main": [
-          [
-            {
-              "node": "Code - Extract Metrics",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Code - Extract Metrics": {
-        "main": [
-          [
-            {
-              "node": "webhook-from-n8n - analytics_collected",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      }
-    },
-    "authors": "Christopher Mesquita",
-    "name": null,
-    "description": null
+    "timezone": "Europe/Paris"
   }
 }
