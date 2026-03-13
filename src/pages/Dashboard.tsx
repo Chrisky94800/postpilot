@@ -15,7 +15,7 @@ import ChatDrawer from '@/components/dashboard/ChatDrawer'
 import { OnboardingTour } from '@/components/onboarding/OnboardingTour'
 
 export default function Dashboard() {
-  const { organization, organizationId } = useOrganization()
+  const { organizationId } = useOrganization()
   const { user } = useAuth()
   const kpis = useDashboardKPIs(organizationId)
   const { shouldShow: showTour, markSeen: markTourSeen } = useOnboardingTour()
