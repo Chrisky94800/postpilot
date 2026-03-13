@@ -9,7 +9,6 @@ function KPICard({
   label,
   value,
   sub,
-  trend,
   loading,
   icon: Icon,
   iconBg,
@@ -19,7 +18,6 @@ function KPICard({
   label: string
   value: string
   sub: string
-  trend?: number | null
   loading?: boolean
   icon: React.ElementType
   iconBg: string
@@ -47,16 +45,9 @@ function KPICard({
         </div>
       )}
 
-      {/* Sous-texte / Trend */}
-      <div className="text-[12px] text-gray-400 flex items-center gap-1.5">
-        {trend !== undefined && trend !== null ? (
-          <>
-            <TrendBadge trend={trend} />
-            <span>vs mois dernier</span>
-          </>
-        ) : (
-          sub
-        )}
+      {/* Sous-texte */}
+      <div className="text-[12px] text-gray-400">
+        {sub}
       </div>
     </div>
   )
