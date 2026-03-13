@@ -5,10 +5,9 @@
 //   LINKEDIN_CLIENT_ID       — Client ID de l'app LinkedIn PostPilot
 //   LINKEDIN_REDIRECT_URI    — URL du callback (linkedin-oauth-callback)
 //
-// Scopes demandés :
-//   openid, profile, email       — OIDC (Sign In with LinkedIn)
-//   w_member_social              — Publier des posts LinkedIn
-//   r_organization_social        — Lire les pages entreprise gérées par l'utilisateur
+// Scopes demandés (produits activés sur l'app LinkedIn) :
+//   Sign In with LinkedIn using OpenID Connect → openid, profile, email
+//   Share on LinkedIn → w_member_social, w_organization_social, r_organization_social
 
 import { z } from 'npm:zod@3'
 
@@ -22,14 +21,16 @@ const RequestSchema = z.object({
   app_origin: z.string().url().optional(),
 })
 
-// Scopes approuvés pour l'app LinkedIn PostPilot.
-// r_organization_social nécessite le produit "Share on LinkedIn" approuvé
-// → retiré jusqu'à approbation LinkedIn (sinon : unauthorized_scope_error).
+// Scopes des deux produits activés sur l'app LinkedIn PostPilot.
 const LINKEDIN_SCOPES = [
+  // Sign In with LinkedIn using OpenID Connect
   'openid',
   'profile',
   'email',
-  'w_member_social',
+  // Share on LinkedIn
+  'w_member_social',        // Créer/modifier/supprimer posts (compte personnel)
+  'w_organization_social',  // Créer/modifier/supprimer posts (pages entreprise)
+  'r_organization_social',  // Lire posts et données des pages entreprise
 ].join(' ')
 
 Deno.serve(async (req: Request) => {
