@@ -73,6 +73,18 @@ function formatPostDate(date: Date): string {
   return `${dayShort} ${day} ${month}`
 }
 
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+interface ProgramData {
+  title: string
+  description?: string
+  start_date?: string
+  end_date?: string
+  posts_per_week: number
+  duration_weeks?: number
+  posts: { title: string; week: number; theme?: string; day_of_week?: string }[]
+}
+
 // ─── Composant ────────────────────────────────────────────────────────────────
 
 export default function ProgramExtractCard({
@@ -82,7 +94,7 @@ export default function ProgramExtractCard({
   onCreateProgram,
 }: ProgramExtractCardProps) {
   const [loading, setLoading] = useState(false)
-  const { data } = item
+  const data = item.data as unknown as ProgramData
 
   const start = data.start_date ?? nextMonday()
   const end = data.end_date ?? (data.duration_weeks ? addWeeks(start, data.duration_weeks) : addWeeks(start, 4))

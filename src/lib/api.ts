@@ -194,12 +194,11 @@ export interface AiChatResponse {
   extracted_items: (
     | {
         type: 'program'
-        data: {
-          title: string
-          duration_weeks: number
-          posts_per_week: number
-          posts: ProgramPost[]
-        }
+        data: Record<string, unknown>
+      }
+    | {
+        type: 'theme'
+        data: { id: number; title: string; description: string }[]
       }
     | {
         type: 'idea'

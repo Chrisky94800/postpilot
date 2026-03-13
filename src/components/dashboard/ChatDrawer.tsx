@@ -9,6 +9,7 @@ import AIChatMessage from './AIChatMessage'
 import AIChatInput from './AIChatInput'
 import ProgramExtractCard from './ProgramExtractCard'
 import IdeaExtractCard from './IdeaExtractCard'
+import ThemeExtractCard from './ThemeExtractCard'
 import { aiChat, createProgram } from '@/lib/api'
 import type { AiMessage, ExtractedItem } from '@/types/database'
 
@@ -28,6 +29,12 @@ interface ChatDrawerProps {
   toWriteThisWeek: number
   /** Si défini, envoie ce message dans le chat à l'ouverture */
   initialMessage?: string | null
+}
+
+interface ThemeItem {
+  id: number
+  title: string
+  description: string
 }
 
 export default function ChatDrawer({
@@ -62,6 +69,7 @@ export default function ChatDrawer({
   >([])
   const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([])
   const [ideaItems, setIdeaItems] = useState<{ title: string; description: string }[]>([])
+  const [themeItems, setThemeItems] = useState<ThemeItem[]>([])
   const [loading, setLoading] = useState(false)
 
   // Suggestions visibles uniquement au premier message (tant qu'aucun message user n'a été envoyé)
@@ -72,7 +80,7 @@ export default function ChatDrawer({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages, extractedItems, loading])
+  }, [messages, extractedItems, ideaItems, themeItems, loading])
 
   // Envoyer le initialMessage une seule fois quand le drawer s'ouvre
   useEffect(() => {
@@ -115,14 +123,21 @@ export default function ChatDrawer({
 
       if (res.extracted_items?.length > 0) {
         const programItems = res.extracted_items.filter(item => item.type === 'program')
-        const ideaItems = res.extracted_items.filter(item => item.type === 'idea')
+        const themeItem = res.extracted_items.find(item => item.type === 'theme')
+        const newIdeaItems = res.extracted_items.filter(item => item.type === 'idea')
+
         if (programItems.length > 0) {
           setExtractedItems(
             programItems.map((item) => ({ ...item, validated: false })),
           )
         }
-        if (ideaItems.length > 0) {
-          setIdeaItems(ideaItems.map(item => item.data as { title: string; description: string }))
+        if (themeItem) {
+          setThemeItems(themeItem.data as ThemeItem[])
+          setIdeaItems([])
+        }
+        if (newIdeaItems.length > 0) {
+          setIdeaItems(newIdeaItems.map(item => item.data as { title: string; description: string }))
+          setThemeItems([])
         }
       }
     } catch {
@@ -143,9 +158,23 @@ export default function ChatDrawer({
     handleSend(s)
   }
 
+  const handleThemeChosen = (theme: ThemeItem) => {
+    setThemeItems([])
+    handleSend(`J'ai choisi la thématique : ${theme.title}`)
+  }
+
+  const handleRequestMoreThemes = () => {
+    handleSend('Propose-moi 4 autres thématiques')
+  }
+
+  const handleRequestMoreIdeas = () => {
+    handleSend("Propose-moi d'autres idées sur ce thème")
+  }
+
   const handleProgramValidated = () => {
     setExtractedItems([])
     setIdeaItems([])
+    setThemeItems([])
     setConversationHistory([])
     setConversationId(null)
     toast.success('Programme créé ! Les posts sont visibles dans la page Programmes.')
@@ -221,12 +250,23 @@ export default function ChatDrawer({
             />
           ))}
 
+          {/* Thématiques proposées par l'IA */}
+          {themeItems.length > 0 && (
+            <ThemeExtractCard
+              themes={themeItems}
+              onChoose={handleThemeChosen}
+              onRequestMore={handleRequestMoreThemes}
+            />
+          )}
+
           {/* Idées proposées par l'IA */}
           {ideaItems.map((idea, i) => (
             <IdeaExtractCard
               key={i}
               idea={idea}
               organizationId={organizationId}
+              isLast={i === ideaItems.length - 1}
+              onRequestMore={handleRequestMoreIdeas}
             />
           ))}
 

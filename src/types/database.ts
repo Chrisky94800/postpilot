@@ -228,17 +228,7 @@ export type AiMessage = {
 
 export type ExtractedItem = {
   type: 'program'
-  data: {
-    title: string
-    description?: string
-    // Format renvoyé par l'Edge Function ai-chat
-    start_date?: string
-    end_date?: string
-    posts_per_week: number
-    // Champ legacy (ancienne version du prompt)
-    duration_weeks?: number
-    posts: { title: string; week: number; theme?: string; day_of_week?: string }[]
-  }
+  data: Record<string, unknown>
   validated: boolean
 }
 

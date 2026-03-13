@@ -11,9 +11,12 @@ import { saveIdea } from '@/lib/api'
 interface IdeaExtractCardProps {
   idea: { title: string; description: string }
   organizationId: string
+  /** Affiche le bouton "Autres idées" sous cette carte (à mettre sur la dernière) */
+  isLast?: boolean
+  onRequestMore?: () => void
 }
 
-export default function IdeaExtractCard({ idea, organizationId }: IdeaExtractCardProps) {
+export default function IdeaExtractCard({ idea, organizationId, isLast, onRequestMore }: IdeaExtractCardProps) {
   const navigate = useNavigate()
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -38,46 +41,58 @@ export default function IdeaExtractCard({ idea, organizationId }: IdeaExtractCar
   }
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
-      {/* Header */}
-      <div className="flex items-start gap-2">
-        <div className="h-6 w-6 bg-amber-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-          <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+    <div className="space-y-1.5">
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
+        {/* Header */}
+        <div className="flex items-start gap-2">
+          <div className="h-6 w-6 bg-amber-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-gray-900 leading-snug">{idea.title}</p>
+            <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{idea.description}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-gray-900 leading-snug">{idea.title}</p>
-          <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{idea.description}</p>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saved || saving}
+            className={`
+              flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold
+              border transition-all
+              ${saved
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 cursor-default'
+                : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-100'
+              }
+            `}
+          >
+            {saved ? (
+              <><Check className="h-3.5 w-3.5" /> Sauvegardée</>
+            ) : (
+              <><BookmarkPlus className="h-3.5 w-3.5" /> Sauvegarder</>
+            )}
+          </button>
+          <button
+            onClick={handleWrite}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-[#0077B5] text-white hover:bg-[#005885] transition-colors"
+          >
+            <PenLine className="h-3.5 w-3.5" />
+            Rédiger ce post
+          </button>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2">
+      {/* Footer "autres idées" — sur la dernière carte seulement */}
+      {isLast && onRequestMore && (
         <button
-          onClick={handleSave}
-          disabled={saved || saving}
-          className={`
-            flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold
-            border transition-all
-            ${saved
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 cursor-default'
-              : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-100'
-            }
-          `}
+          onClick={onRequestMore}
+          className="w-full px-3 py-2 rounded-lg text-[12px] font-medium border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors"
         >
-          {saved ? (
-            <><Check className="h-3.5 w-3.5" /> Sauvegardée</>
-          ) : (
-            <><BookmarkPlus className="h-3.5 w-3.5" /> Sauvegarder</>
-          )}
+          Proposer d'autres idées sur ce thème
         </button>
-        <button
-          onClick={handleWrite}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-[#0077B5] text-white hover:bg-[#005885] transition-colors"
-        >
-          <PenLine className="h-3.5 w-3.5" />
-          Rédiger ce post
-        </button>
-      </div>
+      )}
     </div>
   )
 }
