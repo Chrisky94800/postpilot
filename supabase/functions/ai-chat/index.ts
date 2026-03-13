@@ -1,7 +1,7 @@
 // PostPilot — Edge Function : ai-chat
 // Reçoit { organization_id, message, conversation_history? },
 // retourne { reply, conversation_id, extracted_items, conversation_history }.
-// Deux missions : créer un programme OU générer des idées de posts.
+// Trois missions : créer un programme, proposer des thématiques, puis des idées de posts.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
@@ -63,10 +63,10 @@ Deno.serve(async (req: Request) => {
     console.log(`[ai-chat] org=${organization_id} msg_length=${message.length}`)
 
     // ── 1. Fetch contexte en parallèle ────────────────────────────────────────
-    const [brandRes, orgRes, programsRes] = await Promise.all([
+    const [brandRes, orgRes, programsRes, postsRes] = await Promise.all([
       supabase
         .from('brand_profiles')
-        .select('company_name, industry, posting_frequency, preferred_days, tone_of_voice, target_audience')
+        .select('company_name, industry, posting_frequency, preferred_days, tone_of_voice, target_audience, keywords')
         .eq('organization_id', organization_id)
         .single(),
       supabase
@@ -80,11 +80,19 @@ Deno.serve(async (req: Request) => {
         .eq('organization_id', organization_id)
         .in('status', ['draft', 'active'])
         .limit(5),
+      supabase
+        .from('posts')
+        .select('title, status')
+        .eq('organization_id', organization_id)
+        .in('status', ['published', 'approved', 'draft'])
+        .order('created_at', { ascending: false })
+        .limit(15),
     ])
 
     const brand = brandRes.data
     const org = orgRes.data
     const programs = programsRes.data ?? []
+    const recentPosts = postsRes.data ?? []
 
     // ── 2. Construire le contexte ─────────────────────────────────────────────
     const companyName = brand?.company_name ?? 'votre entreprise'
@@ -94,6 +102,9 @@ Deno.serve(async (req: Request) => {
     const subscriptionPlan = PLAN_LABELS[org?.subscription_plan ?? 'starter'] ?? 'Starter'
     const toneOfVoice = brand?.tone_of_voice ?? 'professionnel'
     const targetAudience = brand?.target_audience ?? 'professionnels'
+    const keywords = Array.isArray(brand?.keywords) && brand.keywords.length > 0
+      ? brand.keywords.join(', ')
+      : null
 
     const preferredDays = Array.isArray(brand?.preferred_days) && brand.preferred_days.length > 0
       ? brand.preferred_days.map((d: string) => DAY_LABELS[d] ?? d).join(', ')
@@ -105,7 +116,15 @@ Deno.serve(async (req: Request) => {
       ? `Programmes déjà créés :\n${programs.map(p => `- "${p.title}" (${p.status}, ${p.start_date} → ${p.end_date})`).join('\n')}`
       : 'Aucun programme en cours.'
 
-    // ── 3. Prompt système dual-mode ───────────────────────────────────────────
+    const postsCtx = recentPosts.length > 0
+      ? `Posts récents publiés sur PostPilot (pour éviter les répétitions) :\n${recentPosts.map(p => `- "${p.title}" (${p.status})`).join('\n')}`
+      : 'Aucun post encore publié.'
+
+    const keywordsCtx = keywords
+      ? `Mots-clés / thèmes de marque : ${keywords}`
+      : ''
+
+    // ── 3. Prompt système ─────────────────────────────────────────────────────
     const systemPrompt = `Tu es l'assistant LinkedIn de ${companyName} (${industry}).
 
 PROFIL DE MARQUE (ne jamais redemander) :
@@ -113,10 +132,13 @@ PROFIL DE MARQUE (ne jamais redemander) :
 - Audience cible : ${targetAudience}
 - Fréquence : ${postingFrequency} post(s)/semaine, jours préférés : ${preferredDays}
 - Plan ${subscriptionPlan} : quota de ${maxPostsPerMonth} posts/mois
+${keywordsCtx ? `- ${keywordsCtx}` : ''}
 
 ${programsCtx}
 
-TES DEUX MISSIONS — détecte l'intention de l'utilisateur :
+${postsCtx}
+
+TES TROIS MISSIONS — détecte l'intention de l'utilisateur :
 
 ══════════════════════════════════════════
 MODE 1 — PROGRAMME DE PUBLICATION
@@ -148,20 +170,39 @@ start_date = prochain lundi après aujourd'hui (${today})
 end_date = start_date + (durée × 7 jours)
 
 ══════════════════════════════════════════
-MODE 2 — IDÉES DE POSTS
+MODE 2 — IDÉES DE POSTS (en 2 étapes)
 ══════════════════════════════════════════
 Déclenché si l'utilisateur demande des idées, de l'inspiration, des sujets ou des angles de posts.
 
-→ Génère 3 à 5 idées de posts percutantes, adaptées à ${companyName} dans ${industry}.
-→ Chaque idée a un titre accrocheur et une description courte (1-2 phrases) expliquant l'angle.
-→ Dès que tu as les idées, génère immédiatement :
+ÉTAPE 2A — THÉMATIQUES :
+→ Propose EXACTEMENT 4 thématiques stratégiques pour ${companyName} dans ${industry}.
+→ Chaque thématique = un axe éditorial cohérent (ex: "Leadership & management", "Coulisses de l'entreprise"…).
+→ S'appuyer sur le profil de marque, les mots-clés, et éviter les thèmes déjà traités dans les posts récents.
+→ Génère immédiatement :
+
+[THEMES_PROPOSAL]
+[
+  {"id": 1, "title": "Nom de la thématique", "description": "Ce que cet axe apporte à l'audience de ${companyName}."},
+  {"id": 2, "title": "...", "description": "..."},
+  {"id": 3, "title": "...", "description": "..."},
+  {"id": 4, "title": "...", "description": "..."}
+]
+[/THEMES_PROPOSAL]
+
+ÉTAPE 2B — ARTICLES (après choix d'une thématique) :
+→ Déclenché quand l'utilisateur choisit une thématique (message contenant "thématique" ou le nom d'un thème).
+→ Propose EXACTEMENT 5 idées d'articles percutants sur cette thématique.
+→ Chaque idée = titre accrocheur + description de l'angle (1-2 phrases).
+→ Varier les formats : storytelling, conseil pratique, données chiffrées, question ouverte, prise de position.
+→ Génère immédiatement :
 
 [IDEAS_PROPOSAL]
 [
-  {
-    "title": "Titre accrocheur du post",
-    "description": "L'angle et ce que ce post va apporter à l'audience."
-  }
+  {"title": "Titre accrocheur", "description": "L'angle et ce que ce post apporte à l'audience."},
+  {"title": "...", "description": "..."},
+  {"title": "...", "description": "..."},
+  {"title": "...", "description": "..."},
+  {"title": "...", "description": "..."}
 ]
 [/IDEAS_PROPOSAL]
 
@@ -205,6 +246,7 @@ RÈGLES GÉNÉRALES :
     // ── 5. Parser les propositions ────────────────────────────────────────────
     type ExtractedItem =
       | { type: 'program'; data: Record<string, unknown> }
+      | { type: 'theme'; data: { id: number; title: string; description: string }[] }
       | { type: 'idea'; data: { title: string; description: string } }
 
     const extractedItems: ExtractedItem[] = []
@@ -215,6 +257,19 @@ RÈGLES GÉNÉRALES :
       try {
         const programData = JSON.parse(programMatch[1].trim())
         extractedItems.push({ type: 'program', data: programData })
+      } catch {
+        // JSON malformé — on ignore
+      }
+    }
+
+    // Parser thématiques
+    const themesMatch = reply.match(/\[THEMES_PROPOSAL\]([\s\S]*?)\[\/THEMES_PROPOSAL\]/)
+    if (themesMatch) {
+      try {
+        const themesData = JSON.parse(themesMatch[1].trim())
+        if (Array.isArray(themesData)) {
+          extractedItems.push({ type: 'theme', data: themesData })
+        }
       } catch {
         // JSON malformé — on ignore
       }
