@@ -13,6 +13,9 @@ import type { Contact } from '@/types/database'
 // ─── Format mention ───────────────────────────────────────────────────────────
 
 export function formatMention(contact: Contact): string {
+  if (contact.linkedin_urn) {
+    return `@[${contact.name}](${contact.linkedin_urn})`
+  }
   return `@[${contact.name}]`
 }
 
