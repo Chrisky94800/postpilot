@@ -22,16 +22,16 @@ const RequestSchema = z.object({
 })
 
 // Scopes des deux produits activés sur l'app LinkedIn PostPilot.
+// Note : r_organization_social appartient au Marketing Developer Platform (non standard).
+// Retiré car il provoque le rejet "Bummer" si non approuvé. La sync de pages
+// entreprise reste fonctionnelle — le 403 est géré gracieusement côté backend.
 const LINKEDIN_SCOPES = [
-  // Sign In with LinkedIn using OpenID Connect
-  'openid',
-  'profile',
-  'email',
-  // Share on LinkedIn
-  'w_member_social',        // Créer/modifier/supprimer posts (compte personnel)
-  'w_organization_social',  // Créer/modifier/supprimer posts (pages entreprise)
-  'r_organization_social',  // Lire posts et données des pages entreprise
-].join(' ')
+  'openid',             // Sign In with LinkedIn using OpenID Connect
+  'profile',            // Sign In with LinkedIn using OpenID Connect
+  'email',              // Sign In with LinkedIn using OpenID Connect
+  'w_member_social',    // Share on LinkedIn — posts compte personnel
+  'w_organization_social', // Share on LinkedIn — posts pages entreprise
+]
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -88,15 +88,15 @@ Deno.serve(async (req: Request) => {
       origin: resolvedOrigin,
     }))
 
-    const params = new URLSearchParams({
+    // Construire l'URL manuellement pour utiliser %20 (plus fiable que + avec LinkedIn)
+    const baseParams = new URLSearchParams({
       response_type: 'code',
       client_id:     clientId,
       redirect_uri:  redirectUri,
-      scope:         LINKEDIN_SCOPES,
       state:         statePayload,
     })
-
-    const oauth_url = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`
+    const scopeParam = `scope=${LINKEDIN_SCOPES.join('%20')}`
+    const oauth_url = `https://www.linkedin.com/oauth/v2/authorization?${baseParams.toString()}&${scopeParam}`
 
     console.log(`[linkedin-oauth-url] OAuth URL generated for org=${organization_id}`)
 
