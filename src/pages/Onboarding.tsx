@@ -1,14 +1,15 @@
-// PostPilot — Page Onboarding (wizard 5 étapes) — Sprint 1
-// StepCompany → StepStyle → StepKeywords → StepExamples → StepContacts → Dashboard
+// PostPilot — Page Onboarding (wizard 6 étapes) — Sprint 1
+// StepCompany → StepStyle → StepKeywords → StepExamples → StepContacts → LinkedIn → Dashboard
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Zap, ChevronRight, ChevronLeft, Check, Loader2, SkipForward } from 'lucide-react'
+import { Zap, ChevronRight, ChevronLeft, Check, Loader2, SkipForward, Linkedin } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { connectLinkedIn } from '@/lib/api'
 import { StepCompany }   from '@/components/onboarding/StepCompany'
 import { StepStyle }     from '@/components/onboarding/StepStyle'
 import { StepKeywords }  from '@/components/onboarding/StepKeywords'
@@ -63,6 +64,7 @@ const STEPS = [
   { title: 'Mots-clés & hashtags', subtitle: 'Guidez l\'IA' },
   { title: 'Exemples & documents', subtitle: 'Affinez votre style' },
   { title: 'Vos connexions',       subtitle: 'Importez vos contacts LinkedIn (optionnel)' },
+  { title: 'Connexion LinkedIn',   subtitle: 'Publiez directement depuis PostPilot' },
 ]
 
 // ─── Validation par étape ─────────────────────────────────────────────────────
@@ -102,6 +104,9 @@ export default function Onboarding() {
   const [uploadProgress, setUploadProgress] = useState('')
   // Contacts CSV pré-importés à l'étape 5 (stockés en mémoire, insérés dans handleFinish)
   const [pendingContacts, setPendingContacts] = useState<ParsedContact[]>([])
+  // org_id créé à la fin de l'étape 5, utilisé pour l'OAuth LinkedIn à l'étape 6
+  const [createdOrgId, setCreatedOrgId] = useState<string | null>(null)
+  const [connectingLinkedIn, setConnectingLinkedIn] = useState(false)
 
   const { user }     = useAuth()
   const navigate     = useNavigate()
@@ -251,7 +256,9 @@ export default function Onboarding() {
       await queryClient.invalidateQueries({ queryKey: ['membership', user.id] })
 
       toast.success('Votre profil de marque est configuré ! 🎉')
-      navigate('/dashboard')
+      // Passer à l'étape 6 (LinkedIn) au lieu de naviguer directement
+      setCreatedOrgId(org.id)
+      setStep(6)
 
     } catch (err) {
       const msg = (err as Error).message ?? 'Erreur inattendue'
@@ -260,6 +267,20 @@ export default function Onboarding() {
     } finally {
       setSaving(false)
       setUploadProgress('')
+    }
+  }
+
+  // ── Connexion LinkedIn (étape 6) ──────────────────────────────────────────
+
+  const handleConnectLinkedIn = async () => {
+    if (!createdOrgId) return
+    setConnectingLinkedIn(true)
+    try {
+      const { oauth_url } = await connectLinkedIn(createdOrgId)
+      window.location.href = oauth_url
+    } catch (err) {
+      toast.error((err as Error).message)
+      setConnectingLinkedIn(false)
     }
   }
 
@@ -328,18 +349,43 @@ export default function Onboarding() {
           />
         )}
 
+        {step === 6 && (
+          <div className="space-y-6 text-center py-2">
+            <div className="h-16 w-16 bg-[#0077B5] rounded-2xl flex items-center justify-center mx-auto shadow-md">
+              <Linkedin className="h-8 w-8 text-white" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-[15px] font-semibold text-gray-900">
+                Connectez votre compte LinkedIn
+              </h3>
+              <p className="text-[13px] text-gray-500 max-w-sm mx-auto">
+                PostPilot publiera vos posts en votre nom. Si vous gérez des pages entreprise,
+                elles seront automatiquement détectées.
+              </p>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-left space-y-2 max-w-sm mx-auto">
+              <p className="text-[12px] font-semibold text-blue-800">Ce que PostPilot peut faire :</p>
+              <ul className="text-[12px] text-blue-700 space-y-1">
+                <li>✓ Publier des posts sur votre profil personnel</li>
+                <li>✓ Publier sur vos pages entreprise (si admin)</li>
+                <li>✓ Collecter les analytics de vos posts</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
         <div className="flex items-center justify-between mt-8 pt-6 border-t">
           <Button
             variant="ghost"
             onClick={() => setStep((s: number) => s - 1)}
-            disabled={step === 1 || saving}
+            disabled={step === 1 || saving || step === 6}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Précédent
           </Button>
 
-          {step < STEPS.length ? (
+          {step < 5 ? (
             <Button
               onClick={() => setStep((s: number) => s + 1)}
               disabled={!valid}
@@ -348,8 +394,8 @@ export default function Onboarding() {
               Suivant
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
-          ) : step === STEPS.length ? (
-            /* Étape 5 (contacts) : bouton Passer + bouton Terminer */
+          ) : step === 5 ? (
+            /* Étape 5 (contacts) : bouton Passer + bouton Suivant/Terminer */
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -373,32 +419,34 @@ export default function Onboarding() {
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-2" />
-                    {pendingContacts.length > 0
-                      ? `Importer et terminer`
-                      : 'Terminer'}
+                    {pendingContacts.length > 0 ? 'Importer et continuer' : 'Continuer'}
                   </>
                 )}
               </Button>
             </div>
-          ) : (
-            <Button
-              onClick={handleFinish}
-              disabled={saving}
-              className="bg-[#0077B5] hover:bg-[#005885] min-w-[200px]"
-            >
-              {saving ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                  {uploadProgress || 'Enregistrement…'}
-                </span>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Terminer et accéder au dashboard
-                </>
-              )}
-            </Button>
-          )}
+          ) : step === 6 ? (
+            /* Étape 6 (LinkedIn) : Passer + Connecter */
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/dashboard')}
+                className="text-gray-500"
+              >
+                <SkipForward className="h-4 w-4 mr-1" />
+                Passer
+              </Button>
+              <Button
+                onClick={handleConnectLinkedIn}
+                disabled={connectingLinkedIn}
+                className="bg-[#0077B5] hover:bg-[#005885] min-w-[200px]"
+              >
+                {connectingLinkedIn
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  : <Linkedin className="h-4 w-4 mr-2" />}
+                Connecter LinkedIn
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         {/* Lien "Passer" pour les étapes optionnelles (3 et 4) */}
@@ -407,9 +455,7 @@ export default function Onboarding() {
             <button
               type="button"
               className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
-              onClick={() =>
-                step < STEPS.length ? setStep((s: number) => s + 1) : handleFinish()
-              }
+              onClick={() => setStep((s: number) => s + 1)}
             >
               Passer cette étape (vous pourrez compléter plus tard)
             </button>

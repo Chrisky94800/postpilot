@@ -6,7 +6,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Linkedin, Check, AlertCircle, Loader2, Trash2, CreditCard, Save,
-  FileUp,
+  FileUp, Building2, User,
 } from 'lucide-react'
 import LinkedInCSVImport from '@/components/contacts/LinkedInCSVImport'
 import type { ParsedContact } from '@/components/contacts/LinkedInCSVImport'
@@ -654,6 +654,36 @@ function PlateformesTab() {
                   <Check className="h-3 w-3 mr-1" />Connecté
                 </Badge>
               </div>
+              {/* Pages entreprise */}
+              {platform?.linkedin_pages && platform.linkedin_pages.length > 0 && (
+                <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Pages entreprise disponibles
+                  </p>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs text-gray-700">
+                      <div className="h-5 w-5 rounded-full bg-[#0077B5] flex items-center justify-center shrink-0">
+                        <User className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="font-medium">{platform.platform_user_name ?? 'Mon compte'}</span>
+                      <Badge variant="secondary" className="ml-auto text-[10px] py-0">Personnel</Badge>
+                    </div>
+                    {platform.linkedin_pages.map((page) => (
+                      <div key={page.urn} className="flex items-center gap-2 text-xs text-gray-700">
+                        <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                          <Building2 className="h-3 w-3 text-[#0077B5]" />
+                        </div>
+                        <span>{page.name}</span>
+                        <Badge variant="secondary" className="ml-auto text-[10px] py-0">Entreprise</Badge>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-gray-400 pt-1">
+                    Choisissez le compte lors de la rédaction d'un post.
+                  </p>
+                </div>
+              )}
+
               <Button
                 variant="outline"
                 size="sm"
