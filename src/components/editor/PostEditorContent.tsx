@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Loader2, Save, CheckCircle2,
-  PenLine, Link, FileText, Sparkles, AtSign,
+  PenLine, Link, FileText, Sparkles, AtSign, Bold,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ import SourceDocument from '@/components/editor/SourceDocument'
 import AIExchangePanel, { type ExchangeMessage } from '@/components/editor/AIExchangePanel'
 import BrandProfileSidebar from '@/components/editor/BrandProfileSidebar'
 import MediaUploader from '@/components/editor/MediaUploader'
+import MentionPicker from '@/components/editor/MentionPicker'
 import type { Post, PostStatus, SourceType, PostVersion, PostingAs } from '@/types/database'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -427,7 +428,26 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved, i
   const charCount = content.length
   const isOverLimit = charCount > LINKEDIN_POST_MAX_LENGTH
   const statusMeta = post ? POST_STATUSES[post.status] : null
-  const hasResult = content.trim().length > 0 || aiLoading
+
+  // ── Bold formatting ──────────────────────────────────────────────────────────
+  const handleBold = () => {
+    const ta = contentTextareaRef.current
+    if (!ta) return
+    const start = ta.selectionStart ?? 0
+    const end = ta.selectionEnd ?? 0
+    const selected = content.slice(start, end)
+    const wrapped = selected ? `**${selected}**` : '****'
+    const newContent = content.slice(0, start) + wrapped + content.slice(end)
+    setContent(newContent)
+    requestAnimationFrame(() => {
+      ta.focus()
+      if (selected) {
+        ta.setSelectionRange(start + 2, end + 2)
+      } else {
+        ta.setSelectionRange(start + 2, start + 2)
+      }
+    })
+  }
 
   const canGenerate = !aiLoading && (
     (sourceMode === 'free_writing' && freeWritingInput.trim().length > 0) ||
@@ -565,106 +585,121 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved, i
             </CardContent>
           </Card>
 
-          {/* ── Card 2 : Post rédigé (visible dès qu'il y a du contenu ou loading) ── */}
-          {hasResult && (
-            <Card className="border-2 border-blue-100">
-              <CardContent className="pt-5 space-y-4">
+          {/* ── Card 2 : Post (toujours visible — rédaction directe ou via IA) ── */}
+          <Card className="border-2 border-blue-100">
+            <CardContent className="pt-5 space-y-4">
 
-                {/* Header : label + compteur */}
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-[#0077B5]" />
-                    Post rédigé
-                  </p>
-                  <span className={cn(
-                    'text-xs tabular-nums',
-                    isOverLimit ? 'text-red-500 font-medium' : 'text-gray-400',
-                  )}>
-                    {charCount} / {LINKEDIN_POST_MAX_LENGTH}
-                  </span>
-                </div>
+              {/* Header : label + compteur */}
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-[#0077B5]" />
+                  Post LinkedIn
+                </p>
+                <span className={cn(
+                  'text-xs tabular-nums',
+                  isOverLimit ? 'text-red-500 font-medium' : 'text-gray-400',
+                )}>
+                  {charCount} / {LINKEDIN_POST_MAX_LENGTH}
+                </span>
+              </div>
 
-                {/* Textarea */}
-                <Textarea
-                  ref={contentTextareaRef}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder={aiLoading ? '' : 'Votre post LinkedIn apparaîtra ici après génération…'}
-                  rows={10}
-                  className={cn(
-                    'resize-none text-sm font-mono',
-                    isOverLimit && 'border-red-300',
-                  )}
+              {/* Barre de mise en forme */}
+              <div className="flex items-center gap-1 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleBold}
+                  title="Gras (**texte**)"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                >
+                  <Bold className="h-3 w-3" />
+                  <span className="hidden sm:inline">Gras</span>
+                </button>
+                <MentionPicker
+                  onInsert={(mention) => setContent((prev) => prev + mention)}
+                  textareaRef={contentTextareaRef}
                 />
+              </div>
 
-                {/* Note mentions */}
-                <div className="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                  <AtSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>
-                    Les mentions <strong>@Nom Prénom</strong> apparaissent en texte brut sur LinkedIn.
-                    Pour créer une vraie mention liée à un profil, ajoutez-la directement sur LinkedIn après publication.
-                  </span>
-                </div>
-
-                {/* Upload médias */}
-                <MediaUploader
-                  postId={postId}
-                  mediaUrls={mediaUrls}
-                  mediaType={mediaType}
-                  onMediaChange={(urls, type) => { setMediaUrls(urls); setMediaType(type) }}
-                />
-
-                {/* Zone de révision IA */}
-                {!aiLoading && content.trim() && (
-                  <AIExchangePanel
-                    messages={aiMessages.filter((m, i) => !(i === 0 && m.role === 'assistant'))}
-                    onSendRevision={handleRevision}
-                    loading={aiLoading}
-                  />
+              {/* Textarea */}
+              <Textarea
+                ref={contentTextareaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={aiLoading ? '' : 'Rédigez votre post directement ici, ou utilisez l\'IA ci-dessus pour générer un contenu…'}
+                rows={10}
+                className={cn(
+                  'resize-none text-sm font-mono',
+                  isOverLimit && 'border-red-300',
                 )}
+              />
 
-                <Separator />
+              {/* Note mentions */}
+              <div className="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                <AtSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>
+                  Les mentions <strong>@Nom Prénom</strong> apparaissent en texte brut sur LinkedIn.
+                  Pour créer une vraie mention liée à un profil, ajoutez-la directement sur LinkedIn après publication.
+                </span>
+              </div>
 
-                {/* Boutons de sauvegarde */}
-                <div className="flex items-center justify-between gap-3">
-                  {versions.length > 0 ? (
-                    <button
-                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                      onClick={() => setContent(versions[0].content)}
-                      title="Restaurer la dernière version sauvegardée"
-                    >
-                      ↩ {versions.length} version{versions.length > 1 ? 's' : ''} sauvegardée{versions.length > 1 ? 's' : ''}
-                    </button>
-                  ) : <div />}
+              {/* Upload médias */}
+              <MediaUploader
+                postId={postId}
+                mediaUrls={mediaUrls}
+                mediaType={mediaType}
+                onMediaChange={(urls, type) => { setMediaUrls(urls); setMediaType(type) }}
+              />
 
-                  <div className="flex gap-2 shrink-0">
-                    <Button
-                      variant="outline"
-                      onClick={handleDraft}
-                      disabled={saving || aiLoading}
-                    >
-                      {saving
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Save className="h-4 w-4 mr-1.5" />}
-                      Enregistrer en brouillon
-                    </Button>
-                    <Button
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={handleValidate}
-                      disabled={saving || aiLoading || isOverLimit || !content.trim()}
-                    >
-                      <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                      Valider
-                    </Button>
-                  </div>
+              {/* Zone de révision IA */}
+              {!aiLoading && content.trim() && (
+                <AIExchangePanel
+                  messages={aiMessages.filter((m, i) => !(i === 0 && m.role === 'assistant'))}
+                  onSendRevision={handleRevision}
+                  loading={aiLoading}
+                />
+              )}
+
+              <Separator />
+
+              {/* Boutons de sauvegarde */}
+              <div className="flex items-center justify-between gap-3">
+                {versions.length > 0 ? (
+                  <button
+                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    onClick={() => setContent(versions[0].content)}
+                    title="Restaurer la dernière version sauvegardée"
+                  >
+                    ↩ {versions.length} version{versions.length > 1 ? 's' : ''} sauvegardée{versions.length > 1 ? 's' : ''}
+                  </button>
+                ) : <div />}
+
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    onClick={handleDraft}
+                    disabled={saving || aiLoading}
+                  >
+                    {saving
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Save className="h-4 w-4 mr-1.5" />}
+                    Enregistrer en brouillon
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={handleValidate}
+                    disabled={saving || aiLoading || isOverLimit || !content.trim()}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                    Valider
+                  </Button>
                 </div>
+              </div>
 
-              </CardContent>
-            </Card>
-          )}
+            </CardContent>
+          </Card>
 
           {/* ── Aperçu LinkedIn ── */}
-          {content.trim() && (
+          {(content.trim() || mediaUrls.length > 0) && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="h-4 w-4 rounded-sm bg-[#0077B5] flex items-center justify-center">
