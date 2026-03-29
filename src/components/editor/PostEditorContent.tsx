@@ -324,14 +324,14 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved, i
             const img = new Image()
             const url = URL.createObjectURL(f)
             img.onload = () => {
-              const MAX_PX = 1024
+              const MAX_PX = 800
               const ratio = Math.min(MAX_PX / img.width, MAX_PX / img.height, 1)
               const canvas = document.createElement('canvas')
               canvas.width = Math.round(img.width * ratio)
               canvas.height = Math.round(img.height * ratio)
               canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
               URL.revokeObjectURL(url)
-              resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
+              resolve(canvas.toDataURL('image/jpeg', 0.75).split(',')[1])
             }
             img.onerror = reject
             img.src = url
