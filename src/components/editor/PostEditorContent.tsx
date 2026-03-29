@@ -319,14 +319,24 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved, i
       } else if (sourceMode === 'document') {
         const f = file!
         if (f.type.startsWith('image/')) {
-          // Convertir l'image en base64 pour que n8n puisse l'envoyer à Claude Vision
+          // Redimensionner + compresser l'image avant envoi (évite le rate limit Claude API)
           const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve((reader.result as string).split(',')[1])
-            reader.onerror = reject
-            reader.readAsDataURL(f)
+            const img = new Image()
+            const url = URL.createObjectURL(f)
+            img.onload = () => {
+              const MAX_PX = 1024
+              const ratio = Math.min(MAX_PX / img.width, MAX_PX / img.height, 1)
+              const canvas = document.createElement('canvas')
+              canvas.width = Math.round(img.width * ratio)
+              canvas.height = Math.round(img.height * ratio)
+              canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+              URL.revokeObjectURL(url)
+              resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
+            }
+            img.onerror = reject
+            img.src = url
           })
-          rawSource = `[IMAGE:${f.type}]${base64}`
+          rawSource = `[IMAGE:image/jpeg]${base64}`
         } else {
           try {
             rawSource = (await f.text()).slice(0, 8000)
