@@ -331,7 +331,7 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved, i
               canvas.height = Math.round(img.height * ratio)
               canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
               URL.revokeObjectURL(url)
-              resolve(canvas.toDataURL('image/jpeg', 0.75).split(',')[1])
+              resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
             }
             img.onerror = reject
             img.src = url
