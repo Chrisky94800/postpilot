@@ -317,10 +317,22 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved, i
         const res = await scrapeUrl(url.trim())
         rawSource = `${res.title}\n\n${res.summary}\n\n${res.content}`
       } else if (sourceMode === 'document') {
-        try {
-          rawSource = (await file!.text()).slice(0, 8000)
-        } catch {
-          rawSource = `Document : ${file!.name} — mode : ${docMode}`
+        const f = file!
+        if (f.type.startsWith('image/')) {
+          // Convertir l'image en base64 pour que n8n puisse l'envoyer à Claude Vision
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve((reader.result as string).split(',')[1])
+            reader.onerror = reject
+            reader.readAsDataURL(f)
+          })
+          rawSource = `[IMAGE:${f.type}]${base64}`
+        } else {
+          try {
+            rawSource = (await f.text()).slice(0, 8000)
+          } catch {
+            rawSource = `Document : ${f.name} — mode : ${docMode}`
+          }
         }
       }
 
