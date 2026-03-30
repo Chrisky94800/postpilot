@@ -46,7 +46,7 @@ function WriteModal({
   idea: Idea
   organizationId: string
   onClose: () => void
-  onDone: (ideaId: string) => void
+  onDone: () => void
 }) {
   const navigate = useNavigate()
   const db = supabase as any
@@ -109,7 +109,7 @@ function WriteModal({
       // Soft delete l'idée
       await db.from('ideas').update({ deleted_at: new Date().toISOString() }).eq('id', idea.id)
 
-      onDone(idea.id)
+      onDone()
       toast.success('Post créé en brouillon')
       navigate(`/posts/${postData.id}`)
     } catch (err) {
@@ -139,7 +139,7 @@ function WriteModal({
       // Soft delete l'idée
       await db.from('ideas').update({ deleted_at: new Date().toISOString() }).eq('id', idea.id)
 
-      onDone(idea.id)
+      onDone()
       toast.success('Idée associée au post — brouillon créé')
       navigate(`/posts/${selectedPostId}`)
     } catch (err) {
@@ -342,7 +342,7 @@ export default function Ideas() {
     }
   }
 
-  const handleWriteDone = (ideaId: string) => {
+  const handleWriteDone = () => {
     setWriteIdea(null)
     queryClient.invalidateQueries({ queryKey: ['ideas', organizationId] })
   }
