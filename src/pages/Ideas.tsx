@@ -1,19 +1,29 @@
 // PostPilot — Boîte à idées
 // Liste des idées de posts sauvegardées depuis le chat IA ou créées manuellement.
+// Chaque idée peut avoir : titre + description + URL optionnelle + fichier optionnel.
 
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/hooks/useOrganization'
-import { Lightbulb, PenLine, Trash2, Plus, X, Check, Loader2, FileText, FolderOpen } from 'lucide-react'
+import {
+  Lightbulb, PenLine, Trash2, Plus, X, Check, Loader2,
+  FileText, FolderOpen, Link, Image, ExternalLink,
+} from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
+
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic']
 
 type Idea = {
   id: string
   title: string
   description: string | null
+  source_url: string | null
+  source_file_url: string | null
+  source_file_name: string | null
+  source_file_type: string | null
   created_at: string
   status: string
 }
@@ -33,6 +43,10 @@ type Post = {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+}
+
+function getDomain(url: string): string {
+  try { return new URL(url).hostname.replace('www.', '') } catch { return url.slice(0, 30) }
 }
 
 // ─── Modal choix destination ─────────────────────────────────────────────────
@@ -86,18 +100,34 @@ function WriteModal({
     enabled: !!selectedProgramId,
   })
 
+  // Détermine source_type et source_url à mettre sur le post
+  const ideaSourceType = idea.source_url
+    ? 'url'
+    : idea.source_file_url
+      ? 'document'
+      : 'manual'
+
+  // State de navigation pour pré-charger le fichier dans l'éditeur
+  const fileNavState = idea.source_file_url
+    ? {
+        ideaFileUrl: idea.source_file_url,
+        ideaFileName: idea.source_file_name ?? undefined,
+        ideaFileType: idea.source_file_type ?? undefined,
+      }
+    : undefined
+
   // ── Créer un post standalone ──────────────────────────────────────────────
   const handleStandalone = async () => {
     setSubmitting(true)
     try {
-      // Créer le post en brouillon
       const { data: postData, error: postErr } = await db
         .from('posts')
         .insert({
           organization_id: organizationId,
           title: idea.title,
           content: idea.description || '',
-          source_type: 'manual',
+          source_type: ideaSourceType,
+          source_url: idea.source_url || null,
           platform_type: 'linkedin',
           status: 'draft',
           updated_at: new Date().toISOString(),
@@ -106,12 +136,11 @@ function WriteModal({
         .single()
       if (postErr) throw postErr
 
-      // Soft delete l'idée
       await db.from('ideas').update({ deleted_at: new Date().toISOString() }).eq('id', idea.id)
 
       onDone()
       toast.success('Post créé en brouillon')
-      navigate(`/posts/${postData.id}`)
+      navigate(`/posts/${postData.id}`, fileNavState ? { state: fileNavState } : undefined)
     } catch (err) {
       toast.error((err as Error).message)
       setSubmitting(false)
@@ -123,25 +152,24 @@ function WriteModal({
     if (!selectedPostId) return
     setSubmitting(true)
     try {
-      // Pré-remplir le post existant avec le contenu de l'idée + passer en draft
       const { error: updateErr } = await db
         .from('posts')
         .update({
           title: idea.title,
           content: idea.description || '',
-          source_type: 'manual',
+          source_type: ideaSourceType,
+          source_url: idea.source_url || null,
           status: 'draft',
           updated_at: new Date().toISOString(),
         })
         .eq('id', selectedPostId)
       if (updateErr) throw updateErr
 
-      // Soft delete l'idée
       await db.from('ideas').update({ deleted_at: new Date().toISOString() }).eq('id', idea.id)
 
       onDone()
       toast.success('Idée associée au post — brouillon créé')
-      navigate(`/posts/${selectedPostId}`)
+      navigate(`/posts/${selectedPostId}`, fileNavState ? { state: fileNavState } : undefined)
     } catch (err) {
       toast.error((err as Error).message)
       setSubmitting(false)
@@ -283,9 +311,13 @@ export default function Ideas() {
   const [showForm, setShowForm] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
+  const [newUrl, setNewUrl] = useState('')
+  const [newFile, setNewFile] = useState<File | null>(null)
+  const [newFilePreview, setNewFilePreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [writeIdea, setWriteIdea] = useState<Idea | null>(null)
   const titleRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const db = supabase as any
 
@@ -293,12 +325,23 @@ export default function Ideas() {
     if (showForm) titleRef.current?.focus()
   }, [showForm])
 
+  // Prévisualisation image locale
+  useEffect(() => {
+    if (!newFile || !IMAGE_TYPES.includes(newFile.type)) {
+      setNewFilePreview(null)
+      return
+    }
+    const url = URL.createObjectURL(newFile)
+    setNewFilePreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [newFile])
+
   const { data: ideas = [], isLoading } = useQuery({
     queryKey: ['ideas', organizationId],
     queryFn: async () => {
       const { data, error } = await db
         .from('ideas')
-        .select('id, title, description, created_at, status')
+        .select('id, title, description, source_url, source_file_url, source_file_name, source_file_type, created_at, status')
         .eq('organization_id', organizationId!)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
@@ -308,23 +351,57 @@ export default function Ideas() {
     enabled: !!organizationId,
   })
 
+  const resetForm = () => {
+    setShowForm(false)
+    setNewTitle('')
+    setNewDescription('')
+    setNewUrl('')
+    setNewFile(null)
+    setNewFilePreview(null)
+  }
+
   const handleCreate = async () => {
     if (!newTitle.trim()) { titleRef.current?.focus(); return }
     setSaving(true)
+
+    let fileUrl: string | null = null
+    let fileName: string | null = null
+    let fileType: string | null = null
+
+    // Upload fichier vers Storage si présent
+    if (newFile && organizationId) {
+      const path = `idea-files/${organizationId}/${Date.now()}-${newFile.name}`
+      const { error: uploadErr } = await supabase.storage
+        .from('documents')
+        .upload(path, newFile, { upsert: false })
+      if (uploadErr) {
+        toast.error('Erreur upload fichier : ' + uploadErr.message)
+        setSaving(false)
+        return
+      }
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path)
+      fileUrl = urlData.publicUrl
+      fileName = newFile.name
+      fileType = newFile.type
+    }
+
     const { error } = await db.from('ideas').insert({
       organization_id: organizationId,
       title: newTitle.trim(),
       description: newDescription.trim() || null,
+      source_url: newUrl.trim() || null,
+      source_file_url: fileUrl,
+      source_file_name: fileName,
+      source_file_type: fileType,
       source: 'manual',
     })
+
     setSaving(false)
     if (error) {
       toast.error('Erreur lors de la création')
     } else {
       toast.success('Idée ajoutée !')
-      setNewTitle('')
-      setNewDescription('')
-      setShowForm(false)
+      resetForm()
       queryClient.invalidateQueries({ queryKey: ['ideas', organizationId] })
     }
   }
@@ -384,10 +461,12 @@ export default function Ideas() {
         <div className="bg-white border border-blue-200 rounded-2xl px-5 py-4 shadow-sm space-y-3">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[13px] font-semibold text-gray-900">Nouvelle idée</p>
-            <button onClick={() => { setShowForm(false); setNewTitle(''); setNewDescription('') }} className="text-gray-400 hover:text-gray-600">
+            <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {/* Titre */}
           <input
             ref={titleRef}
             type="text"
@@ -397,6 +476,8 @@ export default function Ideas() {
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400"
           />
+
+          {/* Description */}
           <textarea
             placeholder="Description / angle éditorial (optionnel)"
             value={newDescription}
@@ -404,9 +485,71 @@ export default function Ideas() {
             rows={2}
             className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400 resize-none"
           />
-          <div className="flex gap-2 justify-end">
+
+          {/* URL */}
+          <div className="relative">
+            <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input
+              type="url"
+              placeholder="URL source (optionnel)"
+              value={newUrl}
+              onChange={(e) => setNewUrl(e.target.value)}
+              className="w-full text-[13px] border border-gray-200 rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400"
+            />
+          </div>
+
+          {/* Fichier / Image */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.pdf,.docx,.jpg,.jpeg,.png,.gif,.webp,.heic"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null
+              setNewFile(f)
+              e.target.value = ''
+            }}
+          />
+
+          {newFile ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+              {newFilePreview ? (
+                <img src={newFilePreview} alt={newFile.name} className="h-10 w-10 object-cover rounded shrink-0" />
+              ) : (
+                <div className="h-10 w-10 bg-blue-100 rounded flex items-center justify-center shrink-0">
+                  <FileText className="h-4 w-4 text-blue-500" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-gray-800 truncate">{newFile.name}</p>
+                <p className="text-[11px] text-gray-400">
+                  {newFile.size < 1024 * 1024
+                    ? `${Math.round(newFile.size / 1024)} Ko`
+                    : `${(newFile.size / 1024 / 1024).toFixed(1)} Mo`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewFile(null)}
+                className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => { setShowForm(false); setNewTitle(''); setNewDescription('') }}
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 text-[12px] text-gray-500 hover:text-gray-700 border border-dashed border-gray-200 rounded-lg px-3 py-2 w-full hover:border-gray-300 transition-colors"
+            >
+              <Image className="h-3.5 w-3.5 text-gray-400" />
+              Joindre un document ou une image (optionnel)
+            </button>
+          )}
+
+          <div className="flex gap-2 justify-end pt-1">
+            <button
+              onClick={resetForm}
               className="px-4 py-2 rounded-lg text-[12px] font-medium text-gray-500 hover:bg-gray-100 transition-colors"
             >
               Annuler
@@ -416,8 +559,9 @@ export default function Ideas() {
               disabled={saving || !newTitle.trim()}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold bg-[#2563EB] text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              <Check className="h-3.5 w-3.5" />
-              {saving ? 'Enregistrement…' : 'Sauvegarder'}
+              {saving
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Enregistrement…</>
+                : <><Check className="h-3.5 w-3.5" /> Sauvegarder</>}
             </button>
           </div>
         </div>
@@ -439,49 +583,77 @@ export default function Ideas() {
           <p className="text-[13px] text-gray-400 mb-4">
             Ajoutez une idée manuellement ou demandez à votre assistant depuis le tableau de bord.
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => setShowForm(true)}
-              className="text-[13px] text-[#2563EB] font-semibold hover:underline"
-            >
-              + Ajouter une idée
-            </button>
-          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="text-[13px] text-[#2563EB] font-semibold hover:underline"
+          >
+            + Ajouter une idée
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
-          {ideas.map((idea) => (
-            <div
-              key={idea.id}
-              className="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm flex items-start gap-4"
-            >
-              <div className="h-9 w-9 bg-amber-50 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                <Lightbulb className="h-4 w-4 text-amber-500" />
+          {ideas.map((idea) => {
+            const isImage = idea.source_file_type ? IMAGE_TYPES.includes(idea.source_file_type) : false
+            return (
+              <div
+                key={idea.id}
+                className="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm flex items-start gap-4"
+              >
+                <div className="h-9 w-9 bg-amber-50 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                  <Lightbulb className="h-4 w-4 text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-gray-900 leading-snug">{idea.title}</p>
+                  {idea.description && (
+                    <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{idea.description}</p>
+                  )}
+
+                  {/* Chips source */}
+                  {(idea.source_url || idea.source_file_url) && (
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {idea.source_url && (
+                        <a
+                          href={idea.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-medium hover:bg-blue-100 transition-colors"
+                        >
+                          <ExternalLink className="h-2.5 w-2.5" />
+                          {getDomain(idea.source_url)}
+                        </a>
+                      )}
+                      {idea.source_file_url && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium">
+                          {isImage
+                            ? <Image className="h-2.5 w-2.5" />
+                            : <FileText className="h-2.5 w-2.5" />}
+                          {idea.source_file_name ?? 'Fichier joint'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-gray-400 mt-1.5">{formatDate(idea.created_at)}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setWriteIdea(idea)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0077B5] text-white text-[12px] font-semibold hover:bg-[#005885] transition-colors"
+                  >
+                    <PenLine className="h-3.5 w-3.5" />
+                    Rédiger
+                  </button>
+                  <button
+                    onClick={() => handleDelete(idea.id)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-gray-900 leading-snug">{idea.title}</p>
-                {idea.description && (
-                  <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{idea.description}</p>
-                )}
-                <p className="text-[11px] text-gray-400 mt-1.5">{formatDate(idea.created_at)}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setWriteIdea(idea)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0077B5] text-white text-[12px] font-semibold hover:bg-[#005885] transition-colors"
-                >
-                  <PenLine className="h-3.5 w-3.5" />
-                  Rédiger
-                </button>
-                <button
-                  onClick={() => handleDelete(idea.id)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

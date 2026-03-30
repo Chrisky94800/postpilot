@@ -15,8 +15,12 @@ export default function PostEditor() {
   const { id } = useParams<{ id?: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const ideaTitle = (location.state as { ideaTitle?: string } | null)?.ideaTitle
-  const ideaDescription = (location.state as { ideaDescription?: string } | null)?.ideaDescription
+  const state = (location.state ?? {}) as Record<string, string | undefined>
+  const ideaTitle       = state.ideaTitle
+  const ideaDescription = state.ideaDescription
+  const ideaFileUrl     = state.ideaFileUrl
+  const ideaFileName    = state.ideaFileName
+  const ideaFileType    = state.ideaFileType
 
   // Charger le post pour détecter s'il appartient à un programme
   const { data: post } = useQuery({
@@ -85,6 +89,9 @@ export default function PostEditor() {
         onNewPostCreated={(newId) => navigate(`/posts/${newId}`, { replace: true })}
         initialTitle={ideaTitle}
         initialIdea={ideaDescription}
+        initialFileUrl={ideaFileUrl}
+        initialFileName={ideaFileName}
+        initialFileType={ideaFileType}
       />
     </div>
   )

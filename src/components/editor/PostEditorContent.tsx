@@ -171,11 +171,15 @@ interface PostEditorContentProps {
   initialTitle?: string
   /** Description de l'idée → pré-remplit le champ rédaction libre */
   initialIdea?: string
+  /** URL publique d'un fichier stocké (idée avec document/image) → pré-charge en mode Document */
+  initialFileUrl?: string
+  initialFileName?: string
+  initialFileType?: string
 }
 
 // ─── Composant ────────────────────────────────────────────────────────────────
 
-export default function PostEditorContent({ postId, onNewPostCreated, onSaved, initialTitle, initialIdea }: PostEditorContentProps) {
+export default function PostEditorContent({ postId, onNewPostCreated, onSaved, initialTitle, initialIdea, initialFileUrl, initialFileName, initialFileType }: PostEditorContentProps) {
   const queryClient = useQueryClient()
   const { organizationId } = useOrganization()
 
@@ -200,6 +204,24 @@ export default function PostEditorContent({ postId, onNewPostCreated, onSaved, i
   const sourceModeExplicit = useRef(false)
   const contentFromAI      = useRef(false)
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // ── Pré-chargement fichier depuis une idée (URL Storage) ───────────────────
+  useEffect(() => {
+    if (!initialFileUrl) return
+    ;(async () => {
+      try {
+        const res = await fetch(initialFileUrl)
+        const blob = await res.blob()
+        const f = new File([blob], initialFileName ?? 'fichier', { type: initialFileType ?? blob.type })
+        setFile(f)
+        setSourceMode('document')
+        sourceModeExplicit.current = true
+      } catch {
+        // Silencieux — l'utilisateur peut déposer manuellement
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFileUrl])
 
   // ── Chargement du post ──────────────────────────────────────────────────────
 
