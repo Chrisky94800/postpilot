@@ -1,8 +1,8 @@
 {
-  "updatedAt": "2026-02-27T20:08:17.165Z",
+  "updatedAt": "2026-03-30T11:48:02.546Z",
   "createdAt": "2026-02-23T13:02:15.986Z",
   "id": "B1HBUHs8hGnfFAHr",
-  "name": "[PostPilot] 01 - Rédaction IA",
+  "name": "[PostPilot] 01 - R\u00e9daction IA",
   "description": null,
   "active": true,
   "isArchived": false,
@@ -47,7 +47,7 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
             },
             {
               "name": "Authorization",
@@ -79,7 +79,7 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
             },
             {
               "name": "Authorization",
@@ -111,7 +111,7 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
             },
             {
               "name": "Authorization",
@@ -175,7 +175,7 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
             },
             {
               "name": "Authorization",
@@ -219,7 +219,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const post = $('Supabase - Get Post').item.json[0];\nconst bp   = $('Supabase - Get Brand Profile').item.json[0] || {};\n\n// ── Source content — détecte image base64 ou texte ──\nlet rawSource = '';\nif (post.source_type === 'url') {\n  try {\n    const scraped = $('Supabase - Scrape URL').item.json;\n    rawSource = `Titre : ${scraped.title}\\n\\n${scraped.content}`;\n  } catch(e) {\n    rawSource = post.source_url || '';\n  }\n} else if (post.source_content) {\n  rawSource = post.source_content;\n} else if (post.content) {\n  rawSource = post.content;\n}\n\n// Détecter le marqueur image : [IMAGE:mime/type]base64data\nconst imageMatch = rawSource.match(/\\[IMAGE:([^\\]]+)\\]([\\s\\S]+)$/);\nlet isImage = false;\nlet imageMimeType = '';\nlet imageBase64 = '';\nlet instructionsPrefix = '';\n\nif (imageMatch) {\n  isImage = true;\n  imageMimeType = imageMatch[1];\n  imageBase64 = imageMatch[2].trim();\n  const instrMatch = rawSource.match(/^Instructions\\s*:\\s*([\\s\\S]+?)\\n\\n---\\n\\n\\[IMAGE:/);\n  if (instrMatch) instructionsPrefix = instrMatch[1].trim().slice(0, 300);\n} else {\n  // Tronquer le contenu texte à 4000 chars max (~1000 tokens)\n  rawSource = rawSource.slice(0, 4000);\n}\n\n// ── Brand profile ──\nconst tone = Array.isArray(bp.tone) ? bp.tone.join(', ') : (bp.tone || 'professionnel');\nconst keywords = Array.isArray(bp.keywords) ? bp.keywords.join(', ') : '';\nconst keywordsAvoid = Array.isArray(bp.keywords_avoid) ? bp.keywords_avoid.join(', ') : '';\nconst hashtags = Array.isArray(bp.hashtags_preferred) ? bp.hashtags_preferred.join(' ') : '';\nconst hashtagStrategy = bp.hashtag_strategy || 'medium';\nconst ctas = Array.isArray(bp.ctas_preferred) ? bp.ctas_preferred.join(', ') : '';\n// Max 2 exemples, 400 chars chacun — évite les system prompts trop longs\nconst examples = Array.isArray(bp.example_posts) && bp.example_posts.length > 0\n  ? bp.example_posts.slice(0,2).map((p, i) => `Exemple ${i+1}:\\n${String(p).slice(0,400)}`).join('\\n\\n')\n  : 'Aucun exemple fourni.';\nconst lengthMap = { short: '800-1200', medium: '1200-2000', long: '2000-3000' };\nconst targetChars = lengthMap[bp.post_length] || '1200-2000';\nconst emojiMap = { 0: 'Aucun emoji', 1: 'Très peu (1-2 max)', 2: 'Modéré (3-5)', 3: 'Beaucoup (6+)' };\nconst emojiUsage = emojiMap[bp.emoji_style] || 'Modéré (3-5)';\n\nconst systemPrompt = `Tu es un expert en rédaction de posts LinkedIn pour ${bp.company_name || 'cette entreprise'}, une entreprise de ${bp.industry || 'ce secteur'}.\nTu rédiges des contenus professionnels, engageants et authentiques qui reflètent la voix de la marque.\n\nProfil de marque :\n- Entreprise : ${bp.company_name} — ${(bp.description || '').slice(0,200)}\n- Audience cible : ${bp.target_audience || 'professionnels'}\n- Ton : ${tone}\n- Mots-clés à intégrer : ${keywords || 'aucun spécifié'}\n- Mots-clés interdits : ${keywordsAvoid || 'aucun'}\n- Emojis : ${emojiUsage}\n- Longueur cible : ${bp.post_length || 'medium'} (~${targetChars} caractères)\n- Hashtags : stratégie ${hashtagStrategy}, préférés : ${hashtags || 'aucun'}\n- CTA préférés : ${ctas || 'aucun spécifié'}\n- Signature : ${bp.signature || 'aucune'}\n\nExemples de posts appréciés :\n${examples}`;\n\n// ── Construire messages (texte ou vision) ──\nlet messages;\n\nif (isImage) {\n  const textInstruction = `Analyse cette image et rédige un post LinkedIn professionnel qui s'en inspire.${instructionsPrefix ? `\\n\\nInstructions supplémentaires : ${instructionsPrefix}` : ''}\\n\\nConsignes :\\n1. Accroche percutante en première ligne (hook avant \"...voir plus\")\\n2. Développement structuré avec sauts de ligne pour lisibilité LinkedIn\\n3. Conclusion avec CTA selon les préférences\\n4. Hashtags selon la stratégie (en fin de post)\\n5. Authentique, voix de la marque\\n6. Longueur : ~${targetChars} caractères\\n7. Langue : français\\n\\nGénère le post LinkedIn.`;\n  messages = [{\n    role: 'user',\n    content: [\n      { type: 'image', source: { type: 'base64', media_type: imageMimeType, data: imageBase64 } },\n      { type: 'text', text: textInstruction }\n    ]\n  }];\n} else {\n  const userPrompt = `Source du post :\\n- Type : ${post.source_type || 'manual'}\\n- Contenu : ${rawSource}\\n\\nConsignes :\\n1. Accroche percutante en première ligne (hook avant \"...voir plus\")\\n2. Développement structuré avec sauts de ligne pour lisibilité LinkedIn\\n3. Conclusion avec CTA selon les préférences\\n4. Hashtags selon la stratégie (en fin de post)\\n5. Authentique, voix de la marque, pas de plagiat\\n6. Longueur : ~${targetChars} caractères\\n7. Langue : français\\n\\nGénère le post LinkedIn.`;\n  messages = [{ role: 'user', content: userPrompt }];\n}\n\nreturn [{\n  json: {\n    systemPrompt,\n    messages,\n    model: 'claude-sonnet-4-6',\n    max_tokens: 1500\n  }\n}];"
+        "jsCode": "const post = $('Supabase - Get Post').item.json[0];\nconst bp   = $('Supabase - Get Brand Profile').item.json[0] || {};\n\n// \u2500\u2500 Source content\nlet rawSource = '';\nif (post.source_type === 'url') {\n  try {\n    const scraped = $('Supabase - Scrape URL').item.json;\n    rawSource = `Titre : ${scraped.title}\\n\\n${scraped.content}`;\n  } catch(e) {\n    rawSource = post.source_url || '';\n  }\n} else if (post.source_content) {\n  rawSource = post.source_content;\n} else if (post.content) {\n  rawSource = post.content;\n}\n\n// D\u00e9tecte [IMAGE:mime]base64\nconst imageMatch = rawSource.match(/\\[IMAGE:([^\\]]+)\\]([\\s\\S]+)$/);\nlet isImage = false, imageMimeType = '', imageBase64 = '', instructionsPrefix = '';\n\nif (imageMatch) {\n  isImage = true;\n  imageMimeType = imageMatch[1];\n  imageBase64 = imageMatch[2].trim();\n  const instrMatch = rawSource.match(/^Instructions\\s*:\\s*([\\s\\S]+?)\\n\\n---\\n\\n\\[IMAGE:/);\n  if (instrMatch) instructionsPrefix = instrMatch[1].trim().slice(0, 500);\n} else {\n  rawSource = rawSource.slice(0, 4000);\n}\n\n// \u2500\u2500 Brand profile\nconst tone = Array.isArray(bp.tone) ? bp.tone.join(', ') : (bp.tone || 'professionnel');\nconst keywords = Array.isArray(bp.keywords) ? bp.keywords.join(', ') : '';\nconst keywordsAvoid = Array.isArray(bp.keywords_avoid) ? bp.keywords_avoid.join(', ') : '';\nconst hashtags = Array.isArray(bp.hashtags_preferred) ? bp.hashtags_preferred.join(' ') : '';\nconst hashtagStrategy = bp.hashtag_strategy || 'medium';\nconst ctas = Array.isArray(bp.ctas_preferred) ? bp.ctas_preferred.join(', ') : '';\nconst examples = Array.isArray(bp.example_posts) && bp.example_posts.length > 0\n  ? bp.example_posts.slice(0,2).map((p, i) => `Exemple ${i+1}:\\n${String(p).slice(0,400)}`).join('\\n\\n')\n  : 'Aucun exemple fourni.';\nconst lengthMap = { short: '800-1200', medium: '1200-2000', long: '2000-3000' };\nconst targetChars = lengthMap[bp.post_length] || '1200-2000';\nconst emojiMap = { 0: 'Aucun emoji', 1: 'Tr\u00e8s peu (1-2 max)', 2: 'Mod\u00e9r\u00e9 (3-5)', 3: 'Beaucoup (6+)' };\nconst emojiUsage = emojiMap[bp.emoji_style] || 'Mod\u00e9r\u00e9 (3-5)';\n\nconst systemPrompt = `Tu es un expert en r\u00e9daction de posts LinkedIn pour ${bp.company_name || 'cette entreprise'}, une entreprise de ${bp.industry || 'ce secteur'}.\nTu r\u00e9diges des contenus professionnels, engageants et authentiques qui refl\u00e8tent la voix de la marque.\n\nProfil de marque :\n- Entreprise : ${bp.company_name} \u2014 ${(bp.description || '').slice(0,200)}\n- Audience cible : ${bp.target_audience || 'professionnels'}\n- Ton : ${tone}\n- Mots-cl\u00e9s \u00e0 int\u00e9grer : ${keywords || 'aucun sp\u00e9cifi\u00e9'}\n- Mots-cl\u00e9s interdits : ${keywordsAvoid || 'aucun'}\n- Emojis : ${emojiUsage}\n- Longueur cible : ~${targetChars} caract\u00e8res\n- Hashtags : strat\u00e9gie ${hashtagStrategy}, pr\u00e9f\u00e9r\u00e9s : ${hashtags || 'aucun'}\n- CTA pr\u00e9f\u00e9r\u00e9s : ${ctas || 'aucun sp\u00e9cifi\u00e9'}\n\nExemples de posts appr\u00e9ci\u00e9s :\n${examples}`;\n\n// \u2500\u2500 Build messages\nlet messages;\n\nif (isImage) {\n  let textInstruction;\n  if (instructionsPrefix) {\n    textInstruction = `\u00c9TAPE 1 \u2014 Lis attentivement l'image et transcris mentalement tout le texte visible.\\n\\n\u00c9TAPE 2 \u2014 Applique EXACTEMENT cette instruction sur ce texte :\\n\"${instructionsPrefix}\"\\n\\n\u00c9TAPE 3 \u2014 Formate le r\u00e9sultat en post LinkedIn :\\n- Langue : fran\u00e7ais\\n- Longueur : ~${targetChars} caract\u00e8res\\n- Emojis : ${emojiUsage}\\n- Hashtags en fin de post : ${hashtags || 'selon le sujet'}\\n- Signature : ${bp.signature || 'aucune'}\\n\\nIMPORTANT : Base-toi UNIQUEMENT sur le contenu visible dans l'image.`;\n  } else {\n    textInstruction = `\u00c9TAPE 1 \u2014 Lis attentivement l'image et transcris mentalement tout le texte visible.\\n\\n\u00c9TAPE 2 \u2014 R\u00e9dige un post LinkedIn professionnel bas\u00e9 sur ce contenu.\\n\\nConsignes :\\n1. Accroche percutante en premi\u00e8re ligne\\n2. D\u00e9veloppement structur\u00e9 avec sauts de ligne\\n3. Conclusion avec CTA\\n4. Hashtags en fin de post\\n5. Longueur : ~${targetChars} caract\u00e8res\\n6. Langue : fran\u00e7ais\\n\\nIMPORTANT : Base-toi UNIQUEMENT sur le contenu visible dans l'image.`;\n  }\n  messages = [{\n    role: 'user',\n    content: [\n      { type: 'image', source: { type: 'base64', media_type: imageMimeType, data: imageBase64 } },\n      { type: 'text', text: textInstruction }\n    ]\n  }];\n} else {\n  const userPrompt = `Source du post :\\n- Type : ${post.source_type || 'manual'}\\n- Contenu : ${rawSource}\\n\\nConsignes :\\n1. Accroche percutante en premi\u00e8re ligne (hook avant \"...voir plus\")\\n2. D\u00e9veloppement structur\u00e9 avec sauts de ligne\\n3. Conclusion avec CTA\\n4. Hashtags en fin de post\\n5. Longueur : ~${targetChars} caract\u00e8res\\n6. Langue : fran\u00e7ais\\n\\nG\u00e9n\u00e8re le post LinkedIn.`;\n  messages = [{ role: 'user', content: userPrompt }];\n}\n\n// Pr\u00e9-s\u00e9rialiser le body Claude pour \u00e9viter les probl\u00e8mes de s\u00e9rialisation n8n\n// avec les objets imbriqu\u00e9s (notamment le base64 image)\nconst claudeRequestBody = JSON.stringify({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 1500,\n  system: systemPrompt,\n  messages: messages\n});\n\nreturn [{ json: { claudeRequestBody } }];"
       }
     },
     {
@@ -251,10 +251,10 @@
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: $json.model, max_tokens: $json.max_tokens, system: $json.systemPrompt, messages: $json.messages }) }}",
-        "options": {}
+        "specifyBody": "string",
+        "options": {},
+        "body": "={{ $json.claudeRequestBody }}",
+        "sendBody": true
       }
     },
     {
@@ -267,7 +267,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const claudeResponse = $('Claude API - Generate').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourné aucun contenu');\n}\n\n// Version number\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId       = $('Webhook - generate-post').item.json.body.post_id;\nconst orgId        = $('Webhook - generate-post').item.json.body.organization_id;\n\nreturn [{\n  json: { content, versionNumber, postId, orgId }\n}];"
+        "jsCode": "const claudeResponse = $('Claude API - Generate').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourn\u00e9 aucun contenu');\n}\n\n// Version number\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId       = $('Webhook - generate-post').item.json.body.post_id;\nconst orgId        = $('Webhook - generate-post').item.json.body.organization_id;\n\nreturn [{\n  json: { content, versionNumber, postId, orgId }\n}];"
       }
     },
     {
@@ -287,7 +287,7 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
             },
             {
               "name": "Authorization",
@@ -467,9 +467,9 @@
   "staticData": null,
   "meta": null,
   "pinData": null,
-  "versionId": "92f5af5e-dbad-4eee-bbd6-3f2f98e65982",
-  "activeVersionId": "92f5af5e-dbad-4eee-bbd6-3f2f98e65982",
-  "versionCounter": 20,
+  "versionId": "c3429050-932c-4f16-98bc-b0126db31db5",
+  "activeVersionId": "c3429050-932c-4f16-98bc-b0126db31db5",
+  "versionCounter": 33,
   "triggerCount": 1,
   "shared": [
     {
@@ -493,7 +493,7 @@
             "userId": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
             "projectId": "hIs98lx4RTsIkVz5",
             "user": {
-              "updatedAt": "2026-02-27T13:22:10.000Z",
+              "updatedAt": "2026-03-30T08:59:10.000Z",
               "createdAt": "2025-02-21T14:51:16.066Z",
               "id": "671fe695-ef56-4d50-ae9a-b8249b6b0a1f",
               "email": "contact@rocket-solution.fr",
@@ -512,7 +512,7 @@
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2026-02-26",
+              "lastActiveAt": "2026-03-29",
               "isPending": false
             }
           }
@@ -522,9 +522,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-02-27T20:08:17.167Z",
-    "createdAt": "2026-02-27T20:08:17.167Z",
-    "versionId": "92f5af5e-dbad-4eee-bbd6-3f2f98e65982",
+    "updatedAt": "2026-03-30T11:48:02.548Z",
+    "createdAt": "2026-03-30T11:48:02.548Z",
+    "versionId": "c3429050-932c-4f16-98bc-b0126db31db5",
     "workflowId": "B1HBUHs8hGnfFAHr",
     "nodes": [
       {
@@ -567,7 +567,7 @@
             "parameters": [
               {
                 "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
               },
               {
                 "name": "Authorization",
@@ -599,7 +599,7 @@
             "parameters": [
               {
                 "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
               },
               {
                 "name": "Authorization",
@@ -631,7 +631,7 @@
             "parameters": [
               {
                 "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
               },
               {
                 "name": "Authorization",
@@ -695,7 +695,7 @@
             "parameters": [
               {
                 "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
               },
               {
                 "name": "Authorization",
@@ -739,7 +739,7 @@
           300
         ],
         "parameters": {
-          "jsCode": "const post = $('Supabase - Get Post').item.json[0];\nconst bp   = $('Supabase - Get Brand Profile').item.json[0] || {};\n\n// ── Source content — détecte image base64 ou texte ──\nlet rawSource = '';\nif (post.source_type === 'url') {\n  try {\n    const scraped = $('Supabase - Scrape URL').item.json;\n    rawSource = `Titre : ${scraped.title}\\n\\n${scraped.content}`;\n  } catch(e) {\n    rawSource = post.source_url || '';\n  }\n} else if (post.source_content) {\n  rawSource = post.source_content;\n} else if (post.content) {\n  rawSource = post.content;\n}\n\n// Détecter le marqueur image : [IMAGE:mime/type]base64data\nconst imageMatch = rawSource.match(/\\[IMAGE:([^\\]]+)\\]([\\s\\S]+)$/);\nlet isImage = false;\nlet imageMimeType = '';\nlet imageBase64 = '';\nlet instructionsPrefix = '';\n\nif (imageMatch) {\n  isImage = true;\n  imageMimeType = imageMatch[1];\n  imageBase64 = imageMatch[2].trim();\n  const instrMatch = rawSource.match(/^Instructions\\s*:\\s*([\\s\\S]+?)\\n\\n---\\n\\n\\[IMAGE:/);\n  if (instrMatch) instructionsPrefix = instrMatch[1].trim().slice(0, 300);\n} else {\n  // Tronquer le contenu texte à 4000 chars max (~1000 tokens)\n  rawSource = rawSource.slice(0, 4000);\n}\n\n// ── Brand profile ──\nconst tone = Array.isArray(bp.tone) ? bp.tone.join(', ') : (bp.tone || 'professionnel');\nconst keywords = Array.isArray(bp.keywords) ? bp.keywords.join(', ') : '';\nconst keywordsAvoid = Array.isArray(bp.keywords_avoid) ? bp.keywords_avoid.join(', ') : '';\nconst hashtags = Array.isArray(bp.hashtags_preferred) ? bp.hashtags_preferred.join(' ') : '';\nconst hashtagStrategy = bp.hashtag_strategy || 'medium';\nconst ctas = Array.isArray(bp.ctas_preferred) ? bp.ctas_preferred.join(', ') : '';\n// Max 2 exemples, 400 chars chacun — évite les system prompts trop longs\nconst examples = Array.isArray(bp.example_posts) && bp.example_posts.length > 0\n  ? bp.example_posts.slice(0,2).map((p, i) => `Exemple ${i+1}:\\n${String(p).slice(0,400)}`).join('\\n\\n')\n  : 'Aucun exemple fourni.';\nconst lengthMap = { short: '800-1200', medium: '1200-2000', long: '2000-3000' };\nconst targetChars = lengthMap[bp.post_length] || '1200-2000';\nconst emojiMap = { 0: 'Aucun emoji', 1: 'Très peu (1-2 max)', 2: 'Modéré (3-5)', 3: 'Beaucoup (6+)' };\nconst emojiUsage = emojiMap[bp.emoji_style] || 'Modéré (3-5)';\n\nconst systemPrompt = `Tu es un expert en rédaction de posts LinkedIn pour ${bp.company_name || 'cette entreprise'}, une entreprise de ${bp.industry || 'ce secteur'}.\nTu rédiges des contenus professionnels, engageants et authentiques qui reflètent la voix de la marque.\n\nProfil de marque :\n- Entreprise : ${bp.company_name} — ${(bp.description || '').slice(0,200)}\n- Audience cible : ${bp.target_audience || 'professionnels'}\n- Ton : ${tone}\n- Mots-clés à intégrer : ${keywords || 'aucun spécifié'}\n- Mots-clés interdits : ${keywordsAvoid || 'aucun'}\n- Emojis : ${emojiUsage}\n- Longueur cible : ${bp.post_length || 'medium'} (~${targetChars} caractères)\n- Hashtags : stratégie ${hashtagStrategy}, préférés : ${hashtags || 'aucun'}\n- CTA préférés : ${ctas || 'aucun spécifié'}\n- Signature : ${bp.signature || 'aucune'}\n\nExemples de posts appréciés :\n${examples}`;\n\n// ── Construire messages (texte ou vision) ──\nlet messages;\n\nif (isImage) {\n  const textInstruction = `Analyse cette image et rédige un post LinkedIn professionnel qui s'en inspire.${instructionsPrefix ? `\\n\\nInstructions supplémentaires : ${instructionsPrefix}` : ''}\\n\\nConsignes :\\n1. Accroche percutante en première ligne (hook avant \"...voir plus\")\\n2. Développement structuré avec sauts de ligne pour lisibilité LinkedIn\\n3. Conclusion avec CTA selon les préférences\\n4. Hashtags selon la stratégie (en fin de post)\\n5. Authentique, voix de la marque\\n6. Longueur : ~${targetChars} caractères\\n7. Langue : français\\n\\nGénère le post LinkedIn.`;\n  messages = [{\n    role: 'user',\n    content: [\n      { type: 'image', source: { type: 'base64', media_type: imageMimeType, data: imageBase64 } },\n      { type: 'text', text: textInstruction }\n    ]\n  }];\n} else {\n  const userPrompt = `Source du post :\\n- Type : ${post.source_type || 'manual'}\\n- Contenu : ${rawSource}\\n\\nConsignes :\\n1. Accroche percutante en première ligne (hook avant \"...voir plus\")\\n2. Développement structuré avec sauts de ligne pour lisibilité LinkedIn\\n3. Conclusion avec CTA selon les préférences\\n4. Hashtags selon la stratégie (en fin de post)\\n5. Authentique, voix de la marque, pas de plagiat\\n6. Longueur : ~${targetChars} caractères\\n7. Langue : français\\n\\nGénère le post LinkedIn.`;\n  messages = [{ role: 'user', content: userPrompt }];\n}\n\nreturn [{\n  json: {\n    systemPrompt,\n    messages,\n    model: 'claude-sonnet-4-6',\n    max_tokens: 1500\n  }\n}];"
+          "jsCode": "const post = $('Supabase - Get Post').item.json[0];\nconst bp   = $('Supabase - Get Brand Profile').item.json[0] || {};\n\n// \u2500\u2500 Source content\nlet rawSource = '';\nif (post.source_type === 'url') {\n  try {\n    const scraped = $('Supabase - Scrape URL').item.json;\n    rawSource = `Titre : ${scraped.title}\\n\\n${scraped.content}`;\n  } catch(e) {\n    rawSource = post.source_url || '';\n  }\n} else if (post.source_content) {\n  rawSource = post.source_content;\n} else if (post.content) {\n  rawSource = post.content;\n}\n\n// D\u00e9tecte [IMAGE:mime]base64\nconst imageMatch = rawSource.match(/\\[IMAGE:([^\\]]+)\\]([\\s\\S]+)$/);\nlet isImage = false, imageMimeType = '', imageBase64 = '', instructionsPrefix = '';\n\nif (imageMatch) {\n  isImage = true;\n  imageMimeType = imageMatch[1];\n  imageBase64 = imageMatch[2].trim();\n  const instrMatch = rawSource.match(/^Instructions\\s*:\\s*([\\s\\S]+?)\\n\\n---\\n\\n\\[IMAGE:/);\n  if (instrMatch) instructionsPrefix = instrMatch[1].trim().slice(0, 500);\n} else {\n  rawSource = rawSource.slice(0, 4000);\n}\n\n// \u2500\u2500 Brand profile\nconst tone = Array.isArray(bp.tone) ? bp.tone.join(', ') : (bp.tone || 'professionnel');\nconst keywords = Array.isArray(bp.keywords) ? bp.keywords.join(', ') : '';\nconst keywordsAvoid = Array.isArray(bp.keywords_avoid) ? bp.keywords_avoid.join(', ') : '';\nconst hashtags = Array.isArray(bp.hashtags_preferred) ? bp.hashtags_preferred.join(' ') : '';\nconst hashtagStrategy = bp.hashtag_strategy || 'medium';\nconst ctas = Array.isArray(bp.ctas_preferred) ? bp.ctas_preferred.join(', ') : '';\nconst examples = Array.isArray(bp.example_posts) && bp.example_posts.length > 0\n  ? bp.example_posts.slice(0,2).map((p, i) => `Exemple ${i+1}:\\n${String(p).slice(0,400)}`).join('\\n\\n')\n  : 'Aucun exemple fourni.';\nconst lengthMap = { short: '800-1200', medium: '1200-2000', long: '2000-3000' };\nconst targetChars = lengthMap[bp.post_length] || '1200-2000';\nconst emojiMap = { 0: 'Aucun emoji', 1: 'Tr\u00e8s peu (1-2 max)', 2: 'Mod\u00e9r\u00e9 (3-5)', 3: 'Beaucoup (6+)' };\nconst emojiUsage = emojiMap[bp.emoji_style] || 'Mod\u00e9r\u00e9 (3-5)';\n\nconst systemPrompt = `Tu es un expert en r\u00e9daction de posts LinkedIn pour ${bp.company_name || 'cette entreprise'}, une entreprise de ${bp.industry || 'ce secteur'}.\nTu r\u00e9diges des contenus professionnels, engageants et authentiques qui refl\u00e8tent la voix de la marque.\n\nProfil de marque :\n- Entreprise : ${bp.company_name} \u2014 ${(bp.description || '').slice(0,200)}\n- Audience cible : ${bp.target_audience || 'professionnels'}\n- Ton : ${tone}\n- Mots-cl\u00e9s \u00e0 int\u00e9grer : ${keywords || 'aucun sp\u00e9cifi\u00e9'}\n- Mots-cl\u00e9s interdits : ${keywordsAvoid || 'aucun'}\n- Emojis : ${emojiUsage}\n- Longueur cible : ~${targetChars} caract\u00e8res\n- Hashtags : strat\u00e9gie ${hashtagStrategy}, pr\u00e9f\u00e9r\u00e9s : ${hashtags || 'aucun'}\n- CTA pr\u00e9f\u00e9r\u00e9s : ${ctas || 'aucun sp\u00e9cifi\u00e9'}\n\nExemples de posts appr\u00e9ci\u00e9s :\n${examples}`;\n\n// \u2500\u2500 Build messages\nlet messages;\n\nif (isImage) {\n  let textInstruction;\n  if (instructionsPrefix) {\n    textInstruction = `\u00c9TAPE 1 \u2014 Lis attentivement l'image et transcris mentalement tout le texte visible.\\n\\n\u00c9TAPE 2 \u2014 Applique EXACTEMENT cette instruction sur ce texte :\\n\"${instructionsPrefix}\"\\n\\n\u00c9TAPE 3 \u2014 Formate le r\u00e9sultat en post LinkedIn :\\n- Langue : fran\u00e7ais\\n- Longueur : ~${targetChars} caract\u00e8res\\n- Emojis : ${emojiUsage}\\n- Hashtags en fin de post : ${hashtags || 'selon le sujet'}\\n- Signature : ${bp.signature || 'aucune'}\\n\\nIMPORTANT : Base-toi UNIQUEMENT sur le contenu visible dans l'image.`;\n  } else {\n    textInstruction = `\u00c9TAPE 1 \u2014 Lis attentivement l'image et transcris mentalement tout le texte visible.\\n\\n\u00c9TAPE 2 \u2014 R\u00e9dige un post LinkedIn professionnel bas\u00e9 sur ce contenu.\\n\\nConsignes :\\n1. Accroche percutante en premi\u00e8re ligne\\n2. D\u00e9veloppement structur\u00e9 avec sauts de ligne\\n3. Conclusion avec CTA\\n4. Hashtags en fin de post\\n5. Longueur : ~${targetChars} caract\u00e8res\\n6. Langue : fran\u00e7ais\\n\\nIMPORTANT : Base-toi UNIQUEMENT sur le contenu visible dans l'image.`;\n  }\n  messages = [{\n    role: 'user',\n    content: [\n      { type: 'image', source: { type: 'base64', media_type: imageMimeType, data: imageBase64 } },\n      { type: 'text', text: textInstruction }\n    ]\n  }];\n} else {\n  const userPrompt = `Source du post :\\n- Type : ${post.source_type || 'manual'}\\n- Contenu : ${rawSource}\\n\\nConsignes :\\n1. Accroche percutante en premi\u00e8re ligne (hook avant \"...voir plus\")\\n2. D\u00e9veloppement structur\u00e9 avec sauts de ligne\\n3. Conclusion avec CTA\\n4. Hashtags en fin de post\\n5. Longueur : ~${targetChars} caract\u00e8res\\n6. Langue : fran\u00e7ais\\n\\nG\u00e9n\u00e8re le post LinkedIn.`;\n  messages = [{ role: 'user', content: userPrompt }];\n}\n\n// Pr\u00e9-s\u00e9rialiser le body Claude pour \u00e9viter les probl\u00e8mes de s\u00e9rialisation n8n\n// avec les objets imbriqu\u00e9s (notamment le base64 image)\nconst claudeRequestBody = JSON.stringify({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 1500,\n  system: systemPrompt,\n  messages: messages\n});\n\nreturn [{ json: { claudeRequestBody } }];"
         }
       },
       {
@@ -771,10 +771,10 @@
               }
             ]
           },
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ model: $json.model, max_tokens: $json.max_tokens, system: $json.systemPrompt, messages: $json.messages }) }}",
-          "options": {}
+          "specifyBody": "string",
+          "options": {},
+          "body": "={{ $json.claudeRequestBody }}",
+          "sendBody": true
         }
       },
       {
@@ -787,7 +787,7 @@
           300
         ],
         "parameters": {
-          "jsCode": "const claudeResponse = $('Claude API - Generate').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourné aucun contenu');\n}\n\n// Version number\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId       = $('Webhook - generate-post').item.json.body.post_id;\nconst orgId        = $('Webhook - generate-post').item.json.body.organization_id;\n\nreturn [{\n  json: { content, versionNumber, postId, orgId }\n}];"
+          "jsCode": "const claudeResponse = $('Claude API - Generate').item.json;\nconst content = claudeResponse.content?.[0]?.text || '';\n\nif (!content) {\n  throw new Error('Claude n\\'a retourn\u00e9 aucun contenu');\n}\n\n// Version number\nconst maxVersionData = $('Supabase - Get Max Version').item.json;\nconst maxVersion = Array.isArray(maxVersionData) && maxVersionData.length > 0\n  ? (maxVersionData[0].version_number || 0)\n  : 0;\nconst versionNumber = maxVersion + 1;\n\nconst postId       = $('Webhook - generate-post').item.json.body.post_id;\nconst orgId        = $('Webhook - generate-post').item.json.body.organization_id;\n\nreturn [{\n  json: { content, versionNumber, postId, orgId }\n}];"
         }
       },
       {
@@ -807,7 +807,7 @@
             "parameters": [
               {
                 "name": "apikey",
-                "value": "sb_publishable_w6ncEkF6rqpfzT0dVIqb9w_pEcSi2K8"
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbGdic2tjdmltZW13dHdweHlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjM2NTcsImV4cCI6MjA4NzMzOTY1N30.WQ8iMnCTuL6oGp8nU5YE8tiXfjCYYQks0qfnbhT3wmk"
               },
               {
                 "name": "Authorization",
