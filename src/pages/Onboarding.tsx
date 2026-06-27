@@ -1,7 +1,7 @@
 // PostPilot — Page Onboarding (wizard 6 étapes) — Sprint 1
 // StepCompany → StepStyle → StepKeywords → StepExamples → StepContacts → LinkedIn → Dashboard
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { Zap, ChevronRight, ChevronLeft, Check, Loader2, SkipForward, Linkedin } from 'lucide-react'
@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useOrganization } from '@/hooks/useOrganization'
 import { connectLinkedIn } from '@/lib/api'
 import { StepCompany }   from '@/components/onboarding/StepCompany'
 import { StepStyle }     from '@/components/onboarding/StepStyle'
@@ -134,15 +135,32 @@ export default function Onboarding() {
   const [data,           setData]           = useState<WizardData>(INITIAL)
   const [saving,         setSaving]         = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
-  // Contacts CSV pré-importés à l'étape 5 (stockés en mémoire, insérés dans handleFinish)
   const [pendingContacts, setPendingContacts] = useState<ParsedContact[]>([])
-  // org_id créé à la fin de l'étape 5, utilisé pour l'OAuth LinkedIn à l'étape 6
   const [createdOrgId, setCreatedOrgId] = useState<string | null>(null)
   const [connectingLinkedIn, setConnectingLinkedIn] = useState(false)
 
   const { user }     = useAuth()
   const navigate     = useNavigate()
   const queryClient  = useQueryClient()
+  const { brandProfile, organizationId, hasNoOrganization, loading: orgLoading } = useOrganization()
+
+  // Pre-fill form once brandProfile loads (edit mode)
+  useEffect(() => {
+    if (brandProfile) {
+      setData(buildWizardDataFromProfile(brandProfile))
+    }
+  }, [brandProfile])
+
+  // Show loader while org/profile fetch is in flight
+  if (orgLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0077B5]" />
+      </div>
+    )
+  }
+
+  const isEditMode = !hasNoOrganization
 
   // ── Helpers de mise à jour partielle ──────────────────────────────────────
 
@@ -158,63 +176,86 @@ export default function Onboarding() {
     setSaving(true)
 
     try {
-      // 1. Créer l'organisation via RPC SECURITY DEFINER ────────────────────
-      // (contournement du bug auth.uid() NULL avec JWT ES256 sur nouveaux projets Supabase)
-      setUploadProgress('Création de votre espace…')
+      let targetOrgId: string
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: orgId, error: orgError } = await (supabase.rpc as any)(
-        'create_my_organization', { p_name: data.company.company_name.trim() }
-      )
+      if (hasNoOrganization) {
+        // ── Mode création ──────────────────────────────────────────────────────
 
-      if (orgError) throw orgError
-      const org = { id: orgId as string }
-
-      // 2. Initialiser le trial Solo 30 jours ───────────────────────────────
-      // Non bloquant : si ça échoue, l'onboarding continue quand même
-      try {
+        setUploadProgress('Création de votre espace…')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.rpc as any)('init_trial_subscription', { org_id: org.id })
-      } catch (trialErr) {
-        console.error('[onboarding] init_trial_subscription error', trialErr)
+        const { data: orgId, error: orgError } = await (supabase.rpc as any)(
+          'create_my_organization', { p_name: data.company.company_name.trim() }
+        )
+        if (orgError) throw orgError
+        targetOrgId = orgId as string
+
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.rpc as any)('init_trial_subscription', { org_id: targetOrgId })
+        } catch (trialErr) {
+          console.error('[onboarding] init_trial_subscription error', trialErr)
+        }
+
+        setUploadProgress('Enregistrement de votre profil…')
+        const examplePostsCreate = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
+        const { error: insertError } = await supabase
+          .from('brand_profiles')
+          .insert({
+            organization_id:    targetOrgId,
+            company_name:       data.company.company_name.trim(),
+            description:        data.company.description.trim(),
+            industry:           data.company.industry,
+            target_audience:    data.company.target_audience.trim() || null,
+            tone:               data.style.tone,
+            emoji_style:        data.style.emoji_style,
+            post_length:        data.style.post_length,
+            signature:          data.style.signature.trim() || null,
+            keywords:           data.keywords.keywords.length    ? data.keywords.keywords    : null,
+            keywords_avoid:     data.keywords.keywords_avoid,
+            hashtags_preferred: data.keywords.hashtags_preferred,
+            hashtag_strategy:   data.keywords.hashtag_strategy,
+            ctas_preferred:     data.keywords.ctas_preferred,
+            example_posts:      examplePostsCreate.length ? examplePostsCreate : null,
+            posting_frequency:  3,
+          })
+        if (insertError) throw insertError
+
+      } else {
+        // ── Mode édition ───────────────────────────────────────────────────────
+        targetOrgId = organizationId!
+
+        setUploadProgress('Mise à jour de votre profil…')
+        const examplePostsEdit = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
+        const { error: updateError } = await supabase
+          .from('brand_profiles')
+          .update({
+            company_name:       data.company.company_name.trim(),
+            description:        data.company.description.trim(),
+            industry:           data.company.industry,
+            target_audience:    data.company.target_audience.trim() || null,
+            tone:               data.style.tone,
+            emoji_style:        data.style.emoji_style,
+            post_length:        data.style.post_length,
+            signature:          data.style.signature.trim() || null,
+            keywords:           data.keywords.keywords.length    ? data.keywords.keywords    : null,
+            keywords_avoid:     data.keywords.keywords_avoid,
+            hashtags_preferred: data.keywords.hashtags_preferred,
+            hashtag_strategy:   data.keywords.hashtag_strategy,
+            ctas_preferred:     data.keywords.ctas_preferred,
+            example_posts:      examplePostsEdit.length ? examplePostsEdit : null,
+          })
+          .eq('organization_id', targetOrgId)
+        if (updateError) throw updateError
       }
 
-      // 4. Insérer le profil de marque ───────────────────────────────────────
-      setUploadProgress('Enregistrement de votre profil…')
-      const examplePosts = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
-
-      const { error: profileError } = await supabase
-        .from('brand_profiles')
-        .insert({
-          organization_id:    org.id,
-          company_name:       data.company.company_name.trim(),
-          description:        data.company.description.trim(),
-          industry:           data.company.industry,
-          target_audience:    data.company.target_audience.trim() || null,
-          tone:               data.style.tone,
-          emoji_style:        data.style.emoji_style,
-          post_length:        data.style.post_length,
-          signature:          data.style.signature.trim() || null,
-          keywords:           data.keywords.keywords.length    ? data.keywords.keywords    : null,
-          keywords_avoid:     data.keywords.keywords_avoid,
-          hashtags_preferred: data.keywords.hashtags_preferred,
-          hashtag_strategy:   data.keywords.hashtag_strategy,
-          ctas_preferred:     data.keywords.ctas_preferred,
-          example_posts:      examplePosts.length ? examplePosts : null,
-          posting_frequency:  3,
-        })
-
-      if (profileError) throw profileError
-
-      // 5. Upload des documents + génération d'embeddings ────────────────────
+      // ── Upload documents (commun aux deux modes) ────────────────────────────
       const files = data.examples.files
       if (files.length > 0) {
         for (let i = 0; i < files.length; i++) {
           const file = files[i]
           setUploadProgress(`Upload du document ${i + 1}/${files.length}…`)
 
-          // 3a. Upload dans Supabase Storage (bucket "documents")
-          const storagePath = `${org.id}/${Date.now()}-${file.name}`
+          const storagePath = `${targetOrgId}/${Date.now()}-${file.name}`
           const { error: uploadError } = await supabase.storage
             .from('documents')
             .upload(storagePath, file, { upsert: false })
@@ -229,11 +270,10 @@ export default function Onboarding() {
             .from('documents')
             .getPublicUrl(storagePath)
 
-          // 3b. Insérer la row documents
           const { data: doc, error: docError } = await supabase
             .from('documents')
             .insert({
-              organization_id: org.id,
+              organization_id: targetOrgId,
               title:           file.name,
               file_url:        urlData.publicUrl,
               file_type:       file.type || 'application/octet-stream',
@@ -247,7 +287,6 @@ export default function Onboarding() {
             continue
           }
 
-          // 3c. Embedding (TXT uniquement côté client — PDF/DOCX via page Documents)
           if (file.type === 'text/plain') {
             try {
               const text = await readTextFile(file)
@@ -256,18 +295,17 @@ export default function Onboarding() {
               })
             } catch (embErr) {
               console.error('[onboarding] embedding error', embErr)
-              // Non bloquant : l'embedding peut être déclenché manuellement
             }
           }
         }
       }
 
-      // 6. Importer les contacts CSV si l'utilisateur en a ajouté ────────────
+      // ── Import contacts (commun aux deux modes) ─────────────────────────────
       if (pendingContacts.length > 0) {
         setUploadProgress(`Import de ${pendingContacts.length} contacts…`)
         try {
           const rows = pendingContacts.map((c) => ({
-            organization_id: org.id,
+            organization_id: targetOrgId,
             name: c.name.trim(),
             type: 'person',
             linkedin_url: null,
@@ -280,16 +318,15 @@ export default function Onboarding() {
             .upsert(rows, { onConflict: 'organization_id,name', ignoreDuplicates: true })
         } catch (contactErr) {
           console.error('[onboarding] contacts import error', contactErr)
-          // Non bloquant — l'utilisateur peut réimporter depuis les Settings
         }
       }
 
-      // 7. Invalider le cache → ProtectedRoute se met à jour ────────────────
+      // ── Invalider le cache ──────────────────────────────────────────────────
       await queryClient.invalidateQueries({ queryKey: ['membership', user.id] })
+      await queryClient.invalidateQueries({ queryKey: ['brand_profile', targetOrgId] })
 
-      toast.success('Votre profil de marque est configuré ! 🎉')
-      // Passer à l'étape 6 (LinkedIn) au lieu de naviguer directement
-      setCreatedOrgId(org.id)
+      toast.success(hasNoOrganization ? 'Votre profil de marque est configuré ! 🎉' : 'Profil mis à jour ! 🎉')
+      setCreatedOrgId(targetOrgId)
       setStep(6)
 
     } catch (err) {
@@ -305,10 +342,11 @@ export default function Onboarding() {
   // ── Connexion LinkedIn (étape 6) ──────────────────────────────────────────
 
   const handleConnectLinkedIn = async () => {
-    if (!createdOrgId) return
+    const targetOrgId = createdOrgId ?? organizationId
+    if (!targetOrgId) return
     setConnectingLinkedIn(true)
     try {
-      const { oauth_url } = await connectLinkedIn(createdOrgId)
+      const { oauth_url } = await connectLinkedIn(targetOrgId)
       window.location.href = oauth_url
     } catch (err) {
       toast.error((err as Error).message)
@@ -331,6 +369,13 @@ export default function Onboarding() {
         </div>
         <span className="font-bold text-gray-900 text-xl tracking-tight">PostPilot</span>
       </div>
+
+      {/* Bandeau mode édition */}
+      {isEditMode && (
+        <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 mb-4 max-w-md text-center">
+          Mise à jour du profil — vos données actuelles sont pré-remplies
+        </div>
+      )}
 
       {/* Stepper */}
       <nav className="flex items-center gap-1 mb-6" aria-label="Progression du wizard">
@@ -461,7 +506,7 @@ export default function Onboarding() {
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(isEditMode ? '/settings?tab=compte' : '/dashboard')}
                 className="text-gray-500"
               >
                 <SkipForward className="h-4 w-4 mr-1" />
