@@ -20,6 +20,7 @@ import type { StepStyleData }     from '@/components/onboarding/StepStyle'
 import type { StepKeywordsData }  from '@/components/onboarding/StepKeywords'
 import type { StepExamplesData }  from '@/components/onboarding/StepExamples'
 import type { ParsedContact }     from '@/components/contacts/LinkedInCSVImport'
+import type { BrandProfile }      from '@/types/database'
 
 // ─── Wizard state ─────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ const INITIAL: WizardData = {
 
 // ─── Helper : convertit un BrandProfile existant en WizardData ────────────────
 
-export function buildWizardDataFromProfile(bp: import('@/types/database').BrandProfile): WizardData {
+export function buildWizardDataFromProfile(bp: BrandProfile): WizardData {
   const posts = bp.example_posts ?? []
   return {
     company: {
@@ -81,7 +82,7 @@ export function buildWizardDataFromProfile(bp: import('@/types/database').BrandP
       ctas_preferred:     bp.ctas_preferred       ?? [],
     },
     examples: {
-      example_posts: [...posts, '', '', ''].slice(0, 3),
+      example_posts: ([...posts, '', '', ''].slice(0, 3)) as [string, string, string],
       files:         [],
     },
   }

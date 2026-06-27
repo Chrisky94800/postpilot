@@ -1181,4 +1181,9 @@ describe('buildWizardDataFromProfile', () => {
     expect(result.keywords.keywords).toEqual([])
     expect(result.examples.example_posts).toEqual(['', '', ''])
   })
+
+  it('preserves emoji_style: 0 (falsy but valid)', () => {
+    const result = buildWizardDataFromProfile({ ...base, emoji_style: 0 })
+    expect(result.style.emoji_style).toBe(0)
+  })
 })
