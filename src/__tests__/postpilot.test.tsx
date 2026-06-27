@@ -1092,3 +1092,93 @@ describe('Composant — AIExchangePanel', () => {
     expect(screen.getByText('Rends-le plus court.')).toBeDefined()
   })
 })
+
+// ─── Onboarding — buildWizardDataFromProfile ──────────────────────────────────
+
+import { buildWizardDataFromProfile } from '@/pages/Onboarding'
+import type { BrandProfile } from '@/types/database'
+
+describe('buildWizardDataFromProfile', () => {
+  const now = new Date().toISOString()
+
+  const base: BrandProfile = {
+    id: 'bp-1',
+    organization_id: 'org-1',
+    company_name: 'Acme',
+    industry: 'tech',
+    description: 'We build things',
+    target_audience: 'Developers',
+    tone: ['professionnel', 'direct'],
+    emoji_style: 3,
+    post_length: 'long',
+    signature: 'CEO @ Acme',
+    keywords: ['SaaS', 'IA'],
+    keywords_avoid: ['cheap'],
+    hashtags_preferred: ['#tech'],
+    hashtag_strategy: 'few',
+    ctas_preferred: ['Dites-moi en commentaires…'],
+    example_posts: ['Post 1', 'Post 2'],
+    posting_frequency: 3,
+    preferred_days: null,
+    preferred_time: null,
+    created_at: now,
+    updated_at: now,
+  }
+
+  it('maps company fields', () => {
+    const result = buildWizardDataFromProfile(base)
+    expect(result.company).toEqual({
+      company_name: 'Acme',
+      description: 'We build things',
+      industry: 'tech',
+      target_audience: 'Developers',
+    })
+  })
+
+  it('maps style fields', () => {
+    const result = buildWizardDataFromProfile(base)
+    expect(result.style).toEqual({
+      tone: ['professionnel', 'direct'],
+      emoji_style: 3,
+      post_length: 'long',
+      signature: 'CEO @ Acme',
+    })
+  })
+
+  it('maps keyword fields', () => {
+    const result = buildWizardDataFromProfile(base)
+    expect(result.keywords).toEqual({
+      keywords: ['SaaS', 'IA'],
+      keywords_avoid: ['cheap'],
+      hashtags_preferred: ['#tech'],
+      hashtag_strategy: 'few',
+      ctas_preferred: ['Dites-moi en commentaires…'],
+    })
+  })
+
+  it('pads example_posts array to 3 entries', () => {
+    const result = buildWizardDataFromProfile(base)
+    expect(result.examples.example_posts).toEqual(['Post 1', 'Post 2', ''])
+    expect(result.examples.files).toEqual([])
+  })
+
+  it('handles null fields with safe defaults', () => {
+    const sparse: BrandProfile = {
+      ...base,
+      company_name: null,
+      description: null,
+      industry: null,
+      target_audience: null,
+      tone: null,
+      keywords: null,
+      example_posts: null,
+      signature: null,
+    }
+    const result = buildWizardDataFromProfile(sparse)
+    expect(result.company.company_name).toBe('')
+    expect(result.company.description).toBe('')
+    expect(result.style.tone).toEqual([])
+    expect(result.keywords.keywords).toEqual([])
+    expect(result.examples.example_posts).toEqual(['', '', ''])
+  })
+})

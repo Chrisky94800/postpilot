@@ -56,6 +56,37 @@ const INITIAL: WizardData = {
   },
 }
 
+// ─── Helper : convertit un BrandProfile existant en WizardData ────────────────
+
+export function buildWizardDataFromProfile(bp: import('@/types/database').BrandProfile): WizardData {
+  const posts = bp.example_posts ?? []
+  return {
+    company: {
+      company_name:    bp.company_name    ?? '',
+      description:     bp.description     ?? '',
+      industry:        bp.industry        ?? '',
+      target_audience: bp.target_audience ?? '',
+    },
+    style: {
+      tone:        bp.tone        ?? [],
+      emoji_style: bp.emoji_style ?? 2,
+      post_length: bp.post_length ?? 'medium',
+      signature:   bp.signature   ?? '',
+    },
+    keywords: {
+      keywords:           bp.keywords           ?? [],
+      keywords_avoid:     bp.keywords_avoid      ?? [],
+      hashtags_preferred: bp.hashtags_preferred  ?? [],
+      hashtag_strategy:   bp.hashtag_strategy    ?? 'medium',
+      ctas_preferred:     bp.ctas_preferred       ?? [],
+    },
+    examples: {
+      example_posts: [...posts, '', '', ''].slice(0, 3),
+      files:         [],
+    },
+  }
+}
+
 // ─── Étapes ───────────────────────────────────────────────────────────────────
 
 const STEPS = [
