@@ -847,6 +847,21 @@ function CompteTab() {
         </CardContent>
       </Card>
 
+      {/* Reconfigurer le profil de marque */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Profil de marque</CardTitle>
+          <CardDescription>
+            Parcourez à nouveau le wizard pour mettre à jour les informations de votre entreprise, votre style et vos mots-clés.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={() => navigate('/onboarding')}>
+            Reconfigurer le profil
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Abonnement */}
       <Card>
         <CardHeader>
