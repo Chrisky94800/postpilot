@@ -1,7 +1,7 @@
 // PostPilot — Page Onboarding (wizard 6 étapes) — Sprint 1
 // StepCompany → StepStyle → StepKeywords → StepExamples → StepContacts → LinkedIn → Dashboard
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { Zap, ChevronRight, ChevronLeft, Check, Loader2, SkipForward, Linkedin } from 'lucide-react'
@@ -144,9 +144,11 @@ export default function Onboarding() {
   const queryClient  = useQueryClient()
   const { brandProfile, organizationId, hasNoOrganization, loading: orgLoading } = useOrganization()
 
-  // Pre-fill form once brandProfile loads (edit mode)
+  // Pre-fill form once on mount when brandProfile is available (edit mode)
+  const prefillApplied = useRef(false)
   useEffect(() => {
-    if (brandProfile) {
+    if (brandProfile && !prefillApplied.current) {
+      prefillApplied.current = true
       setData(buildWizardDataFromProfile(brandProfile))
     }
   }, [brandProfile])
@@ -177,6 +179,7 @@ export default function Onboarding() {
 
     try {
       let targetOrgId: string
+      const examplePosts = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
 
       if (hasNoOrganization) {
         // ── Mode création ──────────────────────────────────────────────────────
@@ -197,7 +200,6 @@ export default function Onboarding() {
         }
 
         setUploadProgress('Enregistrement de votre profil…')
-        const examplePostsCreate = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
         const { error: insertError } = await supabase
           .from('brand_profiles')
           .insert({
@@ -215,17 +217,17 @@ export default function Onboarding() {
             hashtags_preferred: data.keywords.hashtags_preferred,
             hashtag_strategy:   data.keywords.hashtag_strategy,
             ctas_preferred:     data.keywords.ctas_preferred,
-            example_posts:      examplePostsCreate.length ? examplePostsCreate : null,
+            example_posts:      examplePosts.length ? examplePosts : null,
             posting_frequency:  3,
           })
         if (insertError) throw insertError
 
       } else {
         // ── Mode édition ───────────────────────────────────────────────────────
-        targetOrgId = organizationId!
+        if (!organizationId) throw new Error('organizationId manquant en mode édition')
+        targetOrgId = organizationId
 
         setUploadProgress('Mise à jour de votre profil…')
-        const examplePostsEdit = data.examples.example_posts.filter((p: string) => p.trim().length > 0)
         const { error: updateError } = await supabase
           .from('brand_profiles')
           .update({
@@ -242,7 +244,7 @@ export default function Onboarding() {
             hashtags_preferred: data.keywords.hashtags_preferred,
             hashtag_strategy:   data.keywords.hashtag_strategy,
             ctas_preferred:     data.keywords.ctas_preferred,
-            example_posts:      examplePostsEdit.length ? examplePostsEdit : null,
+            example_posts:      examplePosts.length ? examplePosts : null,
           })
           .eq('organization_id', targetOrgId)
         if (updateError) throw updateError
